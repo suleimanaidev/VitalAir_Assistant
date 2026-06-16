@@ -1,0 +1,20 @@
+WHO Air Pollution Health Guidelines (Summary)
+
+Short-term exposure to fine particulate matter (PM2.5) increases respiratory symptoms,
+cardiovascular stress, and hospital admissions. Sensitive groups include children,
+elderly adults, and people with asthma or chronic lung disease.
+
+When AQI exceeds 150 (Unhealthy), limit prolonged outdoor exertion. Above 200
+(Very Unhealthy), all groups should avoid outdoor activity. N95 or equivalent
+respirators reduce inhalation of fine particles when outdoor exposure is unavoidable.
+
+Patients with asthma should keep rescue inhalers accessible, monitor peak flow,
+and follow their action plan during smog episodes. Indoor air can be improved
+with HEPA filtration and keeping windows closed during peak pollution hours.
+
+Medical advice should always be personalized based on age, comorbidities, and
+medication use. Consult a physician for severe symptoms including chest pain,
+persistent cough, or breathing difficulty.
+
+Reference: WHO ambient air quality guidelines emphasize reducing PM2.5 exposure
+to protect public health in high-pollution urban environments such as Lahore.

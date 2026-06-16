@@ -1,0 +1,12 @@
+# Optional: RAG + ChromaDB (run after requirements-core.txt)
+langchain>=0.3.0
+langchain-community>=0.3.0
+langchain-chroma>=0.2.0
+chromadb>=0.5.0
+sentence-transformers>=3.0.0
+pypdf>=5.0.0
+
+# Optional: live CrewAI agents
+# crewai>=1.11.0
+# crewai-tools>=0.14.0
+# langchain-google-genai>=2.0.0

@@ -1,0 +1,5 @@
+-r requirements-core.txt
+
+# Optional: install for live CrewAI agents (Python 3.10–3.13 recommended)
+# OpenAI: pip install "crewai>=1.11.0" "crewai-tools>=0.14.0" "langchain-openai>=0.2.0"
+# Gemini: pip install "crewai>=1.11.0" "crewai-tools>=0.14.0" "langchain-google-genai>=2.0.0"

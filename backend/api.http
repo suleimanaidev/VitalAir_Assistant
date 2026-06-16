@@ -1,0 +1,51 @@
+### VitalAir API — run with REST Client (VS Code) or copy as curl
+
+@base = http://localhost:8000
+
+### Health
+GET {{base}}/api/health
+
+### AQI
+GET {{base}}/api/aqi?city=Lahore
+
+### Profile
+POST {{base}}/api/profile
+Content-Type: application/json
+
+{
+  "name": "Suleiman",
+  "age": 22,
+  "conditions": ["asthma"],
+  "city": "Lahore"
+}
+
+### Analyze (minimal body)
+POST {{base}}/api/analyze
+Content-Type: application/json
+
+{
+  "profile": {
+    "conditions": ["asthma"]
+  },
+  "query": {
+    "source": "Gulberg",
+    "destination": "DHA"
+  }
+}
+
+### Analyze (full body)
+POST {{base}}/api/analyze
+Content-Type: application/json
+
+{
+  "profile": {
+    "name": "Suleiman",
+    "age": 22,
+    "conditions": ["asthma"],
+    "city": "Lahore"
+  },
+  "query": {
+    "source": "Gulberg",
+    "destination": "DHA Phase 5"
+  }
+}

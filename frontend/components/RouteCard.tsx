@@ -1,0 +1,107 @@
+"use client";
+
+import { MapPin, Route } from "lucide-react";
+import { aqiLabel } from "@/lib/aqi";
+
+export interface RouteOption {
+  rank: number;
+  label: string;
+  distance: string;
+  duration?: string;
+  avg_aqi: number;
+  exposure: string;
+  waypoints: string[];
+  via_areas: string[];
+  recommendation?: string;
+}
+
+export interface RouteCardProps {
+  from?: string;
+  to?: string;
+  routeOptions?: RouteOption[];
+  emptyMessage?: string;
+}
+
+function aqiBadgeClass(aqi: number): string {
+  if (aqi >= 200) return "bg-red-500/20 text-red-300 border-red-500/40";
+  if (aqi >= 150) return "bg-orange-500/20 text-orange-300 border-orange-500/40";
+  if (aqi >= 100) return "bg-amber-500/20 text-amber-300 border-amber-500/40";
+  return "bg-emerald-500/20 text-emerald-300 border-emerald-500/40";
+}
+
+/** Three low-AQI route options from analyze API */
+export default function RouteCard({
+  from,
+  to,
+  routeOptions = [],
+  emptyMessage = "Enter source and destination, then tap Analyze.",
+}: RouteCardProps) {
+  const hasRoute = Boolean(from && to && routeOptions.length > 0);
+
+  return (
+    <article className="vital-card p-5">
+      <header className="flex items-center gap-2">
+        <Route className="h-5 w-5 text-vital-primary" aria-hidden />
+        <div>
+          <h2 className="font-semibold">Route suggestions</h2>
+          {hasRoute && (
+            <p className="text-xs text-vital-muted">
+              {from} → {to} · 3 paths ranked by lowest AQI
+            </p>
+          )}
+        </div>
+      </header>
+
+      {hasRoute ? (
+        <ol className="mt-4 space-y-3">
+          {routeOptions.map((opt) => (
+            <li
+              key={opt.rank}
+              className="rounded-lg border border-vital-border/50 bg-vital-bg/40 p-4"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium text-vital-text">
+                    <span className="mr-2 inline-flex h-5 w-5 items-center justify-center rounded-full bg-vital-primary/15 text-xs font-bold text-vital-primary">
+                      {opt.rank}
+                    </span>
+                    {opt.label}
+                  </p>
+                  <p className="mt-1 text-xs text-vital-muted">
+                    {opt.distance}
+                    {opt.duration ? ` · ${opt.duration}` : ""}
+                    {opt.exposure ? ` · ${opt.exposure} exposure` : ""}
+                  </p>
+                </div>
+                <span
+                  className={`shrink-0 rounded-md border px-2 py-0.5 text-xs font-semibold ${aqiBadgeClass(opt.avg_aqi)}`}
+                  title={aqiLabel(opt.avg_aqi)}
+                >
+                  AQI {opt.avg_aqi}
+                </span>
+              </div>
+
+              {opt.via_areas.length > 0 && (
+                <p className="mt-2 flex items-start gap-1.5 text-xs text-vital-primary">
+                  <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
+                  <span>
+                    Low-AQI corridor via{" "}
+                    <strong>{opt.via_areas.join(", ")}</strong>
+                  </span>
+                </p>
+              )}
+
+              {opt.waypoints.length > 0 && (
+                <p className="mt-2 text-xs text-vital-muted">
+                  {opt.waypoints.join(" → ")}
+                </p>
+              )}
+            </li>
+          ))}
+        </ol>
+      ) : (
+        <p className="mt-4 text-sm text-vital-muted">{emptyMessage}</p>
+      )}
+    </article>
+  );
+}
