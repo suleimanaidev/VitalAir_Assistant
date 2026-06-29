@@ -1,25 +1,27 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import Link from "next/link";
-import { AnimatePresence, motion } from "framer-motion";
+import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
+import { useEffect } from "react";
+import { motion } from "framer-motion";
 import {
   ArrowRight,
   BarChart3,
   Bot,
   FileText,
   Gauge,
-  Loader2,
   MapPin,
   Microscope,
 } from "lucide-react";
 
-import { aqiHealthHint, formatAqiUpdated, type LiveAqiPayload } from "@/lib/aqi";
+import { LandingHealthAnimations } from "@/components/animations/HealthMotionGraphics";
+import { authLink } from "@/lib/authLinks";
 
 const HERO_STATS = [
-  { icon: Bot, label: "Smart assistants", value: "4 working together" },
-  { icon: Gauge, label: "Your risk score", value: "Easy 0–100" },
-  { icon: FileText, label: "Your prescriptions", value: "Upload & use" },
+  { icon: Bot, title: "4 AI assistants" },
+  { icon: Gauge, title: "Risk score 0–100" },
+  { icon: FileText, title: "Prescriptions" },
 ] as const;
 
 const HERO_PILLS = [
@@ -27,6 +29,21 @@ const HERO_PILLS = [
   { icon: BarChart3, text: "30-day history" },
   { icon: Microscope, text: "Clear explanations" },
 ] as const;
+
+/** Static demo AQI shown on the landing hero (no API call). */
+const DEMO_AQI = {
+  city: "Lahore",
+  station: "Lahore",
+  value: 142,
+  label: "Unhealthy for Sensitive Groups",
+  pm25Index: 142,
+  pollutant: "PM25",
+  updatedLabel: "Live snapshot",
+  adviceEn:
+    "Sensitive individuals should reduce prolonged outdoor exertion and keep a mask handy.",
+  adviceUr:
+    "Sensitive log lambi outdoor activity kam karein aur mask saath rakhein.",
+} as const;
 
 const container = {
   hidden: { opacity: 0 },
@@ -42,38 +59,21 @@ const item = {
 };
 
 export default function HeroSection() {
-  const [aqi, setAqi] = useState<LiveAqiPayload | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
+  const { status } = useSession();
+  const isAuthenticated = status === "authenticated";
 
   useEffect(() => {
-    let cancelled = false;
-    void fetch("/api/aqi", { cache: "no-store" })
-      .then(async (res) => {
-        if (!res.ok) throw new Error("AQI unavailable");
-        return res.json() as Promise<LiveAqiPayload>;
-      })
-      .then((data) => {
-        if (!cancelled) setAqi(data);
-      })
-      .catch((err) => {
-        if (!cancelled) {
-          setError(err instanceof Error ? err.message : "Failed to load AQI");
-        }
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+    router.prefetch("/login");
+    router.prefetch("/dashboard");
+    router.prefetch("/onboarding");
+  }, [router]);
 
-  const value = aqi?.aqi ?? null;
-  const isHazardous = value != null && value >= 150;
+  const isHazardous = DEMO_AQI.value >= 150;
 
   return (
     <section className="relative pt-24 pb-16 sm:pt-28 sm:pb-24 lg:pb-32">
+      <LandingHealthAnimations />
       <motion.div
         className="pointer-events-none absolute inset-0 bg-grid-pattern opacity-30"
         initial={{ opacity: 0 }}
@@ -129,7 +129,11 @@ export default function HeroSection() {
                 whileHover={{ scale: 1.03 }}
                 whileTap={{ scale: 0.98 }}
               >
-                <Link href="/onboarding" className="btn-primary">
+                <Link
+                  href={authLink("/onboarding", isAuthenticated, "register")}
+                  prefetch
+                  className="btn-primary"
+                >
                   Get started
                   <ArrowRight
                     className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1"
@@ -138,26 +142,29 @@ export default function HeroSection() {
                 </Link>
               </motion.div>
               <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.98 }}>
-                <Link href="/dashboard" className="btn-secondary">
+                <Link
+                  href={authLink("/dashboard", isAuthenticated)}
+                  prefetch
+                  className="btn-secondary"
+                >
                   Open dashboard
                 </Link>
               </motion.div>
             </motion.div>
 
-            <ul className="mt-10 grid gap-4 sm:grid-cols-3">
-              {HERO_STATS.map(({ icon: Icon, label, value: statVal }) => (
+            <ul className="mt-10 grid gap-2 sm:grid-cols-3">
+              {HERO_STATS.map(({ icon: Icon, title }) => (
                 <motion.li
-                  key={label}
-                  className="group vital-card-hover flex cursor-default items-center gap-3 rounded-lg border border-vital-border bg-vital-card/50 px-4 py-3"
+                  key={title}
+                  className="group vital-card-hover flex cursor-default items-center gap-2 rounded-xl border border-vital-border bg-vital-card/50 px-3 py-2.5 sm:px-3.5"
                   whileHover={{ scale: 1.02 }}
                 >
-                  <span className="flex h-10 w-10 items-center justify-center rounded-md bg-vital-primary/10 transition-colors duration-300 group-hover:bg-vital-primary/25">
-                    <Icon className="h-5 w-5 text-vital-primary" aria-hidden />
+                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-vital-primary/10 transition-colors duration-300 group-hover:bg-vital-primary/25">
+                    <Icon className="h-4 w-4 text-vital-primary" aria-hidden />
                   </span>
-                  <div>
-                    <p className="text-xs text-vital-muted">{label}</p>
-                    <p className="font-medium text-vital-text">{statVal}</p>
-                  </div>
+                  <p className="text-xs font-semibold leading-snug text-vital-text sm:text-sm">
+                    {title}
+                  </p>
                 </motion.li>
               ))}
             </ul>
@@ -176,118 +183,64 @@ export default function HeroSection() {
               transition={{ type: "spring", stiffness: 320, damping: 22 }}
             >
               <div className="flex items-start justify-between">
-                <motion.div>
+                <div>
                   <p className="text-sm text-vital-muted">Live Lahore AQI</p>
-                  <AnimatePresence mode="wait">
-                    <motion.p
-                      key={aqi?.city ?? "loading"}
-                      className="mt-1 text-2xl font-semibold text-vital-text"
-                      initial={{ opacity: 0, y: 6 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -6 }}
-                      transition={{ duration: 0.25 }}
-                    >
-                      {aqi?.city ?? "Lahore"}
-                    </motion.p>
-                  </AnimatePresence>
-                  <p className="text-xs text-vital-muted">
-                    WAQI · {aqi?.station ?? "Pakistan"}
+                  <p className="mt-1 text-2xl font-semibold text-vital-text">
+                    {DEMO_AQI.city}
                   </p>
-                </motion.div>
-                {loading ? (
-                  <Loader2
-                    className="h-5 w-5 animate-spin text-vital-primary"
-                    aria-label="Loading air quality"
-                  />
-                ) : (
-                  <span
-                    className={`rounded-full px-3 py-1 text-xs font-medium ${
-                      isHazardous
-                        ? "bg-vital-danger/15 text-vital-danger"
-                        : "bg-vital-primary/15 text-vital-primary"
-                    }`}
-                  >
-                    {aqi?.label ?? "—"}
-                  </span>
-                )}
+                  <p className="text-xs text-vital-muted">
+                    WAQI · {DEMO_AQI.station}
+                  </p>
+                </div>
+                <span
+                  className={`rounded-full px-3 py-1 text-xs font-medium ${
+                    isHazardous
+                      ? "bg-vital-danger/15 text-vital-danger"
+                      : "bg-vital-primary/15 text-vital-primary"
+                  }`}
+                >
+                  {DEMO_AQI.label}
+                </span>
               </div>
 
-              {loading ? (
-                <div className="mt-10 flex min-h-[120px] items-center justify-center">
-                  <Loader2 className="h-10 w-10 animate-spin text-vital-primary" />
-                </div>
-              ) : error ? (
-                <p className="mt-6 text-sm text-vital-danger" role="alert">
-                  {error}
-                </p>
-              ) : (
-                <>
-                  <AnimatePresence mode="wait">
-                    <motion.p
-                      key={`aqi-${aqi?.city}`}
-                      className={`mt-6 text-7xl font-bold tabular-nums ${
-                        isHazardous
-                          ? "text-vital-danger"
-                          : "text-vital-primary"
-                      }`}
-                      initial={{ opacity: 0, scale: 0.92 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, scale: 0.92 }}
-                      transition={{ type: "spring", stiffness: 260 }}
-                    >
-                      {value}
-                    </motion.p>
-                  </AnimatePresence>
+              <p
+                className={`mt-6 text-7xl font-bold tabular-nums ${
+                  isHazardous ? "text-vital-danger" : "text-vital-primary"
+                }`}
+              >
+                {DEMO_AQI.value}
+              </p>
 
-                  <p className="mt-2 text-sm text-vital-muted">
-                    {aqi?.pm25_index ?? aqi?.pm25
-                      ? `PM2.5 index ${aqi.pm25_index ?? aqi.pm25}`
-                      : ""}
-                    {aqi?.dominent
-                      ? ` · Main pollutant: ${aqi.dominent.toUpperCase()}`
-                      : ""}
-                  </p>
-                  <p className="mt-1 text-xs text-vital-muted">
-                    {aqi?.updated_at
-                      ? formatAqiUpdated(
-                          aqi.updated_at,
-                          aqi.station_reported_at
-                        )
-                      : "Live WAQI reading"}
-                  </p>
+              <p className="mt-2 text-sm text-vital-muted">
+                PM2.5 index {DEMO_AQI.pm25Index} · Main pollutant:{" "}
+                {DEMO_AQI.pollutant}
+              </p>
+              <p className="mt-1 text-xs text-vital-muted">
+                {DEMO_AQI.updatedLabel}
+              </p>
 
-                  <motion.div
-                    className="mt-6 h-2 overflow-hidden rounded-full bg-vital-border"
-                    initial={{ scaleX: 0 }}
-                    animate={{ scaleX: 1 }}
-                    transition={{ delay: 0.3, duration: 0.5 }}
-                    style={{ originX: 0 }}
-                  >
-                    <motion.div
-                      className="h-full rounded-full bg-gradient-to-r from-vital-primary via-[#f0c040] to-vital-danger"
-                      style={{
-                        width: `${Math.min((value ?? 0) / 3, 100)}%`,
-                      }}
-                    />
-                  </motion.div>
+              <motion.div
+                className="mt-6 h-2 overflow-hidden rounded-full bg-vital-border"
+                initial={{ scaleX: 0 }}
+                animate={{ scaleX: 1 }}
+                transition={{ delay: 0.3, duration: 0.5 }}
+                style={{ originX: 0 }}
+              >
+                <div
+                  className="h-full rounded-full bg-gradient-to-r from-vital-primary via-[#f0c040] to-vital-danger"
+                  style={{ width: `${Math.min(DEMO_AQI.value / 3, 100)}%` }}
+                />
+              </motion.div>
 
-                  <p className="mt-4 text-sm text-vital-muted">
-                    {value != null
-                      ? aqi?.health_advice_en ?? aqiHealthHint(value)
-                      : ""}
-                  </p>
-                  {aqi?.health_advice_ur && (
-                    <p className="mt-1 text-xs text-vital-muted/80">
-                      {aqi.health_advice_ur}
-                    </p>
-                  )}
+              <p className="mt-4 text-sm text-vital-muted">{DEMO_AQI.adviceEn}</p>
+              <p className="mt-1 text-xs text-vital-muted/80">
+                {DEMO_AQI.adviceUr}
+              </p>
 
-                  <p className="mt-4 border-t border-vital-border/50 pt-3 text-xs text-vital-muted">
-                    Enter your route on the dashboard to get health tips and
-                    safer road options for today.
-                  </p>
-                </>
-              )}
+              <p className="mt-4 border-t border-vital-border/50 pt-3 text-xs text-vital-muted">
+                Enter your route on the dashboard to get health tips and safer
+                road options for today.
+              </p>
             </motion.div>
           </motion.div>
         </motion.div>

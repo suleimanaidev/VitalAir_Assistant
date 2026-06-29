@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import Providers from "@/components/Providers";
 import "./globals.css";
 
@@ -6,6 +6,12 @@ export const metadata: Metadata = {
   title: "VitalAir Assistant | Smog Safety & Route Planning — Lahore",
   description:
     "Multi-agent AI for real-time air quality, health alerts, nutrition tips, and safer routes in Lahore, Pakistan.",
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  themeColor: "#0d1117",
 };
 
 export default function RootLayout({

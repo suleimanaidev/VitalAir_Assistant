@@ -1,6 +1,7 @@
 "use client";
 
 import { MapPin, Route } from "lucide-react";
+import NavigateRouteLinks from "@/components/map/NavigateRouteLinks";
 import { aqiLabel } from "@/lib/aqi";
 
 export interface RouteOption {
@@ -51,6 +52,20 @@ export default function RouteCard({
           )}
         </div>
       </header>
+
+      {hasRoute && from && to && (
+        <div className="mt-4 rounded-lg border border-vital-border/50 bg-vital-bg/30 p-3">
+          <p className="mb-2 text-xs font-medium text-vital-text">
+            Navigate (free — no API key)
+          </p>
+          <NavigateRouteLinks
+            from={from}
+            to={to}
+            waypoints={routeOptions[0]?.via_areas}
+            variant="compact"
+          />
+        </div>
+      )}
 
       {hasRoute ? (
         <ol className="mt-4 space-y-3">

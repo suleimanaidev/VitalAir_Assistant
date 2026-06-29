@@ -13,31 +13,43 @@ vitalAir/
 
 ```powershell
 copy .env.example .env
-# Edit .env — at minimum MONGODB_URI, NEXTAUTH_SECRET
+# Edit .env — see docs/ENV.md for full user checklist
 
 npm run install:all
-npm run dev:backend    # terminal 1 → http://localhost:8000
-npm run dev:frontend   # terminal 2 → http://localhost:3000
+npm run ingest:rag          # required once — builds RAG index for agents
+npm run dev:backend         # terminal 1 → http://localhost:8000
+npm run dev:frontend        # terminal 2 → http://localhost:3000
+```
+
+**Every new user must:** install deps (`install:all`), configure `.env` (MongoDB, WAQI, secrets), run `ingest:rag`, and set `OPENAI_API_KEY` if `USE_MOCK_AGENTS=false`. Details: **[docs/ENV.md](docs/ENV.md)**.
+
+Backend deps (single file):
+
+```powershell
+cd backend
+python -m venv .venv
+.venv\Scripts\pip install -r requirements.txt
 ```
 
 ## User flow
 
 1. **Register / login** at `/login`
 2. **Health profile** — first login redirects to `/onboarding` (name, age, conditions, commute)
-3. **Dashboard** — enter **From → To**, click **Analyze route**
-4. Four agents run → AQI, health advice (RAG), diet, suggested route
-5. **View live route on map** → `/route` (OpenStreetMap roads via OSRM, no API key needed)
+3. **Dashboard** — pick your **area** → run agents one-by-one (health → nutrition → route if traveling)
+4. Agents use **WHO RAG** + your health profile + uploaded documents
+5. **View live route on map** → `/route` (OpenStreetMap + OSRM — free, no API key)
+6. **Navigate** → Dashboard route card or `/route` map overlay opens **Google Maps** or **OpenStreetMap** (free deep links)
 
-## Optional: RAG + live AI agents
+## Optional: RAG index + live AI agents
 
 ```powershell
-npm run install:rag          # ChromaDB + ingest docs from backend/rag/docs/
+npm run ingest:rag          # ingest docs from backend/rag/docs/ into FAISS
 ```
 
 In `.env`:
 
 - `USE_MOCK_AGENTS=false` + `GEMINI_API_KEY=` → real CrewAI agents with RAG tools
-- `GOOGLE_MAPS_API_KEY=` → Google Directions (otherwise OSRM is used automatically)
+- `GOOGLE_MAPS_API_KEY=` → optional paid Google Directions (leave empty for free OSRM routes)
 
 ## RAG documents (backend only)
 
@@ -48,16 +60,13 @@ Used by agents; not shown as files in the UI (advice appears on dashboard cards)
 
 ## Patient Document RAG (Innovation 2)
 
-Upload prescriptions / lab reports on **Profile** → indexed into per-user ChromaDB → health agent reads them at analyze time.
-
-```powershell
-# Optional: scanned PDF + image OCR (Tesseract must be installed on OS)
-cd backend && .venv\Scripts\pip install -r requirements-documents.txt
-```
+Upload prescriptions / lab reports on **Profile** → indexed into per-user FAISS store → health agent reads them at analyze time.
 
 Supported uploads: **PDF, Word (.doc/.docx), JPG, PNG**, plus `.txt` / `.md`.
 
-Pipeline: upload → `document_parser` (Word → pypdf → pdfplumber → PyMuPDF → **Tesseract OCR**) → MongoDB → Chroma `patient_health_docs` → personalized health advice.
+Pipeline: upload → `document_parser` (Word → pypdf → pdfplumber → PyMuPDF → **Tesseract OCR**) → MongoDB → FAISS patient index → personalized health advice.
+
+> **Note:** For scanned PDF/image OCR, install [Tesseract](https://github.com/UB-Mannheim/tesseract/wiki) on your OS.
 
 ## Lahore Seasonal Intelligence (Innovation 3)
 

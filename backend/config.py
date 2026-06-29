@@ -31,11 +31,8 @@ class Settings(BaseSettings):
     nextauth_secret: str = ""
     jwt_algorithm: str = "HS256"
     jwt_expire_minutes: int = 1440
-    redis_url: str = "redis://localhost:6379/0"
-    celery_broker_url: str = ""
-    celery_result_backend: str = ""
-    chroma_persist_dir: str = "./chroma_store"
-    use_celery: bool = False
+    frontend_url: str = ""
+    faiss_index_dir: str = "./faiss_indexes"
 
     @property
     def cors_origin_list(self) -> list[str]:
@@ -72,17 +69,13 @@ class Settings(BaseSettings):
         ).strip()
 
     @property
-    def effective_celery_broker(self) -> str:
-        return self.celery_broker_url or self.redis_url
-
-    @property
-    def effective_celery_backend(self) -> str:
-        if self.celery_result_backend:
-            return self.celery_result_backend
-        base = self.redis_url.rstrip("/")
-        if base.endswith("/0"):
-            return f"{base[:-1]}1"
-        return f"{base}/1"
+    def effective_frontend_url(self) -> str:
+        url = (
+            self.frontend_url.strip()
+            or (self.cors_origin_list[0] if self.cors_origin_list else "")
+            or "http://localhost:3000"
+        )
+        return url.rstrip("/")
 
 
 @lru_cache

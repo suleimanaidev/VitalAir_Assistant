@@ -176,3 +176,87 @@ class ProfileResponse(BaseModel):
     user_id: str
     profile: UserProfile
     profile_complete: bool = False
+
+
+class SymptomCheckinBody(BaseModel):
+    """Fast daily health check-in; all fields are intentionally optional."""
+
+    cough: int = Field(default=0, ge=0, le=2)
+    breathlessness: int = Field(default=0, ge=0, le=2)
+    chest_tightness: int = Field(default=0, ge=0, le=2)
+    headache: int = Field(default=0, ge=0, le=2)
+    sleep_quality: int = Field(default=0, ge=0, le=2)
+    took_medication: bool = False
+    skipped: bool = False
+
+
+class SymptomCheckinResponse(BaseModel):
+    status: str = "success"
+    user_id: str
+    date: str
+    symptoms: SymptomCheckinBody
+    score: int = Field(..., ge=0, le=12)
+    risk_level: Literal["none", "mild", "high"]
+    summary: str
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
+
+
+class AgentAreaBody(BaseModel):
+    """Single-area request for health / nutrition agents."""
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    area: str = Field(..., min_length=1)
+    profile: AnalyzeProfile
+    user_id: str | None = None
+    aqi: int | None = None
+    destination: str | None = None
+
+
+class AgentRouteBody(BaseModel):
+    profile: AnalyzeProfile
+    query: RouteQuery
+    user_id: str | None = None
+    aqi: int | None = None
+
+
+class AgentHealthResponse(BaseModel):
+    status: str = "success"
+    agent: str = "Digital Pulmonologist"
+    area: str
+    aqi: int
+    aqi_label: str
+    health_advice: str
+    health_explainability: HealthExplainability | None = None
+    rag_sources_used: int = 0
+    has_patient_docs: bool = False
+    agent_mode: str = "rag_rules"
+    season: str | None = None
+    season_label: str | None = None
+    temperature_c: float | None = None
+
+
+class AgentNutritionResponse(BaseModel):
+    status: str = "success"
+    agent: str = "Environmental Nutritionist"
+    area: str
+    aqi: int
+    diet_plan: list[str]
+    rag_sources_used: int = 0
+    has_patient_docs: bool = False
+    agent_mode: str = "rag_rules"
+    season: str | None = None
+    season_label: str | None = None
+
+
+class AgentRouteResponse(BaseModel):
+    status: str = "success"
+    agent: str = "Smart Route Navigator"
+    aqi: int
+    aqi_label: str
+    safe_route: SafeRoute
+    personal_exposure_score: PersonalExposureScore | None = None
+    season_intelligence: SeasonIntelligence | None = None
+    context_summary: str | None = None
+    route_source: str = "osrm"

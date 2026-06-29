@@ -1,24 +1,20 @@
 "use client";
 
-import { signIn, getSession } from "next-auth/react";
+import { signIn } from "next-auth/react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { Loader2, LogIn, UserPlus, Wind, Eye, EyeOff } from "lucide-react";
-import { registerUser, normalizeEmail, AuthApiError } from "@/lib/authApi";
+import { Loader2, LogIn, UserPlus, Eye, EyeOff, Mail, Lock, User, Wind } from "lucide-react";
+import {
+  registerUser,
+  loginUser,
+  normalizeEmail,
+  AuthApiError,
+  type AuthResult,
+} from "@/lib/authApi";
 import { env } from "@/lib/env";
 import { APP_CITY } from "@/lib/constants";
-import { resolvePostLoginPath } from "@/lib/profileFlow";
 import { useVitalAirStore } from "@/store/useVitalAirStore";
-
-async function waitForSession(maxAttempts = 12, delayMs = 150) {
-  for (let i = 0; i < maxAttempts; i++) {
-    const session = await getSession();
-    if (session?.user?.id) return session;
-    await new Promise((resolve) => setTimeout(resolve, delayMs));
-  }
-  return null;
-}
 
 export default function LoginForm() {
   const router = useRouter();
@@ -41,6 +37,14 @@ export default function LoginForm() {
   const submitLockRef = useRef(false);
 
   useEffect(() => {
+    router.prefetch("/login");
+    router.prefetch("/dashboard");
+    router.prefetch("/onboarding");
+    // Warm NextAuth CSRF so sign-in skips an extra round-trip
+    void fetch("/api/auth/csrf", { cache: "no-store" }).catch(() => {});
+  }, [router]);
+
+  useEffect(() => {
     if (searchParams.get("mode") === "register") {
       setMode("register");
     }
@@ -59,15 +63,20 @@ export default function LoginForm() {
   }, [urlError]);
 
   useEffect(() => {
-    fetch(`${env.apiUrl.replace(/\/$/, "")}/api/health`)
+    fetch(`${env.apiUrl.replace(/\/$/, "")}/api/health/live`, {
+      signal: AbortSignal.timeout(5000),
+    })
       .then((r) => setBackendOk(r.ok))
       .catch(() => setBackendOk(false));
   }, []);
 
-  const finishSession = async (normalizedEmail: string) => {
+  const finishSession = async (auth: AuthResult) => {
     const result = await signIn("credentials", {
-      email: normalizedEmail,
+      email: auth.email,
       password,
+      accessToken: auth.access_token,
+      userId: auth.user_id,
+      name: auth.name,
       redirect: false,
     });
 
@@ -77,29 +86,24 @@ export default function LoginForm() {
           "Server auth misconfigured. Check NEXTAUTH_SECRET in root .env and restart npm run dev:frontend."
         );
       }
-      throw new Error(
-        result.error === "CredentialsSignin"
-          ? "Invalid email or password. Check credentials or register first."
-          : result.error
-      );
+      if (result.error === "CredentialsSignin") {
+        throw new Error("Invalid email or password.");
+      }
+      throw new Error(result.error);
     }
 
     if (result?.ok !== true) {
       throw new Error("Sign in failed. Please try again.");
     }
 
-    const session = await waitForSession();
-    if (session?.user?.id) {
-      setUserId(session.user.id);
-    }
+    setUserId(auth.user_id);
 
     const safeCallback =
       callbackUrl.startsWith("/") && !callbackUrl.startsWith("//")
         ? callbackUrl
         : "/dashboard";
 
-    const destination = await resolvePostLoginPath(safeCallback);
-    router.replace(destination);
+    window.location.assign(safeCallback);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -148,10 +152,11 @@ export default function LoginForm() {
           confirmPassword,
           name.trim()
         );
-        setUserId(registered.user_id);
+        await finishSession(registered);
+      } else {
+        const auth = await loginUser(normalizedEmail, password);
+        await finishSession(auth);
       }
-
-      await finishSession(normalizedEmail);
       succeeded = true;
     } catch (err) {
       if (
@@ -176,22 +181,26 @@ export default function LoginForm() {
 
   return (
     <div className="mx-auto w-full max-w-md">
-      <div className="mb-8 text-center">
-        <span className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-vital-primary/15 text-vital-primary">
-          <Wind className="h-7 w-7" aria-hidden />
+      <div className="mb-6">
+        <span className="mb-4 hidden h-12 w-12 items-center justify-center rounded-2xl bg-vital-primary/15 text-vital-primary lg:flex">
+          <Wind className="h-6 w-6" aria-hidden />
         </span>
-        <h1 className="section-title">Welcome to VitalAir</h1>
-        <p className="section-subtitle mt-2">
-          {APP_CITY}, Pakistan — smog safety & routes
+        <h1 className="text-2xl font-bold text-vital-text sm:text-3xl">
+          {mode === "login" ? "Welcome back" : "Create your account"}
+        </h1>
+        <p className="mt-2 text-base text-vital-muted">
+          {mode === "login"
+            ? `Sign in to continue — ${APP_CITY} smog safety & health.`
+            : `Join VitalAir — ${APP_CITY} air, health & safer routes.`}
         </p>
       </div>
 
-      <div className="mb-4 flex rounded-lg border border-vital-border bg-vital-card p-1">
+      <div className="mb-5 flex rounded-xl border border-vital-border bg-vital-card p-1">
         <button
           type="button"
-          className={`flex flex-1 items-center justify-center gap-2 rounded-md py-2.5 text-sm font-medium transition-colors ${
+          className={`flex flex-1 items-center justify-center gap-2 rounded-lg py-2.5 text-sm font-medium transition-all ${
             mode === "login"
-              ? "bg-vital-primary text-vital-bg"
+              ? "bg-vital-primary text-vital-bg shadow-[0_4px_18px_rgba(0,200,150,0.35)]"
               : "text-vital-muted hover:text-vital-text"
           }`}
           onClick={() => {
@@ -207,9 +216,9 @@ export default function LoginForm() {
         </button>
         <button
           type="button"
-          className={`flex flex-1 items-center justify-center gap-2 rounded-md py-2.5 text-sm font-medium transition-colors ${
+          className={`flex flex-1 items-center justify-center gap-2 rounded-lg py-2.5 text-sm font-medium transition-all ${
             mode === "register"
-              ? "bg-vital-primary text-vital-bg"
+              ? "bg-vital-primary text-vital-bg shadow-[0_4px_18px_rgba(0,200,150,0.35)]"
               : "text-vital-muted hover:text-vital-text"
           }`}
           onClick={() => {
@@ -231,32 +240,47 @@ export default function LoginForm() {
         </p>
       )}
 
-      <form onSubmit={handleSubmit} className="vital-card space-y-4 p-6">
+      <form
+        onSubmit={handleSubmit}
+        className="vital-card space-y-4 p-6 shadow-[0_18px_60px_rgba(0,0,0,0.35)] backdrop-blur"
+      >
         {mode === "register" && (
           <label className="block text-sm font-medium text-vital-text">
             Full name
-            <input
-              required
-              className="mt-1.5 w-full rounded-lg border border-vital-border bg-vital-bg px-3 py-2.5 text-vital-text placeholder:text-vital-muted focus:border-vital-primary focus:outline-none focus:ring-1 focus:ring-vital-primary"
-              placeholder="Your name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              disabled={isLoading}
-            />
+            <div className="relative mt-1.5">
+              <User
+                className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-vital-muted"
+                aria-hidden
+              />
+              <input
+                required
+                className="w-full rounded-lg border border-vital-border bg-vital-bg py-2.5 pl-10 pr-3 text-vital-text placeholder:text-vital-muted focus:border-vital-primary focus:outline-none focus:ring-1 focus:ring-vital-primary"
+                placeholder="Your name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                disabled={isLoading}
+              />
+            </div>
           </label>
         )}
         <label className="block text-sm font-medium text-vital-text">
           Email
-          <input
-            type="email"
-            required
-            autoComplete="email"
-            className="mt-1.5 w-full rounded-lg border border-vital-border bg-vital-bg px-3 py-2.5 text-vital-text placeholder:text-vital-muted focus:border-vital-primary focus:outline-none focus:ring-1 focus:ring-vital-primary"
-            placeholder="you@example.com"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            disabled={isLoading}
-          />
+          <div className="relative mt-1.5">
+            <Mail
+              className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-vital-muted"
+              aria-hidden
+            />
+            <input
+              type="email"
+              required
+              autoComplete="email"
+              className="w-full rounded-lg border border-vital-border bg-vital-bg py-2.5 pl-10 pr-3 text-vital-text placeholder:text-vital-muted focus:border-vital-primary focus:outline-none focus:ring-1 focus:ring-vital-primary"
+              placeholder="you@example.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              disabled={isLoading}
+            />
+          </div>
         </label>
         <label className="block text-sm font-medium text-vital-text">
           <span className="flex items-center justify-between gap-2">
@@ -271,6 +295,10 @@ export default function LoginForm() {
             )}
           </span>
           <div className="relative mt-1.5">
+            <Lock
+              className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-vital-muted"
+              aria-hidden
+            />
             <input
               type={showPassword ? "text" : "password"}
               required
@@ -278,7 +306,7 @@ export default function LoginForm() {
               autoComplete={
                 mode === "login" ? "current-password" : "new-password"
               }
-              className="w-full rounded-lg border border-vital-border bg-vital-bg py-2.5 pl-3 pr-10 text-vital-text placeholder:text-vital-muted focus:border-vital-primary focus:outline-none focus:ring-1 focus:ring-vital-primary"
+              className="w-full rounded-lg border border-vital-border bg-vital-bg py-2.5 pl-10 pr-10 text-vital-text placeholder:text-vital-muted focus:border-vital-primary focus:outline-none focus:ring-1 focus:ring-vital-primary"
               placeholder="Minimum 8 characters"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
@@ -304,12 +332,16 @@ export default function LoginForm() {
           <label className="block text-sm font-medium text-vital-text">
             Confirm password
             <div className="relative mt-1.5">
+              <Lock
+                className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-vital-muted"
+                aria-hidden
+              />
               <input
                 type={showConfirmPassword ? "text" : "password"}
                 required
                 minLength={8}
                 autoComplete="new-password"
-                className="w-full rounded-lg border border-vital-border bg-vital-bg py-2.5 pl-3 pr-10 text-vital-text placeholder:text-vital-muted focus:border-vital-primary focus:outline-none focus:ring-1 focus:ring-vital-primary"
+                className="w-full rounded-lg border border-vital-border bg-vital-bg py-2.5 pl-10 pr-10 text-vital-text placeholder:text-vital-muted focus:border-vital-primary focus:outline-none focus:ring-1 focus:ring-vital-primary"
                 placeholder="Re-enter password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
@@ -376,12 +408,6 @@ export default function LoginForm() {
           )}
         </button>
       </form>
-
-      <p className="mt-6 text-center text-sm text-vital-muted">
-        <Link href="/" className="text-vital-primary hover:underline">
-          ← Back to home
-        </Link>
-      </p>
     </div>
   );
 }

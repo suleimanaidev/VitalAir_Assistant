@@ -7,14 +7,24 @@ from services.seasonal_intelligence import lahore_now
 from tools.lahore_season import is_smog_season
 
 
-def _chat(system: str, user: str, max_tokens: int = 600) -> str | None:
+def _chat(
+    system: str,
+    user: str,
+    max_tokens: int = 600,
+    temperature: float = 0.4,
+    timeout_seconds: float = 18.0,
+) -> str | None:
     settings = get_settings()
     if not settings.has_openai:
         return None
     try:
         from openai import OpenAI
 
-        client = OpenAI(api_key=settings.openai_api_key.strip())
+        client = OpenAI(
+            api_key=settings.openai_api_key.strip(),
+            timeout=timeout_seconds,
+            max_retries=0,
+        )
         model = settings.openai_model.strip() or "gpt-4o-mini"
         response = client.chat.completions.create(
             model=model,
@@ -23,7 +33,7 @@ def _chat(system: str, user: str, max_tokens: int = 600) -> str | None:
                 {"role": "user", "content": user},
             ],
             max_tokens=max_tokens,
-            temperature=0.4,
+            temperature=temperature,
         )
         text = response.choices[0].message.content
         return text.strip() if text else None
@@ -69,17 +79,23 @@ def generate_health_advice(
                 "This is a good travel window before heat builds."
             )
     doc_rule = (
-        "Patient uploaded health documents — cite medications only from the "
-        "'Your health documents' section below."
+        "Patient uploaded health documents are included below. "
+        "You are a professional digital pulmonologist — cite medications and "
+        "restrictions ONLY from the 'Your health documents' section. "
+        "Cross-reference with WHO guidelines and current AQI."
         if has_patient_docs
-        else "No patient documents uploaded — do NOT mention prescriptions, Salbutamol, or uploaded records."
+        else "No patient documents uploaded — provide general WHO-based advice for "
+        "their conditions and AQI. Do NOT invent prescriptions or uploaded records."
     )
     return _chat(
         system=(
-            "You are a digital pulmonologist for VitalAir Lahore. "
-            "Give 4-5 bullet points (• prefix). Tailor every bullet to the user's age, "
-            "conditions, sensitivity, and commute — not generic advice. "
+            "You are a professional digital pulmonologist for VitalAir Lahore. "
+            "Based on the patient's uploaded documents (if any), health profile, "
+            "and current air quality, provide structured, highly accurate health advice. "
+            "Give exactly 4 bullet points (• prefix), no more. Each bullet one clear, "
+            "actionable step tailored to age, conditions, sensitivity, and commute. "
             "Start with one English summary line, then one Roman Urdu summary line, then bullets. "
+            "Be cautious and professional — never diagnose; recommend medical care when symptoms are severe. "
             f"{season_rule} {time_rule} {doc_rule}"
         ),
         user=(
@@ -88,7 +104,7 @@ def generate_health_advice(
             f"Temperature: {temp_c}°C\n"
             f"Route: {source} → {destination}\n"
             f"AQI: {aqi}\nProfile: {profile_summary}\nConditions: {conditions}\n\n"
-            f"Knowledge base context:\n{rag_context[:4000]}"
+            f"Retrieved patient & WHO context:\n{rag_context[:4000]}"
         ),
     )
 
@@ -105,31 +121,47 @@ def generate_diet_plan(
     commute_mode: str = "car",
     source: str = "",
     destination: str = "",
+    has_patient_docs: bool = False,
+    profile_summary: str = "",
 ) -> list[str] | None:
-    heat_note = ""
-    if season_id in ("pre_monsoon_heat", "summer_heatwave"):
-        heat_note = (
-            " Prefer varied cooling foods — rotate options like sattu, aam panna, chaas, "
-            "coconut water, lauki juice. Avoid repeating the same 4 items every time."
-        )
-    elif season_id == "monsoon":
-        heat_note = " Focus on hydration, light meals, hygiene."
+    season_focus = {
+        "summer_heatwave": "cooling, hydrating foods; avoid heavy fried items",
+        "pre_monsoon_heat": "cooling drinks and light meals for rising heat",
+        "monsoon": "hydration, light meals, hygiene; avoid street food",
+        "winter_smog": "vitamin C, anti-inflammatory and warming foods for smog",
+        "post_monsoon": "immunity-building seasonal fruits and light meals",
+        "spring": "fresh seasonal fruits and balanced light meals",
+    }.get(season_id, "season-appropriate Punjab home foods")
+
+    doc_rule = (
+        "Patient uploaded health documents are included. Tailor food advice to "
+        "medications/conditions mentioned there. Do not invent prescriptions."
+        if has_patient_docs
+        else "No patient documents — use profile conditions and general anti-pollution diet guidance."
+    )
+
     raw = _chat(
         system=(
-            "You are an environmental nutritionist for Lahore. Return ONLY a JSON array of 4-6 "
-            f"unique short food/drink strings tailored to the patient's profile. "
-            f"Never return the same generic list for every user.{heat_note}"
+            "You are a Lahore/Punjab nutrition advisor. Return ONLY a JSON array of exactly 4 "
+            "strings in ROMAN URDU. Each string must be ONE clear actionable tip: "
+            "food/drink + kab + kyun (for this user's conditions and AQI). "
+            "Use only common Lahore/Punjab foods. Avoid random exotic items. "
+            "Do NOT repeat the same food in multiple tips. "
+            "Keep each tip under 90 characters. "
+            f"{doc_rule}"
         ),
         user=(
-            f"Season: {season_label} ({season_id})\n"
+            f"Health profile: {profile_summary or 'not provided'}\n"
+            f"Season: {season_label} ({season_id}) — focus on {season_focus}.\n"
             f"Local time: {lahore_now().hour:02d}:00 PKT\n"
-            f"Route: {source} → {destination}\n"
+            f"Area: {source}\n"
             f"AQI {aqi} in Lahore.\n"
-            f"Age: {age}, Conditions: {conditions}, Sensitivity: {sensitivity}, Commute: {commute_mode}\n"
-            f"Vary foods by profile — asthma/heart/diabetes should change recommendations.\n"
-            f"Context:\n{rag_context[:3000]}"
+            f"Age: {age}, Conditions: {conditions or 'none'}, "
+            f"Sensitivity: {sensitivity}, Commute: {commute_mode}\n"
+            f"Retrieved context:\n{rag_context[:3500]}"
         ),
-        max_tokens=300,
+        max_tokens=320,
+        temperature=0.45,
     )
     if not raw:
         return None
@@ -142,7 +174,42 @@ def generate_diet_plan(
             return None
         items = json.loads(raw[start : end + 1])
         if isinstance(items, list):
-            return [str(x).strip() for x in items if str(x).strip()][:6]
+            return [str(x).strip() for x in items if str(x).strip()][:4]
     except Exception:
         pass
     return None
+
+
+def generate_patient_rag_chat_answer(
+    *,
+    question: str,
+    rag_context: str,
+    has_patient_docs: bool,
+    area: str = "",
+    aqi: int | None = None,
+) -> str | None:
+    """Answer a user question using retrieved WHO + personal health document context."""
+    doc_rule = (
+        "Personal uploaded documents are included. Use them only when relevant, "
+        "and do not invent medicines, diagnoses, or lab values."
+        if has_patient_docs
+        else "No uploaded patient document context was found. Say that clearly and "
+        "answer with general WHO-based air-quality guidance."
+    )
+    return _chat(
+        system=(
+            "You are VitalAir's doctor-aware health assistant for Lahore. "
+            "Answer in simple Roman Urdu with short English medical terms where useful. "
+            "Be concise: one direct answer plus 3 bullet points. "
+            "Never diagnose; recommend a doctor/ER for severe symptoms. "
+            f"{doc_rule}"
+        ),
+        user=(
+            f"User question: {question}\n"
+            f"Area: {area or 'not provided'}\n"
+            f"AQI: {aqi if aqi is not None else 'not provided'}\n\n"
+            f"Retrieved context:\n{rag_context[:4500]}"
+        ),
+        max_tokens=420,
+        temperature=0.35,
+    )

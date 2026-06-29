@@ -81,30 +81,35 @@ export default function ExposureTrendsDashboard({ userId, token }: Props) {
       <article className="vital-card border border-vital-primary/30 bg-vital-primary/5 p-5">
         <header className="flex items-center gap-2">
           <BarChart3 className="h-5 w-5 text-vital-primary" aria-hidden />
-          <h2 className="font-semibold">Your 30-day exposure summary</h2>
+          <h2 className="font-semibold">Last 30 days summary</h2>
         </header>
+        <p className="mt-2 text-sm text-vital-muted">
+          Yeh section batata hai ke pichle 30 din mein aap ka pollution exposure
+          kitna raha. PES ka matlab Personal Exposure Score hai: score jitna
+          zyada ho, exposure utna zyada.
+        </p>
         <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-4">
           <div>
-            <dt className="text-vital-muted">Average daily PES</dt>
+            <dt className="text-vital-muted">Average exposure</dt>
             <dd className="text-2xl font-bold text-vital-primary">
               {summary.average_pes}
               <span className="text-base font-normal text-vital-muted"> /100</span>
             </dd>
           </div>
           <div>
-            <dt className="text-vital-muted">Hazardous days</dt>
+            <dt className="text-vital-muted">Very bad air days</dt>
             <dd className="text-xl font-semibold text-vital-danger">
               {summary.hazardous_days}
             </dd>
           </div>
           <div>
-            <dt className="text-vital-muted">Safe days</dt>
+            <dt className="text-vital-muted">Better air days</dt>
             <dd className="text-xl font-semibold text-emerald-400">
               {summary.safe_days}
             </dd>
           </div>
           <div>
-            <dt className="text-vital-muted">Safest route chosen</dt>
+            <dt className="text-vital-muted">Cleaner route chosen</dt>
             <dd className="text-xl font-semibold text-vital-text">
               {summary.safest_route_pct}%
             </dd>
@@ -116,15 +121,15 @@ export default function ExposureTrendsDashboard({ userId, token }: Props) {
         </p>
         {summary.total_analyses === 0 && (
           <p className="mt-2 text-xs text-vital-muted">
-            Run analyses on the dashboard to populate your exposure history.
+            Dashboard par analysis run karein; phir yahan graphs automatically fill honge.
           </p>
         )}
       </article>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <ChartCard title="Daily PES score" subtitle="30-day line graph">
+        <ChartCard title="Daily exposure score" subtitle="Har din ka PES score (0 low, 100 high)">
           {pesLineData.length === 0 ? (
-            <EmptyChart message="No PES data yet" />
+            <EmptyChart message="Abhi PES data nahi. Dashboard se analysis run karein." />
           ) : (
             <ResponsiveContainer width="100%" height={220}>
               <LineChart data={daily_pes}>
@@ -155,9 +160,9 @@ export default function ExposureTrendsDashboard({ userId, token }: Props) {
           )}
         </ChartCard>
 
-        <ChartCard title="Days in each AQI category" subtitle="Stacked bar">
+        <ChartCard title="AQI category days" subtitle="Kitne din air quality kis range mein thi">
           {aqi_categories.length === 0 ? (
-            <EmptyChart message="No AQI category data" />
+            <EmptyChart message="Abhi AQI history nahi." />
           ) : (
             <ResponsiveContainer width="100%" height={220}>
               <BarChart data={aqi_categories} layout="vertical">
@@ -186,11 +191,11 @@ export default function ExposureTrendsDashboard({ userId, token }: Props) {
           )}
         </ChartCard>
 
-        <ChartCard title="Route choice history" subtitle="Safest vs other paths">
+        <ChartCard title="Route choices" subtitle="Kitni dafa cleaner route suggest/use hua">
           {summary.total_analyses === 0 ? (
-            <EmptyChart message="No route decisions logged" />
+            <EmptyChart message="Route history ke liye route agent run karein." />
           ) : (
-            <div className="flex flex-col items-center sm:flex-row">
+            <div className="flex flex-col items-center gap-3 sm:flex-row sm:gap-4">
               <ResponsiveContainer width="100%" height={200}>
                 <PieChart>
                   <Pie
@@ -223,12 +228,12 @@ export default function ExposureTrendsDashboard({ userId, token }: Props) {
         </ChartCard>
 
         <ChartCard
-          title="Health advisory compliance"
-          subtitle="Mask worn vs recommended (proxy via route adherence)"
+          title="Guidance followed"
+          subtitle="High-exposure days par safer choice ka estimate"
         >
           <div className="flex flex-col justify-center gap-4 py-4">
             <div className="flex items-end justify-between text-sm">
-              <span className="text-vital-muted">Days followed guidance</span>
+              <span className="text-vital-muted">Safer choices</span>
               <span className="font-semibold text-vital-text">
                 {summary.mask_compliance_days}/{summary.mask_recommended_days} days
               </span>
@@ -240,8 +245,8 @@ export default function ExposureTrendsDashboard({ userId, token }: Props) {
               />
             </div>
             <p className="text-xs text-vital-muted">
-              {compliancePct}% compliance on high-exposure days (PES ≥ 60 or AQI ≥ 150).
-              Based on choosing lowest-AQI route suggestions.
+              {compliancePct}% high-exposure checks mein safer guidance follow hui.
+              Yeh estimate cleaner route choice par based hai.
             </p>
           </div>
         </ChartCard>

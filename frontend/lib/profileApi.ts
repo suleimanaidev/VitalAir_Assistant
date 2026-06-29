@@ -10,6 +10,8 @@ import type {
 /** Same-origin proxy → FastAPI (avoids CORS / wrong API host). */
 const PROFILE_ME = "/api/profile/me";
 
+let profileFetchInflight: Promise<ProfileApiResponse> | null = null;
+
 export interface UserProfilePayload {
   name: string;
   age: number;
@@ -64,21 +66,31 @@ export function healthProfileFromApi(
 }
 
 export async function fetchMyProfile(): Promise<ProfileApiResponse> {
-  const res = await fetch(PROFILE_ME, {
-    cache: "no-store",
-    credentials: "same-origin",
-  });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) {
-    const msg = parseApiError(data, `Profile fetch failed (${res.status})`);
-    if (res.status === 404 && msg.toLowerCase() === "not found") {
-      throw new Error(
-        "Profile service not found. Restart the backend: npm run dev:backend"
-      );
+  if (profileFetchInflight) return profileFetchInflight;
+
+  profileFetchInflight = (async () => {
+    const res = await fetch(PROFILE_ME, {
+      cache: "no-store",
+      credentials: "same-origin",
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      const msg = parseApiError(data, `Profile fetch failed (${res.status})`);
+      if (res.status === 404 && msg.toLowerCase() === "not found") {
+        throw new Error(
+          "Profile service not found. Restart the backend: npm run dev:backend"
+        );
+      }
+      throw new Error(msg);
     }
-    throw new Error(msg);
+    return data as ProfileApiResponse;
+  })();
+
+  try {
+    return await profileFetchInflight;
+  } finally {
+    profileFetchInflight = null;
   }
-  return data as ProfileApiResponse;
 }
 
 export async function updateMyProfile(

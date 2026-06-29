@@ -45,11 +45,22 @@ SENSITIVITY_MULT: dict[str, float] = {
 }
 
 LEVEL_META: dict[str, dict[str, str]] = {
-    "low": {"label": "Low Risk", "emoji": "🟢"},
-    "moderate": {"label": "Moderate Risk", "emoji": "🟡"},
-    "high": {"label": "High Exposure", "emoji": "🟠"},
-    "critical": {"label": "Critical Risk", "emoji": "🔴"},
+    "low": {"label": "Low exposure", "emoji": "🟢"},
+    "moderate": {"label": "Moderate exposure", "emoji": "🟡"},
+    "high": {"label": "Elevated exposure", "emoji": "🟠"},
+    "critical": {"label": "High risk", "emoji": "🔴"},
 }
+
+
+def _adjust_score_for_aqi(score: int, aqi: int) -> int:
+    """Good/moderate air should not feel like a pollution emergency."""
+    if aqi <= 50:
+        return max(0, score - 18)
+    if aqi <= 100:
+        return max(0, score - 14)
+    if aqi <= 150:
+        return max(0, score - 6)
+    return score
 
 
 def parse_distance_km(distance: str | None) -> float:
@@ -87,11 +98,12 @@ def _health_factor(conditions: list[str], sensitivity: str) -> tuple[float, list
     return min(1.0, base * mult), flags
 
 
-def _risk_level(score: int) -> str:
+def _risk_level(score: int, aqi: int) -> str:
+    score = _adjust_score_for_aqi(score, aqi)
     if score >= 80:
-        return "critical"
+        return "critical" if aqi >= 150 else "high"
     if score >= 60:
-        return "high"
+        return "high" if aqi >= 120 else "moderate"
     if score >= 40:
         return "moderate"
     return "low"
@@ -102,6 +114,27 @@ def _recommendation(score: int, aqi: int, commute_mode: str, flags: list[str]) -
     has_heart = any("heart" in f.lower() for f in flags)
     hour = lahore_now().hour
     evening_ok = hour >= 18
+
+    if aqi <= 100:
+        if aqi <= 50:
+            air_note = "Air quality is good today."
+        else:
+            air_note = "Air quality is acceptable (moderate)."
+
+        if commute_mode in ("walk", "bike"):
+            if has_asthma or has_heart:
+                return (
+                    f"{air_note} Stay hydrated on your commute; keep rescue inhaler or "
+                    "meds handy as a routine precaution."
+                )
+            return (
+                f"{air_note} Normal commute precautions — drink water and avoid "
+                "unnecessary exertion in traffic."
+            )
+
+        if has_asthma or has_heart:
+            return f"{air_note} Your profile needs routine care — no extra mask needed unless AQI rises."
+        return f"{air_note} Usual precautions are enough for most people."
 
     if score >= 80 or aqi >= 250:
         return "Avoid travel if possible. Stay indoors with windows closed and use HEPA filtration."
@@ -164,7 +197,7 @@ def compute_personal_exposure_score(
     raw = aqi_comp + dist_comp + commute_comp + health_comp
     score = round(min(100, max(0, raw * 100)))
 
-    level = _risk_level(score)
+    level = _risk_level(score, aqi)
     meta = LEVEL_META[level]
     label = aqi_label(aqi)
 

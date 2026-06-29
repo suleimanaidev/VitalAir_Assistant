@@ -31,6 +31,25 @@ AREA_MAPPING: list[AreaRecord] = [
     AreaRecord("anarkali", "Anarkali", 31.5686, 74.312),
     AreaRecord("liberty", "Liberty Market", 31.511, 74.344),
     AreaRecord("punjab-assembly", "Punjab Assembly", 31.568, 74.302),
+    AreaRecord("ali-town", "Ali Town", 31.448, 74.268),
+    AreaRecord("dubai-town", "Dubai Town", 31.435, 74.278),
+    AreaRecord("kot-lakhpat", "Kot Lakhpat", 31.464, 74.335),
+    AreaRecord("samanabad", "Samanabad", 31.538, 74.318),
+    AreaRecord("mughalpura", "Mughalpura", 31.575, 74.365),
+    AreaRecord("bhobtian-chowk", "Bhobtian Chowk", 31.4486, 74.4094),
+    AreaRecord("mm-alam-road", "MM Alam Road", 31.515, 74.348),
+    AreaRecord("green-town", "Green Town", 31.455, 74.305),
+    AreaRecord("izmir-town", "Izmir Town", 31.442, 74.292),
+    AreaRecord("punjab-society", "Punjab Society", 31.478, 74.355),
+    AreaRecord("gulshan-ravi", "Gulshan Ravi", 31.548, 74.328),
+    AreaRecord("ichhra", "Ichhra", 31.528, 74.318),
+    AreaRecord("shadman", "Shadman", 31.542, 74.328),
+    AreaRecord("thokar-niaz-baig", "Thokar Niaz Baig", 31.458, 74.248),
+    AreaRecord("college-road", "College Road", 31.438, 74.268),
+    AreaRecord("sabzazar", "Sabzazar", 31.472, 74.288),
+    AreaRecord("cavalry-ground", "Cavalry Ground", 31.508, 74.368),
+    AreaRecord("dha-phase-6", "DHA Phase 6", 31.48, 74.47),
+    AreaRecord("gulberg-ii", "Gulberg II", 31.518, 74.34),
 ]
 
 _ALIASES: dict[str, str] = {
@@ -43,6 +62,15 @@ _ALIASES: dict[str, str] = {
     "civil secretariat": "punjab-assembly",
     "cantt": "cantt",
     "lahore cantt": "cantt",
+    "dubai town": "dubai-town",
+    "thokar": "thokar-niaz-baig",
+    "green town": "green-town",
+    "shadman": "shadman",
+    "ichhra": "ichhra",
+    "sabzazar": "sabzazar",
+    "gulberg 2": "gulberg-ii",
+    "gulberg ii": "gulberg-ii",
+    "dha 6": "dha-phase-6",
 }
 
 _BY_ID = {a.id: a for a in AREA_MAPPING}
@@ -75,6 +103,8 @@ def resolve_area(query: str) -> AreaRecord | None:
         if "dha" in q and "dha" in name:
             return area
         if "gulberg" in q and area.id == "gulberg":
+            return area
+        if "dubai" in q and area.id == "dubai-town":
             return area
 
     return None

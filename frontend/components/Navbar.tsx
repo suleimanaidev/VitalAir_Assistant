@@ -12,11 +12,13 @@ import {
   Map,
   History,
   Menu,
+  MessageCircle,
   UserCircle,
   Wind,
   X,
 } from "lucide-react";
 import { useVitalAirStore } from "@/store/useVitalAirStore";
+import { authLink } from "@/lib/authLinks";
 
 const LANDING_SECTIONS = [
   { id: "features", label: "Features" },
@@ -26,9 +28,10 @@ const LANDING_SECTIONS = [
 
 const APP_LINKS = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/route", label: "Map", icon: Map },
+  { href: "/chat", label: "Health AI Chat", icon: MessageCircle },
   { href: "/history", label: "History", icon: History },
   { href: "/profile", label: "Health profile", icon: UserCircle },
+  { href: "/route", label: "Map", icon: Map },
 ] as const;
 
 function sectionHref(pathname: string, id: string) {
@@ -36,10 +39,7 @@ function sectionHref(pathname: string, id: string) {
 }
 
 function authHref(path: string, isAuthenticated: boolean) {
-  if (!isAuthenticated) {
-    return `/login?callbackUrl=${encodeURIComponent(path)}`;
-  }
-  return path;
+  return authLink(path, isAuthenticated);
 }
 
 export default function Navbar() {
@@ -73,6 +73,11 @@ export default function Navbar() {
   };
 
   const closeMobile = () => setMobileOpen(false);
+
+  const handleSignOut = () => {
+    useVitalAirStore.getState().clearHealthProfile();
+    void signOut({ callbackUrl: "/login" });
+  };
 
   const logoHref = isAuthenticated ? "/dashboard" : "/";
 
@@ -163,10 +168,13 @@ export default function Navbar() {
         <div className="hidden shrink-0 items-center gap-3 md:flex">
           {showLandingNav && (
             <>
-              <Link href="/login" className="btn-ghost text-sm py-2 px-4">
+              <Link href="/login?callbackUrl=%2Fdashboard" className="btn-ghost text-sm py-2 px-4">
                 Sign in
               </Link>
-              <Link href="/login?mode=register" className="btn-primary text-sm py-2 px-4">
+              <Link
+                href={authLink("/onboarding", false, "register")}
+                className="btn-primary text-sm py-2 px-4"
+              >
                 Get started
               </Link>
             </>
@@ -291,14 +299,14 @@ export default function Navbar() {
                 {showLandingNav && (
                   <>
                     <Link
-                      href="/login"
+                      href="/login?callbackUrl=%2Fdashboard"
                       className="btn-ghost w-full text-center text-sm"
                       onClick={closeMobile}
                     >
                       Sign in
                     </Link>
                     <Link
-                      href="/login?mode=register"
+                      href={authLink("/onboarding", false, "register")}
                       className="btn-primary w-full text-center text-sm"
                       onClick={closeMobile}
                     >

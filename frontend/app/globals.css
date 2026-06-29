@@ -53,6 +53,9 @@
 @layer base {
   html {
     scroll-behavior: smooth;
+    /* Stop iOS auto-zooming text on rotate / inputs */
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
   }
 
   body {
@@ -60,6 +63,23 @@
     background-color: var(--vital-bg);
     color: var(--vital-text);
     font-family: var(--font-sans);
+    /* Kill accidental horizontal scroll on small screens */
+    overflow-x: hidden;
+  }
+
+  /* Remove grey tap flash on mobile; we provide our own active states */
+  a,
+  button {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Media never forces the layout wider than the viewport */
+  img,
+  svg,
+  video,
+  canvas {
+    max-width: 100%;
+    height: auto;
   }
 
   /* Focus ring for accessibility */
@@ -142,12 +162,12 @@
 
   /* Section heading with accent line */
   .section-title {
-    @apply text-3xl font-bold tracking-tight md:text-4xl;
+    @apply text-2xl font-bold tracking-tight sm:text-3xl md:text-4xl;
     color: var(--vital-text);
   }
 
   .section-subtitle {
-    @apply mt-3 max-w-2xl text-lg;
+    @apply mt-3 max-w-2xl text-base sm:text-lg;
     color: var(--vital-muted);
   }
 
@@ -334,6 +354,16 @@
   }
   50% {
     opacity: 1;
+  }
+}
+
+.health-ekg {
+  filter: drop-shadow(0 0 6px rgba(0, 200, 150, 0.35));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .health-ekg {
+    filter: none;
   }
 }
 

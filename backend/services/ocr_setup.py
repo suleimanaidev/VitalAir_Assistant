@@ -81,7 +81,7 @@ def get_ocr_status() -> dict[str, str | bool]:
 
         status["pytesseract"] = True
     except ImportError:
-        status["install_hint"] = "Run: npm run install:documents"
+        status["install_hint"] = "Run: pip install -r requirements.txt"
 
     path = configure_tesseract()
     if path:
@@ -111,7 +111,7 @@ def ocr_unavailable_message() -> str:
     if not status["pillow"]:
         return "Pillow not installed. Run: pip install Pillow"
     if not status["pytesseract"]:
-        return "pytesseract not installed. Run: npm run install:documents"
+        return "pytesseract not installed. Run: pip install -r requirements.txt"
     if not status["tesseract_binary"]:
         return str(status["install_hint"])
     if not status["ready"]:

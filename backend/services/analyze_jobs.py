@@ -1,4 +1,4 @@
-"""In-memory analyze jobs + SSE events (fallback when Celery/Redis unavailable)."""
+"""In-memory analyze jobs + SSE events."""
 
 from __future__ import annotations
 
@@ -58,6 +58,11 @@ def _agent_log(agent: str, status: str, message: str) -> dict[str, Any]:
             "timestamp": datetime.now(timezone.utc).isoformat(),
         },
     }
+
+
+def make_agent_log(agent: str, status: str, message: str) -> dict[str, Any]:
+    """Public helper for agent job SSE events."""
+    return _agent_log(agent, status, message)
 
 
 async def run_analyze_job(job_id: str, body: AnalyzeRequest) -> None:

@@ -1,5 +1,6 @@
 import { findAreaByName, type LahoreArea } from "@/lib/lahoreAreas";
 import { geocodeLahoreArea } from "@/lib/geocode";
+import { cleanAreaName } from "@/lib/formatLocation";
 
 export type LocationSource = "area_mapping" | "geocode";
 
@@ -16,7 +17,7 @@ export interface ResolvedLocation {
 export async function resolveLocation(
   query: string
 ): Promise<ResolvedLocation | null> {
-  const q = query.trim();
+  const q = cleanAreaName(query);
   if (!q) return null;
 
   const mapped = findAreaByName(q);
@@ -32,8 +33,10 @@ export async function resolveLocation(
 
   const geocoded = await geocodeLahoreArea(q);
   if (geocoded) {
+    const fromDisplay =
+      geocoded.displayName.split(",")[0]?.trim() || q;
     return {
-      name: q,
+      name: cleanAreaName(fromDisplay),
       lat: geocoded.lat,
       lon: geocoded.lon,
       source: "geocode",

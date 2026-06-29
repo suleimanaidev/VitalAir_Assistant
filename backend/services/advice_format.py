@@ -50,66 +50,64 @@ SEASON_HEALTH_FALLBACK: dict[str, list[str]] = {
 
 SEASON_DIET_POOL: dict[str, list[str]] = {
     "winter_smog": [
-        "Kinnow or malta for vitamin C.",
-        "Warm ginger-honey tea.",
-        "Walnuts and almonds (handful).",
-        "Turmeric milk (haldi doodh) at night.",
-        "Steamed broccoli or spinach.",
-        "Green tea with lemon.",
-        "Omega-3 from grilled fish or flaxseed.",
-        "Beetroot and carrot juice.",
-        "Moong daal soup.",
-        "Pomegranate seeds for antioxidants.",
-        "Garlic in cooked meals.",
-        "Fresh guava slices.",
+        "Subah kinnow ya malta — vitamin C ke liye (Punjab mein aam)",
+        "Garam adrak-honey wali chai — halki, zyada shakkar na ho",
+        "Thori si badam ya akhrot — subah ke nashte ke sath",
+        "Raat ko haldi wala doodh (haldi doodh)",
+        "Ghar ka palak saag ya aloo palak",
+        "Hari chai — din mein ek cup",
+        "Rohu machli ya anda — hafte mein do dafa protein",
+        "Gajar aur chukandar ka fresh juice",
+        "Moong ki daal ka halka soup",
+        "Anar ke daane — antioxidants ke liye",
+        "Pakaye hue khane mein thora lehsan",
+        "Amrood ke tukray — sardi mein milta hai",
     ],
     "spring_dust": [
-        "Seasonal fruit bowl (guava, ber).",
-        "Vitamin C from citrus and berries.",
-        "Local honey for pollen season (if not diabetic).",
-        "Light anti-inflammatory meals.",
-        "Green tea in moderation.",
-        "Sprouted moong salad.",
-        "Carrot-apple juice.",
-        "Steamed mixed vegetables.",
-        "Fresh mint chutney.",
-        "Beetroot raita.",
-        "Plenty of room-temperature water.",
-        "Oats with nuts.",
+        "Amrood aur ber — seasonal phal",
+        "Kinnow ya malta ka juice",
+        "Local shahad — pollen season (agar sugar theek ho)",
+        "Halka khana — zyada oily na ho",
+        "Sprouted moong ki chat — ghar pe",
+        "Gajar-apple ka fresh juice",
+        "Steamed mixed sabzi — ghar ka",
+        "Podina ki chutney — khane ke sath",
+        "Chukandar ka raita",
+        "Normal temperature pani zyada peena",
+        "Dalia ya oats — subah",
     ],
     "summer_heatwave": [
-        "Nimbu pani with mint and black salt.",
-        "Chilled lassi (unsweetened).",
-        "Fresh tarbuz slices.",
-        "Kharbooza cubes.",
-        "Coconut water mid-day.",
-        "Cucumber raita with lunch.",
-        "Sattu sharbat (roasted gram drink).",
-        "Aam panna (raw mango cooler).",
-        "Falsa or seasonal berry crush.",
-        "Chilled plain doodh before sleep.",
-        "Sabza seeds in rooh afza.",
-        "Light moong khichdi.",
-        "Dahi with banana.",
-        "Lauki (bottle gourd) juice.",
-        "Anar (pomegranate) juice.",
-        "Iced chaas (buttermilk).",
-        "Kokum sharbat.",
-        "Fresh bel sharbat.",
+        "Thanda nimbu pani — podina aur kala namak ke sath",
+        "Meethi ya namkeen lassi — bina zyada shakkar",
+        "Tarbuz ke thande tukray — roz dopahar ko",
+        "Kharbooza — thanda, iftar ya shaam ko",
+        "Nariyal pani — garmi mein behtareen",
+        "Kheera ka raita — khane ke sath",
+        "Sattu sharbat — thanda, namkeen",
+        "Aam panna — kacha aam ka sharbat",
+        "Falsa ka crush — jab season ho",
+        "Thanda plain doodh — sone se pehle",
+        "Sabza seeds wala rooh afza — thora sa",
+        "Halki moong ki khichdi — raat ka khana",
+        "Dahi ke sath kela — snack",
+        "Lauki ka juice — ghar pe nikala hua",
+        "Anar ka thanda juice",
+        "Thanda chaas (lassi jaisa)",
+        "Bel sharbat — agar maujood ho",
     ],
     "monsoon": [
-        "Boiled or filtered water only.",
-        "Light khana — moong daal, sabzi, yogurt.",
-        "Fresh cooked food; skip street snacks.",
-        "Citrus for immunity (kinnow).",
-        "Warm vegetable soup if congested.",
-        "Khichdi with ginger.",
-        "Steamed idli or soft roti.",
-        "Herbal tea with tulsi.",
-        "Papaya for digestion.",
-        "Homemade chicken broth.",
-        "Roasted peanuts in moderation.",
-        "Warm turmeric milk.",
+        "Ubalta hua ya filter pani hi peena",
+        "Halka khana — moong daal, sabzi, dahi",
+        "Ghar ka pakaya khana — street food skip karein",
+        "Kinnow — immunity ke liye",
+        "Garam sabzi soup agar zukam ho",
+        "Adrak wali khichdi",
+        "Garam roti — naram, taza",
+        "Tulsi wali herbal chai",
+        "Papita — hazma theek rehne ke liye",
+        "Ghar ka chicken yakhni soup",
+        "Thori si bhuni chana — snack",
+        "Halki haldi wali doodh",
     ],
 }
 
@@ -139,19 +137,19 @@ CONDITION_HEALTH: dict[str, list[str]] = {
 
 CONDITION_DIET: dict[str, list[str]] = {
     "asthma": [
-        "Warm ginger tea — avoid ice-cold drinks that may trigger airways.",
-        "Omega-3 rich fish twice weekly.",
-        "Vitamin D sources: eggs, fortified milk.",
+        "Garam adrak wali chai — thanda drink kam karein",
+        "Rohu machli — hafte mein do dafa (omega-3)",
+        "Anda ya doodh — vitamin D ke liye",
     ],
     "heart disease": [
-        "Low-sodium meals — skip extra table salt on fruit chaat.",
-        "Oats or barley porridge for soluble fibre.",
-        "Potassium-rich banana in moderation (check with your doctor).",
+        "Kam namak wala khana — fruit chaat par extra namak na dalein",
+        "Dalia ya jau ka kanji — subah",
+        "Kela — moderation mein (doctor se pooch kar)",
     ],
     "diabetes": [
-        "Unsweetened lassi or chaas only.",
-        "Whole-grain roti instead of white naan.",
-        "Cucumber and tomato salad — low glycemic snack.",
+        "Bina shakkar lassi ya chaas",
+        "Whole wheat roti — naan kam",
+        "Kheera-tamatar salad — halka snack",
     ],
 }
 
@@ -429,9 +427,9 @@ def format_health_advice(
             if key not in seen:
                 bullets.append(b)
                 seen.add(key)
-            if len(bullets) >= 5:
+            if len(bullets) >= 4:
                 break
-        if len(bullets) >= 5:
+        if len(bullets) >= 4:
             break
 
     if not is_smog_season(season_id):
@@ -447,7 +445,7 @@ def format_health_advice(
     )
     summary_ur = SUMMARY_UR.get(season_id, "Lahore hawa ke liye neeche guidance follow karein.")
 
-    body = "\n".join(f"• {b}" for b in bullets[:5])
+    body = "\n".join(f"• {b}" for b in bullets[:4])
     return f"{summary_en}\n{summary_ur}\n\n{body}"
 
 
@@ -479,11 +477,14 @@ def format_diet_plan(
         hour_bucket,
     )
 
+    patient_bullets = build_patient_doc_bullets(rag_text, aqi=aqi)
+    rag_bullets = bullets_from_text(rag_text, max_items=2)
+
     pool = list(SEASON_DIET_POOL.get(season_id, SEASON_DIET_POOL["winter_smog"]))
     if season_id == "summer_heatwave":
         pool = [p for p in pool if "ginger tea" not in p.lower()]
 
-    picked = _pick_varied(pool, seed, 3)
+    picked = _pick_varied(pool, seed, 2)
     intel_item = season_intel.nutrition_agent_focus.split(";")[0].strip()
     if intel_item and intel_item.lower() not in {p.lower() for p in picked}:
         picked.insert(0, intel_item)
@@ -494,15 +495,19 @@ def format_diet_plan(
             if item.lower() not in {p.lower() for p in picked}:
                 picked.append(item)
 
-    rag_bullets = bullets_from_text(rag_text, max_items=2)
+    for item in patient_bullets[:2]:
+        short = item[:90]
+        if short.lower() not in {p.lower() for p in picked}:
+            picked.append(short)
+
     for item in rag_bullets:
-        if item.lower() not in {p.lower() for p in picked} and len(item) < 80:
+        if item.lower() not in {p.lower() for p in picked} and len(item) < 90:
             picked.append(item)
 
     if sensitivity == "high" and aqi >= 120:
-        picked.append("Extra vitamin C today — kinnow or amla juice.")
+        picked.append("Aaj extra vitamin C — subah kinnow ya malta.")
 
     if not picked:
-        picked = list(SEASON_DIET_POOL.get(season_id, SEASON_DIET_POOL["winter_smog"])[:5])
+        picked = list(SEASON_DIET_POOL.get(season_id, SEASON_DIET_POOL["winter_smog"])[:4])
 
-    return picked[:6]
+    return picked[:4]

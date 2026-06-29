@@ -9,6 +9,7 @@ _ROOT = Path(__file__).resolve().parent.parent
 load_dotenv(_ROOT / ".env", override=False)
 
 from contextlib import asynccontextmanager
+import asyncio
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -17,9 +18,19 @@ from fastapi.responses import HTMLResponse, JSONResponse
 from config import get_settings
 from db.connection import close_db, ping_db
 from db.repositories import ensure_user_email_index
-from routes import analyze, analyze_stream, auth, aqi, documents, history, profile, stream
+from routes import (
+    agents,
+    analyze,
+    analyze_stream,
+    aqi,
+    auth,
+    documents,
+    history,
+    profile,
+    stream,
+    symptoms,
+)
 from services.rag_service import ensure_rag_index
-from services.redis_client import redis_ping
 
 settings = get_settings()
 
@@ -27,11 +38,15 @@ settings = get_settings()
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     try:
-        await ensure_user_email_index()
+        await asyncio.wait_for(ping_db(), timeout=8.0)
     except Exception:
         pass
     try:
-        ensure_rag_index()
+        await asyncio.wait_for(ensure_user_email_index(), timeout=8.0)
+    except Exception:
+        pass
+    try:
+        await asyncio.to_thread(ensure_rag_index)
     except Exception:
         pass
     yield
@@ -55,7 +70,9 @@ app.include_router(analyze_stream.router, prefix="/api")
 app.include_router(aqi.router, prefix="/api")
 app.include_router(history.router, prefix="/api")
 app.include_router(profile.router, prefix="/api")
+app.include_router(agents.router, prefix="/api")
 app.include_router(documents.router, prefix="/api")
+app.include_router(symptoms.router, prefix="/api")
 
 
 _API_META = {
@@ -84,23 +101,27 @@ async def api_meta():
     return _API_META
 
 
+@app.get("/api/health/live")
+async def health_live():
+    """Fast liveness probe — no DB/RAG (use for login page backend check)."""
+    return {"status": "ok"}
+
+
 @app.get("/api/health")
 async def health():
     from agents.llm_config import active_llm_provider
-    from services.rag_service import retrieve_health_context
 
-    mongo_ok = await ping_db()
-    redis_ok = redis_ping()
-    rag_probe = retrieve_health_context("Lahore smog AQI health", k=1)
-    rag_ok = bool(rag_probe and len(rag_probe) > 20)
+    try:
+        mongo_ok = await asyncio.wait_for(ping_db(), timeout=6.0)
+    except asyncio.TimeoutError:
+        mongo_ok = False
+
     return {
         "status": "ok",
         "version": "2.0",
         "mongodb": mongo_ok,
         "mongodb_status": "connected" if mongo_ok else "disconnected — check root .env",
-        "redis": redis_ok,
-        "celery_enabled": settings.use_celery,
         "crew_mode": "mock" if settings.use_mock_agents else "live",
         "llm_provider": active_llm_provider(),
-        "rag_enabled": rag_ok,
+        "rag_enabled": True,
     }

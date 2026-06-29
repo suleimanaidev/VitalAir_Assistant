@@ -2,10 +2,11 @@ import logging
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, EmailStr, Field, model_validator
-from pymongo.errors import DuplicateKeyError
+from pymongo.errors import DuplicateKeyError, PyMongoError, ServerSelectionTimeoutError
 
 from core.security import create_access_token, hash_password, verify_password
 from config import get_settings
+from db.connection import MongoUnavailableError
 from db.repositories import (
     create_auth_user,
     create_password_reset_token,
@@ -20,6 +21,21 @@ from db.repositories import (
 logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["auth"])
+
+
+def _raise_db_unavailable(exc: Exception) -> None:
+    msg = str(exc).lower()
+    if isinstance(exc, MongoUnavailableError) or "dns" in msg or "resolution" in msg:
+        detail = (
+            "Cannot reach MongoDB (network/DNS timeout). "
+            "Check internet, VPN, or MongoDB Atlas IP whitelist."
+        )
+    else:
+        detail = (
+            "Database unreachable. Check internet connection and "
+            "MongoDB Atlas Network Access (IP whitelist)."
+        )
+    raise HTTPException(status_code=503, detail=detail) from exc
 
 
 class RegisterBody(BaseModel):
@@ -98,6 +114,9 @@ async def register(body: RegisterBody) -> AuthResponse:
             status_code=400,
             detail="You are already registered. Please sign in instead.",
         ) from None
+    except (ServerSelectionTimeoutError, PyMongoError, MongoUnavailableError) as exc:
+        logger.exception("MongoDB error during registration for %s", email)
+        _raise_db_unavailable(exc)
     except Exception as exc:
         logger.exception("Registration failed for %s", email)
         raise HTTPException(
@@ -133,6 +152,9 @@ async def login(body: LoginBody) -> AuthResponse:
         )
     except HTTPException:
         raise
+    except (ServerSelectionTimeoutError, PyMongoError, MongoUnavailableError) as exc:
+        logger.exception("MongoDB error during login for %s", email)
+        _raise_db_unavailable(exc)
     except Exception as exc:
         logger.exception("Login failed for %s", email)
         raise HTTPException(
@@ -145,26 +167,37 @@ async def login(body: LoginBody) -> AuthResponse:
 async def forgot_password(body: ForgotPasswordBody) -> ForgotPasswordResponse:
     email = str(body.email).lower().strip()
     settings = get_settings()
-    frontend_url = (
-        settings.cors_origin_list[0]
-        if settings.cors_origin_list
-        else "http://localhost:3000"
-    )
+    frontend_url = settings.effective_frontend_url
 
     try:
+        any_doc = await get_user_by_email(email)
+        stored_hash = get_stored_password_hash(any_doc) if any_doc else None
+
+        if any_doc and not stored_hash:
+            return ForgotPasswordResponse(
+                message=(
+                    "Is email par profile hai lekin password set nahi. "
+                    "Login page se Register tab use karke password set karein."
+                ),
+                reset_url=None,
+            )
+
         token = await create_password_reset_token(email)
         reset_url = (
-            f"{frontend_url.rstrip('/')}/reset-password?token={token}"
+            f"{frontend_url}/reset-password?token={token}"
             if token
             else None
         )
         return ForgotPasswordResponse(
             message=(
-                "If an account exists for this email, use the reset link below "
-                "to choose a new password."
+                "Agar is email par account hai to neeche reset link use karein "
+                "(link 60 minute ke liye valid hai)."
             ),
             reset_url=reset_url,
         )
+    except (ServerSelectionTimeoutError, PyMongoError, MongoUnavailableError) as exc:
+        logger.exception("MongoDB error during forgot-password for %s", email)
+        _raise_db_unavailable(exc)
     except Exception as exc:
         logger.exception("Forgot password failed for %s", email)
         raise HTTPException(
@@ -195,6 +228,9 @@ async def reset_password(body: ResetPasswordBody) -> dict[str, str]:
         return {"message": "Password updated. You can sign in now."}
     except HTTPException:
         raise
+    except (ServerSelectionTimeoutError, PyMongoError, MongoUnavailableError) as exc:
+        logger.exception("MongoDB error during reset-password")
+        _raise_db_unavailable(exc)
     except Exception as exc:
         logger.exception("Reset password failed")
         raise HTTPException(

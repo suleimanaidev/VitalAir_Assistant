@@ -1,9 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { UserCircle } from "lucide-react";
-import Navbar from "@/components/Navbar";
+import AppSidebarLayout from "@/components/AppSidebarLayout";
 import ProfileEditor from "@/components/profile/ProfileEditor";
 import HealthDocumentsPanel from "@/components/profile/HealthDocumentsPanel";
 import { useUserHealthProfile } from "@/hooks/useUserHealthProfile";
@@ -12,9 +11,9 @@ export default function ProfilePage() {
   const { loading, error } = useUserHealthProfile();
 
   return (
-    <main className="min-h-screen pb-16">
-      <Navbar />
-      <div className="mx-auto max-w-2xl px-4 pt-24 sm:px-6">
+    <AppSidebarLayout>
+      <main className="pb-16">
+        <div className="mx-auto max-w-2xl px-4 py-8 sm:px-6">
         <header className="mb-8">
           <div className="mb-2 flex items-center gap-2 text-vital-primary">
             <UserCircle className="h-6 w-6" aria-hidden />
@@ -50,6 +49,7 @@ export default function ProfilePage() {
           </Link>
         </p>
       </div>
-    </main>
+      </main>
+    </AppSidebarLayout>
   );
 }

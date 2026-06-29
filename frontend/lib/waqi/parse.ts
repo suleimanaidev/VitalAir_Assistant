@@ -7,6 +7,7 @@ import {
   type LiveAqiPayload,
 } from "@/lib/aqi";
 import { APP_CITY } from "@/lib/constants";
+import { cleanAreaName, cleanStationLabel } from "@/lib/formatLocation";
 import { STALE_READING_MS } from "@/lib/waqi/constants";
 import type { LocationInput, WaqiFetchMethod, WaqiIaqi, WaqiRaw } from "@/lib/waqi/types";
 
@@ -91,12 +92,28 @@ export function toAreaPayload(
   data: WaqiRaw,
   loc: LocationInput,
   fetchMethod: WaqiFetchMethod,
-  aqiOverride?: number
+  aqiOverride?: number,
+  nearestMonitorLabel?: string
 ): AreaAqiPayload | null {
   const base = buildBaseFields(data, fetchMethod);
   if (!base) return null;
 
   const aqi = aqiOverride ?? base.aqi;
+  const areaLabel = cleanAreaName(loc.areaName);
+  const stationClean = base.station.trim();
+  const monitor =
+    nearestMonitorLabel?.trim() || cleanStationLabel(stationClean) || stationClean;
+
+  let station: string;
+  if (fetchMethod === "interpolated") {
+    station = `Estimated for ${areaLabel} · nearest monitor: ${monitor}`;
+  } else if (fetchMethod === "station") {
+    station = `Nearest WAQI monitor · ${monitor}`;
+  } else {
+    station = monitor.includes(areaLabel)
+      ? monitor
+      : `${monitor} · ${areaLabel}`;
+  }
 
   return {
     ...base,
@@ -105,17 +122,12 @@ export function toAreaPayload(
     health_advice_en: aqiHealthAdvice(aqi).en,
     health_advice_ur: aqiHealthAdvice(aqi).ur,
     area_id: loc.areaId,
-    area: loc.areaName,
+    area: areaLabel,
     city: APP_CITY,
     lat: loc.lat,
     lon: loc.lon,
     location_source: loc.locationSource,
-    station:
-      fetchMethod === "interpolated"
-        ? `Est. from Lahore stations · ${loc.areaName}`
-        : fetchMethod === "station"
-          ? `${base.station} (nearest to ${loc.areaName})`
-          : `${base.station} · ${loc.areaName}`,
+    station,
   };
 }
 

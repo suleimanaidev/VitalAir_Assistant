@@ -7,21 +7,51 @@ import { env } from "@/lib/env";
 
 const API_BASE = env.backendUrl.replace(/\/$/, "");
 
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`${API_BASE}${path}`, {
-    ...init,
-    headers: {
-      "Content-Type": "application/json",
-      ...init?.headers,
-    },
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(
-      (err as { detail?: string }).detail || `API error ${res.status}`
-    );
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+async function request<T>(
+  path: string,
+  init?: RequestInit,
+  timeoutMs = 120_000
+): Promise<T> {
+  let lastError: unknown;
+
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+    try {
+      const res = await fetch(`${API_BASE}${path}`, {
+        ...init,
+        signal: init?.signal ?? controller.signal,
+        headers: {
+          "Content-Type": "application/json",
+          ...init?.headers,
+        },
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(
+          (err as { detail?: string }).detail || `API error ${res.status}`
+        );
+      }
+      return res.json() as Promise<T>;
+    } catch (err) {
+      lastError = err;
+      if (attempt === 2 || init?.signal) break;
+      await sleep(700 * (attempt + 1));
+    } finally {
+      clearTimeout(timer);
+    }
   }
-  return res.json() as Promise<T>;
+
+  if (lastError instanceof Error && lastError.name === "AbortError") {
+    throw new Error("Request timed out. Please try again.");
+  }
+  if (lastError instanceof Error && lastError.message === "Failed to fetch") {
+    throw new Error("Backend connection interrupted. Please try again.");
+  }
+  throw lastError instanceof Error ? lastError : new Error("Request failed");
 }
 
 export interface AQIReading {
@@ -192,6 +222,197 @@ export async function analyzeRouteStream(
   return request<AnalyzeResult>("/api/analyze/sync", {
     method: "POST",
     body: JSON.stringify(payload),
+  });
+}
+
+export interface AgentAreaPayload {
+  area: string;
+  profile: UserProfilePayload;
+  user_id?: string;
+  aqi?: number;
+  destination?: string;
+}
+
+export interface SymptomCheckinSymptoms {
+  cough: number;
+  breathlessness: number;
+  chest_tightness: number;
+  headache: number;
+  sleep_quality: number;
+  took_medication: boolean;
+  skipped: boolean;
+}
+
+export interface SymptomCheckinPayload {
+  cough?: number;
+  breathlessness?: number;
+  chest_tightness?: number;
+  headache?: number;
+  sleep_quality?: number;
+  took_medication?: boolean;
+  skipped?: boolean;
+}
+
+export interface SymptomCheckinResult {
+  status: string;
+  user_id: string;
+  date: string;
+  symptoms: SymptomCheckinSymptoms;
+  score: number;
+  risk_level: "none" | "mild" | "high";
+  summary: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface AgentHealthResult {
+  status: string;
+  agent: string;
+  area: string;
+  aqi: number;
+  aqi_label: string;
+  health_advice: string;
+  health_explainability?: AnalyzeResult["health_explainability"];
+  rag_sources_used: number;
+  has_patient_docs: boolean;
+  agent_mode: string;
+  season?: string;
+  season_label?: string;
+  temperature_c?: number;
+}
+
+export interface AgentNutritionResult {
+  status: string;
+  agent: string;
+  area: string;
+  aqi: number;
+  diet_plan: string[];
+  rag_sources_used: number;
+  has_patient_docs?: boolean;
+  agent_mode: string;
+  season?: string;
+  season_label?: string;
+}
+
+export interface AgentRouteResult {
+  status: string;
+  agent: string;
+  aqi: number;
+  aqi_label: string;
+  safe_route: AnalyzeResult["safe_route"];
+  personal_exposure_score?: AnalyzeResult["personal_exposure_score"];
+  season_intelligence?: AnalyzeResult["season_intelligence"];
+  context_summary?: string;
+  route_source: string;
+}
+
+async function agentRequest<T>(
+  path: string,
+  body: unknown,
+  token?: string
+): Promise<T> {
+  return request<T>(path, {
+    method: "POST",
+    body: JSON.stringify(body),
+    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+  });
+}
+
+/** Digital Pulmonologist — WHO RAG + patient documents + profile */
+export async function runHealthAgent(
+  payload: AgentAreaPayload,
+  token?: string
+): Promise<AgentHealthResult> {
+  return agentRequest<AgentHealthResult>("/api/agents/health", payload, token);
+}
+
+export async function startHealthAgentJob(
+  payload: AgentAreaPayload,
+  token?: string
+): Promise<{ task_id: string }> {
+  return agentRequest<{ task_id: string }>(
+    "/api/agents/health/async",
+    payload,
+    token
+  );
+}
+
+/** Environmental Nutritionist — diet RAG */
+export async function runNutritionAgent(
+  payload: AgentAreaPayload,
+  token?: string
+): Promise<AgentNutritionResult> {
+  return agentRequest<AgentNutritionResult>(
+    "/api/agents/nutrition",
+    payload,
+    token
+  );
+}
+
+export async function startNutritionAgentJob(
+  payload: AgentAreaPayload,
+  token?: string
+): Promise<{ task_id: string }> {
+  return agentRequest<{ task_id: string }>(
+    "/api/agents/nutrition/async",
+    payload,
+    token
+  );
+}
+
+/** Smart Route Navigator — OSRM/Google routes */
+export async function runRouteAgent(
+  payload: AnalyzePayload & { aqi?: number },
+  token?: string
+): Promise<AgentRouteResult> {
+  return agentRequest<AgentRouteResult>(
+    "/api/agents/route",
+    {
+      profile: payload.profile,
+      query: payload.query,
+      user_id: payload.user_id,
+      aqi: payload.aqi,
+    },
+    token
+  );
+}
+
+export async function startRouteAgentJob(
+  payload: AnalyzePayload & { aqi?: number },
+  token?: string
+): Promise<{ task_id: string }> {
+  return agentRequest<{ task_id: string }>(
+    "/api/agents/route/async",
+    {
+      profile: payload.profile,
+      query: payload.query,
+      user_id: payload.user_id,
+      aqi: payload.aqi,
+    },
+    token
+  );
+}
+
+export async function fetchTodaySymptoms(
+  token?: string
+): Promise<SymptomCheckinResult | null> {
+  if (!token) return null;
+  return request<SymptomCheckinResult | null>("/api/symptoms/today", {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+}
+
+export async function saveTodaySymptoms(
+  payload: SymptomCheckinPayload,
+  token?: string
+): Promise<SymptomCheckinResult> {
+  if (!token) {
+    throw new Error("Please sign in to save today's health check-in.");
+  }
+  return request<SymptomCheckinResult>("/api/symptoms/checkin", {
+    method: "POST",
+    body: JSON.stringify(payload),
+    headers: { Authorization: `Bearer ${token}` },
   });
 }
 

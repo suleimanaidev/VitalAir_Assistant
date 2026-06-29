@@ -111,6 +111,17 @@ def _normalize_area_key(name: str) -> str:
 
 
 def _lookup_coord(name: str) -> tuple[float, float]:
+    from tools.area_mapping import resolve_area
+    from tools.geocode_core import geocode_lahore_area
+
+    mapped = resolve_area(name)
+    if mapped:
+        return (mapped.lat, mapped.lon)
+
+    geocoded = geocode_lahore_area(name)
+    if geocoded:
+        return (geocoded[0], geocoded[1])
+
     key = _normalize_area_key(name)
     for area, coord in _LAHORE_COORDS.items():
         if area in key or key in area:

@@ -1,5 +1,30 @@
--r requirements-core.txt
+# VitalAir backend — single install file
+# pip install -r requirements.txt
 
-# Optional: install for live CrewAI agents (Python 3.10–3.13 recommended)
-# OpenAI: pip install "crewai>=1.11.0" "crewai-tools>=0.14.0" "langchain-openai>=0.2.0"
-# Gemini: pip install "crewai>=1.11.0" "crewai-tools>=0.14.0" "langchain-google-genai>=2.0.0"
+# API
+fastapi==0.115.6
+uvicorn[standard]==0.32.1
+python-dotenv==1.0.1
+motor==3.6.0
+pydantic==2.10.3
+pydantic-settings==2.6.1
+httpx==0.28.1
+python-jose[cryptography]==3.3.0
+bcrypt>=4.2.0,<6
+email-validator==2.2.0
+
+# Documents (PDF, Word, images)
+pypdf>=5.0.0
+Pillow>=10.0.0
+python-docx>=1.1.0
+olefile>=0.47
+pdfplumber>=0.11.0
+pymupdf>=1.24.0
+pytesseract>=0.3.10
+rapidocr-onnxruntime>=1.3.0
+
+# RAG (FAISS semantic search)
+langchain>=0.3.0
+langchain-community>=0.3.0
+faiss-cpu>=1.8.0
+sentence-transformers>=3.0.0

@@ -20,10 +20,19 @@ from services.lahore_context import (
 from services.agent_explainability import build_health_explainability
 from services.mock_crew import run_mock_analysis
 from services.personal_exposure_score import compute_personal_exposure_score
-from services.rag_service import retrieve_health_context
+from services.rag_service import (
+    build_health_rag_extra_queries,
+    build_health_rag_query,
+    retrieve_health_context,
+)
 from services.seasonal_intelligence import build_personalized_season_intelligence
 from agents.llm_config import crewai_is_available
-from services.user_patient_rag import reset_active_user_id, set_active_user_id
+from services.user_patient_rag import (
+    reset_active_keyword_chunks,
+    reset_active_user_id,
+    set_active_keyword_chunks,
+    set_active_user_id,
+)
 from tools.maps_core import fetch_geojson_routes_sync
 
 PublishLog = Callable[[str, str, str], None]
@@ -50,6 +59,7 @@ def run_vitalair_crew(
     )
 
     ctx_token = set_active_user_id(user_id)
+    kw_token = set_active_keyword_chunks(user_doc_chunks)
     try:
         if get_settings().use_mock_agents:
             result = run_mock_analysis(
@@ -75,6 +85,7 @@ def run_vitalair_crew(
                 publish_log=publish_log,
             )
     finally:
+        reset_active_keyword_chunks(kw_token)
         reset_active_user_id(ctx_token)
 
     return result
@@ -109,10 +120,25 @@ def vital_result_to_response(
         conditions=payload.profile.conditions,
         sensitivity=getattr(payload.profile, "sensitivity", "medium"),
     )
-    conditions = ", ".join(payload.profile.conditions) or "no listed conditions"
+    conditions_list = list(payload.profile.conditions or [])
+    conditions = ", ".join(conditions_list) or "no listed conditions"
+    rag_query = build_health_rag_query(
+        aqi=result.aqi,
+        area=payload.query.source,
+        conditions=conditions_list,
+        age=payload.profile.age,
+        sensitivity=getattr(payload.profile, "sensitivity", "medium"),
+        commute_mode=getattr(payload.profile, "commute_mode", "car"),
+        outdoor_time=getattr(payload.profile, "outdoor_time", "30_60"),
+        season_id=ctx.get("season", "winter_smog"),
+        temp_c=float(ctx.get("temperature_c") or 0),
+        destination=payload.query.destination,
+    )
     rag_health = retrieve_health_context(
-        f"AQI {result.aqi} Lahore health advice {conditions}",
+        rag_query,
+        k=5,
         user_id=payload.user_id,
+        extra_queries=build_health_rag_extra_queries(conditions_list, result.aqi),
     )
     explainability = build_health_explainability(
         profile=payload.profile,

@@ -96,8 +96,22 @@ export default function ExposureScoreCard({
         </div>
       </dl>
 
-      <p className="mt-4 rounded-lg border border-vital-border/40 bg-vital-bg/40 px-3 py-2.5 text-sm text-vital-text">
-        <span className="font-medium text-amber-400">⚠️ Recommendation: </span>
+      <p
+        className={`mt-4 rounded-lg border px-3 py-2.5 text-sm text-vital-text ${
+          pes.level === "high" || pes.level === "critical"
+            ? "border-amber-500/30 bg-amber-500/5"
+            : "border-vital-border/40 bg-vital-bg/40"
+        }`}
+      >
+        <span
+          className={`font-medium ${
+            pes.level === "high" || pes.level === "critical"
+              ? "text-amber-400"
+              : "text-vital-primary"
+          }`}
+        >
+          {pes.level === "low" || pes.level === "moderate" ? "Tip: " : "Note: "}
+        </span>
         {pes.recommendation}
       </p>
 

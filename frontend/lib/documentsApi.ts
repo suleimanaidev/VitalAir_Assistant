@@ -16,6 +16,13 @@ export interface UploadDocumentResult {
   extraction_method?: string;
 }
 
+export interface PatientRagChatResult {
+  answer: string;
+  sources_used: number;
+  has_patient_docs: boolean;
+  mode: string;
+}
+
 export async function fetchMyDocuments(): Promise<HealthDocument[]> {
   const res = await fetch("/api/documents", { cache: "no-store" });
   const data = await res.json().catch(() => ({}));
@@ -50,4 +57,24 @@ export async function deleteHealthDocument(id: string): Promise<void> {
   if (!res.ok) {
     throw new Error(parseApiError(data, "Could not delete document"));
   }
+}
+
+export async function askPatientRagChat(
+  question: string,
+  options?: { area?: string; aqi?: number }
+): Promise<PatientRagChatResult> {
+  const res = await fetch("/api/rag/chat", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      question,
+      area: options?.area,
+      aqi: options?.aqi,
+    }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(parseApiError(data, "Could not answer from RAG"));
+  }
+  return data as PatientRagChatResult;
 }

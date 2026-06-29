@@ -79,11 +79,13 @@ async def upload_document(
         "extraction_method": extraction_method,
         "indexed": indexed,
         "message": (
-            "Document saved and indexed in your personal RAG knowledge base. "
-            "The health agent will read your prescription on the next route analysis."
+            "Document saved and indexed in your personal knowledge base. "
+            "The health agent will use semantic search on your document in the next analysis."
             if indexed
-            else "Document saved. Vector index unavailable — advice will still use "
-            "keyword search from your upload on the next analysis."
+            else "Document saved. The health agent will read it via smart keyword "
+            "search in your next analysis — your advice is doctor-aware now. "
+            "(Optional: enable semantic search by freeing disk space and running "
+            "the RAG install — see docs/ENV.md.)"
         ),
     }
 

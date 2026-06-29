@@ -22,7 +22,13 @@ from services.lahore_context import (
 from services.openai_advice import generate_diet_plan, generate_health_advice
 from services.personal_exposure_score import compute_personal_exposure_score
 from services.seasonal_intelligence import build_personalized_season_intelligence
-from services.rag_service import retrieve_diet_context, retrieve_health_context
+from services.rag_service import (
+    build_diet_rag_query,
+    build_health_rag_extra_queries,
+    build_health_rag_query,
+    retrieve_diet_context,
+    retrieve_health_context,
+)
 from tools.area_mapping import resolve_area
 from tools.iqair_core import fetch_aqi_for_api
 from tools.maps_core import build_three_route_options, fetch_geojson_routes_sync, fetch_routes_sync
@@ -188,12 +194,27 @@ def run_mock_analysis(
     aqi = state["aqi"]
 
     def step_health() -> None:
+        rag_query = build_health_rag_query(
+            aqi=aqi,
+            area=payload.query.source,
+            conditions=list(payload.profile.conditions or []),
+            age=payload.profile.age,
+            sensitivity=sensitivity,
+            commute_mode=commute,
+            outdoor_time=outdoor,
+            season_id=season_id,
+            temp_c=temp_c,
+            destination=payload.query.destination,
+        )
+        extra = build_health_rag_extra_queries(
+            list(payload.profile.conditions or []), aqi
+        )
         rag_health = retrieve_health_context(
-            f"AQI {aqi} Lahore {season_id} health advice {conditions} "
-            f"age {payload.profile.age} sensitivity {sensitivity} commute {commute} outdoor {outdoor} "
-            f"temperature {temp_c}C route {payload.query.source} to {payload.query.destination}",
+            rag_query,
+            k=5,
             user_id=payload.user_id,
             user_doc_chunks=user_doc_chunks,
+            extra_queries=extra,
         )
         state["rag_health"] = rag_health
         health = format_health_advice(
@@ -240,7 +261,14 @@ def run_mock_analysis(
 
     def step_diet() -> None:
         rag_diet = retrieve_diet_context(
-            f"anti pollution diet nutrition AQI {aqi} Lahore {season_id} temperature {temp_c}C"
+            build_diet_rag_query(
+                aqi=aqi,
+                area=payload.query.source,
+                season_id=season_id,
+                temp_c=temp_c,
+                conditions=list(payload.profile.conditions or []),
+            ),
+            k=5,
         )
         diet = format_diet_plan(
             rag_diet,

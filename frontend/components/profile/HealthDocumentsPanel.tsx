@@ -105,8 +105,8 @@ export default function HealthDocumentsPanel() {
           <strong className="font-medium text-vital-text">
             PDF, Word (.doc/.docx), JPG, PNG
           </strong>
-          , plus plain text. Photos and scanned PDFs use built-in OCR (
-          <code className="text-xs">npm run install:documents</code> for full support).
+          , plus plain text. Photos and scanned PDFs use built-in OCR when
+          Tesseract is installed on the server.
           Text is embedded in your personal RAG index for doctor-aware health advice.
         </p>
       </div>

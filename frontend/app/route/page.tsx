@@ -2,23 +2,21 @@
 
 import { useState } from "react";
 import ProfileSetupGuard from "@/components/auth/ProfileSetupGuard";
-import Navbar from "@/components/Navbar";
-import LahoreAreasStrip from "@/components/map/LahoreAreasStrip";
+import AppSidebarLayout from "@/components/AppSidebarLayout";
 import LeafletMap from "@/components/map/LeafletMap";
 import { useLahoreAreas } from "@/hooks/useLahoreAreas";
 import { APP_CITY } from "@/lib/constants";
 import type { LahoreArea } from "@/lib/lahoreAreas";
 
 export default function RoutePageView() {
-  const { areas, loading, refreshing, lastFetched, refresh, error } =
-    useLahoreAreas();
+  const { areas, error } = useLahoreAreas();
   const [activeArea, setActiveArea] = useState<LahoreArea | null>(null);
 
   return (
     <ProfileSetupGuard>
-      <main className="min-h-screen pb-12">
-        <Navbar />
-        <div className="mx-auto max-w-6xl px-4 pt-24 sm:px-6 lg:px-8">
+      <AppSidebarLayout>
+        <main className="pb-12">
+          <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
           <h1 className="section-title">Lahore route map</h1>
           <p className="section-subtitle">
             {APP_CITY}, Pakistan — famous neighborhoods with live AQI
@@ -36,18 +34,10 @@ export default function RoutePageView() {
               activeAreaId={activeArea?.id}
               onAreaSelect={setActiveArea}
             />
-            <LahoreAreasStrip
-              areas={areas}
-              activeId={activeArea?.id}
-              loading={loading}
-              refreshing={refreshing}
-              lastFetched={lastFetched}
-              onSelect={setActiveArea}
-              onRefresh={refresh}
-            />
           </div>
         </div>
-      </main>
+        </main>
+      </AppSidebarLayout>
     </ProfileSetupGuard>
   );
 }

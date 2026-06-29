@@ -4,11 +4,12 @@
   "scripts": {
     "install:all": "npm run install:frontend && npm run install:backend",
     "install:frontend": "npm install --prefix frontend",
-    "install:backend": "cd backend && python -m venv .venv 2>nul || true && .venv\\Scripts\\pip install -r requirements-core.txt",
-    "install:rag": "cd backend && .venv\\Scripts\\pip install -r requirements-rag.txt && .venv\\Scripts\\python rag/ingest.py",
-    "install:documents": "cd backend && .venv\\Scripts\\pip install -r requirements-documents.txt",
+    "install:backend": "cd backend && python -m venv .venv 2>nul || true && .venv\\Scripts\\pip install -r requirements.txt",
+    "ingest:rag": "cd backend && .venv\\Scripts\\python rag/ingest.py",
     "dev:frontend": "npm run dev --prefix frontend",
     "dev:backend": "cd backend && .venv\\Scripts\\uvicorn main:app --reload --host 127.0.0.1 --port 8000",
+    "start:frontend": "npm run start --prefix frontend",
+    "start:backend": "cd backend && .venv\\Scripts\\uvicorn main:app --host 127.0.0.1 --port 8000",
     "build:frontend": "npm run build --prefix frontend",
     "lint:frontend": "npm run lint --prefix frontend",
     "typecheck:frontend": "npm run typecheck --prefix frontend"

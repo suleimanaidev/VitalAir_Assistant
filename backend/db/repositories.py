@@ -1,13 +1,13 @@
 import secrets
-from datetime import datetime, timedelta
-from typing import Any
+from datetime import date, datetime, timedelta
+from typing import Any, Literal
 
 from bson import ObjectId
 from pymongo.errors import DuplicateKeyError
 
-from db.connection import get_db
+from db.connection import get_db_async
 from models.agent_output import RouteOutput
-from schemas.models import UserProfile
+from schemas.models import SymptomCheckinBody, SymptomCheckinResponse, UserProfile
 
 
 def _password_field(doc: dict) -> str | None:
@@ -23,7 +23,7 @@ async def create_auth_user(email: str, password_hash: str, name: str) -> str:
     Register auth user in users collection.
     If a profile-only user exists (no password), upgrade it with credentials.
     """
-    db = get_db()
+    db = await get_db_async()
     normalized_email = email.lower().strip()
 
     existing_user = await db.users.find_one({"email": normalized_email})
@@ -36,6 +36,7 @@ async def create_auth_user(email: str, password_hash: str, name: str) -> str:
                 "$set": {
                     "name": name,
                     "hashed_password": password_hash,
+                    "password_hash": password_hash,
                     "city": existing_user.get("city", "Lahore"),
                 }
             },
@@ -62,6 +63,7 @@ async def create_auth_user(email: str, password_hash: str, name: str) -> str:
         "name": name,
         "email": normalized_email,
         "hashed_password": password_hash,
+        "password_hash": password_hash,
         "age": None,
         "conditions": [],
         "city": "Lahore",
@@ -73,7 +75,7 @@ async def create_auth_user(email: str, password_hash: str, name: str) -> str:
 
 async def ensure_user_email_index() -> None:
     """Unique email index — safe to call on startup."""
-    db = get_db()
+    db = await get_db_async()
     await db.users.create_index("email", unique=True, sparse=True)
     try:
         await db.accounts.create_index("email", unique=True, sparse=True)
@@ -83,10 +85,117 @@ async def ensure_user_email_index() -> None:
         await db.user_documents.create_index("user_id")
     except Exception:
         pass
+    try:
+        await db.symptom_checkins.create_index(
+            [("user_id", 1), ("date", 1)],
+            unique=True,
+        )
+    except Exception:
+        pass
+
+
+def _symptom_score(body: SymptomCheckinBody) -> int:
+    if body.skipped:
+        return 0
+    return min(
+        12,
+        body.cough
+        + body.breathlessness
+        + body.chest_tightness
+        + body.headache
+        + body.sleep_quality,
+    )
+
+
+def _symptom_risk_level(score: int) -> Literal["none", "mild", "high"]:
+    if score >= 5:
+        return "high"
+    if score >= 2:
+        return "mild"
+    return "none"
+
+
+def _symptom_summary(body: SymptomCheckinBody, score: int) -> str:
+    if body.skipped:
+        return "Skipped for today."
+    if score == 0:
+        return "Feeling okay today."
+
+    labels = [
+        ("cough", body.cough),
+        ("breathlessness", body.breathlessness),
+        ("chest tightness", body.chest_tightness),
+        ("headache", body.headache),
+        ("poor sleep", body.sleep_quality),
+    ]
+    active = [name for name, value in labels if value > 0]
+    if not active:
+        return "Feeling okay today."
+    return f"Today's symptoms: {', '.join(active[:3])}."
+
+
+def _symptom_response(doc: dict) -> SymptomCheckinResponse:
+    symptoms = SymptomCheckinBody(**(doc.get("symptoms") or {}))
+    score = int(doc.get("score") or 0)
+    return SymptomCheckinResponse(
+        user_id=str(doc["user_id"]),
+        date=str(doc["date"]),
+        symptoms=symptoms,
+        score=score,
+        risk_level=_symptom_risk_level(score),
+        summary=doc.get("summary") or _symptom_summary(symptoms, score),
+        created_at=doc.get("created_at"),
+        updated_at=doc.get("updated_at"),
+    )
+
+
+async def save_symptom_checkin(
+    user_id: str,
+    body: SymptomCheckinBody,
+    *,
+    checkin_date: str | None = None,
+) -> SymptomCheckinResponse | None:
+    if not ObjectId.is_valid(user_id):
+        return None
+
+    db = await get_db_async()
+    today = checkin_date or date.today().isoformat()
+    score = _symptom_score(body)
+    now = datetime.utcnow()
+    payload = {
+        "user_id": ObjectId(user_id),
+        "date": today,
+        "symptoms": body.model_dump(),
+        "score": score,
+        "risk_level": _symptom_risk_level(score),
+        "summary": _symptom_summary(body, score),
+        "updated_at": now,
+    }
+    await db.symptom_checkins.update_one(
+        {"user_id": ObjectId(user_id), "date": today},
+        {"$set": payload, "$setOnInsert": {"created_at": now}},
+        upsert=True,
+    )
+    doc = await db.symptom_checkins.find_one(
+        {"user_id": ObjectId(user_id), "date": today}
+    )
+    return _symptom_response(doc) if doc else None
+
+
+async def get_today_symptom_checkin(
+    user_id: str,
+) -> SymptomCheckinResponse | None:
+    if not ObjectId.is_valid(user_id):
+        return None
+    db = await get_db_async()
+    doc = await db.symptom_checkins.find_one(
+        {"user_id": ObjectId(user_id), "date": date.today().isoformat()}
+    )
+    return _symptom_response(doc) if doc else None
 
 
 async def get_user_by_email(email: str) -> dict | None:
-    db = get_db()
+    db = await get_db_async()
     normalized = email.lower().strip()
     user = await db.users.find_one({"email": normalized})
     if user:
@@ -105,7 +214,7 @@ async def get_auth_user_by_email(email: str) -> dict | None:
 async def get_user_by_id(user_id: str) -> dict | None:
     if not ObjectId.is_valid(user_id):
         return None
-    db = get_db()
+    db = await get_db_async()
     user = await db.users.find_one({"_id": ObjectId(user_id)})
     if user:
         return user
@@ -129,7 +238,7 @@ async def ensure_user_for_token(user_id: str, email: str | None = None) -> dict:
     if not ObjectId.is_valid(user_id):
         raise ValueError("Invalid user id")
 
-    db = get_db()
+    db = await get_db_async()
     new_doc = {
         "_id": ObjectId(user_id),
         "name": "User",
@@ -175,7 +284,7 @@ def is_profile_complete(doc: dict) -> bool:
 async def update_user_profile(user_id: str, profile: UserProfile) -> bool:
     if not ObjectId.is_valid(user_id):
         return False
-    db = get_db()
+    db = await get_db_async()
     payload = {
         "name": profile.name,
         "age": profile.age,
@@ -206,7 +315,7 @@ async def list_queries_full(
     days: int = 30,
 ) -> list[dict]:
     """Full query documents for exposure trends (Innovation 7)."""
-    db = get_db()
+    db = await get_db_async()
     query: dict = {"source": {"$exists": True}}
     if user_id and ObjectId.is_valid(user_id):
         query["user_id"] = ObjectId(user_id)
@@ -236,7 +345,7 @@ async def list_queries_full(
 
 
 async def list_queries(user_id: str | None = None, limit: int = 30) -> list[dict]:
-    db = get_db()
+    db = await get_db_async()
     query: dict = {"source": {"$exists": True}}
     if user_id and ObjectId.is_valid(user_id):
         query["user_id"] = ObjectId(user_id)
@@ -263,7 +372,7 @@ async def list_queries(user_id: str | None = None, limit: int = 30) -> list[dict
 
 
 async def create_user(profile: UserProfile) -> str:
-    db = get_db()
+    db = await get_db_async()
     doc = {
         "name": profile.name,
         "age": profile.age,
@@ -337,7 +446,7 @@ async def save_query(
     task_id: str | None = None,
     status: str = "complete",
 ) -> str:
-    db = get_db()
+    db = await get_db_async()
     exposure = _exposure_fields_from_result(result)
     safe_route = _normalize_safe_route(result)
 
@@ -369,7 +478,7 @@ async def create_password_reset_token(
     if not user:
         return None
 
-    db = get_db()
+    db = await get_db_async()
     normalized = email.lower().strip()
     token = secrets.token_urlsafe(32)
     expires_at = datetime.utcnow() + timedelta(minutes=expires_minutes)
@@ -390,7 +499,7 @@ async def get_email_for_reset_token(token: str) -> str | None:
     if not token.strip():
         return None
 
-    db = get_db()
+    db = await get_db_async()
     doc = await db.password_resets.find_one({"token": token.strip()})
     if not doc:
         return None
@@ -404,12 +513,12 @@ async def get_email_for_reset_token(token: str) -> str | None:
 
 
 async def delete_reset_token(token: str) -> None:
-    db = get_db()
+    db = await get_db_async()
     await db.password_resets.delete_one({"token": token.strip()})
 
 
 async def update_user_password(email: str, password_hash: str) -> bool:
-    db = get_db()
+    db = await get_db_async()
     normalized = email.lower().strip()
     payload = {"hashed_password": password_hash, "password_hash": password_hash}
 
@@ -428,7 +537,7 @@ MAX_USER_DOCUMENTS = 10
 async def count_user_documents(user_id: str) -> int:
     if not ObjectId.is_valid(user_id):
         return 0
-    db = get_db()
+    db = await get_db_async()
     return await db.user_documents.count_documents({"user_id": ObjectId(user_id)})
 
 
@@ -443,7 +552,7 @@ async def save_user_document(
 ) -> str:
     if not ObjectId.is_valid(user_id):
         raise ValueError("Invalid user id")
-    db = get_db()
+    db = await get_db_async()
     uid = ObjectId(user_id)
     count = await db.user_documents.count_documents({"user_id": uid})
     if count >= MAX_USER_DOCUMENTS:
@@ -465,7 +574,7 @@ async def save_user_document(
 async def list_user_documents(user_id: str) -> list[dict]:
     if not ObjectId.is_valid(user_id):
         return []
-    db = get_db()
+    db = await get_db_async()
     cursor = db.user_documents.find({"user_id": ObjectId(user_id)}).sort(
         "created_at", -1
     )
@@ -490,7 +599,7 @@ async def list_user_documents(user_id: str) -> list[dict]:
 async def delete_user_document(user_id: str, document_id: str) -> bool:
     if not ObjectId.is_valid(user_id) or not ObjectId.is_valid(document_id):
         return False
-    db = get_db()
+    db = await get_db_async()
     result = await db.user_documents.delete_one(
         {"_id": ObjectId(document_id), "user_id": ObjectId(user_id)}
     )
@@ -501,7 +610,7 @@ async def get_user_document_chunks(user_id: str | None) -> list[str]:
     """Text chunks from a patient's uploaded health documents for RAG."""
     if not user_id or not ObjectId.is_valid(user_id):
         return []
-    db = get_db()
+    db = await get_db_async()
     cursor = db.user_documents.find({"user_id": ObjectId(user_id)}).sort(
         "created_at", -1
     )
@@ -516,12 +625,6 @@ async def get_user_document_chunks(user_id: str | None) -> list[str]:
 
 
 def _split_document_text(text: str, chunk_size: int = 500, overlap: int = 50) -> list[str]:
-    parts: list[str] = []
-    start = 0
-    while start < len(text):
-        end = start + chunk_size
-        piece = text[start:end].strip()
-        if len(piece) > 40:
-            parts.append(piece)
-        start = end - overlap
-    return parts
+    from rag.chunking import split_text
+
+    return split_text(text, chunk_size=chunk_size, chunk_overlap=overlap)

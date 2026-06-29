@@ -1,12 +1,24 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { AreaAqiPayload } from "@/lib/aqi";
+import { cleanAreaName } from "@/lib/formatLocation";
 
 const cache = new Map<string, { at: number; data: AreaAqiPayload }>();
-const CACHE_MS = 45_000;
+/** Short cache — live WAQI refresh */
+const CACHE_MS = 20_000;
+const REFRESH_MS = 45_000;
 
-/** Fast single-area WAQI — one API call, ~1–2s vs 18-area batch. */
+async function fetchAreaAqi(key: string): Promise<AreaAqiPayload | null> {
+  const res = await fetch(
+    `/api/aqi/lookup?area=${encodeURIComponent(key)}&_=${Date.now()}`,
+    { cache: "no-store" }
+  );
+  if (!res.ok) return null;
+  return res.json() as Promise<AreaAqiPayload>;
+}
+
+/** Live single-area WAQI — refreshes every 45s while mounted. */
 export function useAreaAqi(areaName: string) {
   const [reading, setReading] = useState<AreaAqiPayload | null>(() => {
     const hit = cache.get(areaName.trim().toLowerCase());
@@ -14,8 +26,8 @@ export function useAreaAqi(areaName: string) {
   });
   const [loading, setLoading] = useState(!reading);
 
-  useEffect(() => {
-    const key = areaName.trim();
+  const refresh = useCallback(async (force = false) => {
+    const key = cleanAreaName(areaName);
     if (!key) {
       setReading(null);
       setLoading(false);
@@ -23,39 +35,43 @@ export function useAreaAqi(areaName: string) {
     }
 
     const cacheKey = key.toLowerCase();
-    const hit = cache.get(cacheKey);
-    if (hit && Date.now() - hit.at < CACHE_MS) {
-      setReading(hit.data);
-      setLoading(false);
-      return;
+    if (!force) {
+      const hit = cache.get(cacheKey);
+      if (hit && Date.now() - hit.at < CACHE_MS) {
+        setReading(hit.data);
+        setLoading(false);
+        return;
+      }
     }
 
-    let cancelled = false;
     setLoading(true);
-
-    void fetch(`/api/aqi/lookup?area=${encodeURIComponent(key)}`, {
-      cache: "no-store",
-    })
-      .then(async (res) => {
-        if (!res.ok) throw new Error("lookup failed");
-        return res.json() as Promise<AreaAqiPayload>;
-      })
-      .then((data) => {
-        if (cancelled) return;
+    try {
+      const data = await fetchAreaAqi(key);
+      if (data) {
         cache.set(cacheKey, { at: Date.now(), data });
         setReading(data);
-      })
-      .catch(() => {
-        if (!cancelled) setReading(null);
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-
-    return () => {
-      cancelled = true;
-    };
+      }
+    } catch {
+      /* keep last reading */
+    } finally {
+      setLoading(false);
+    }
   }, [areaName]);
+
+  useEffect(() => {
+    void refresh(false);
+  }, [refresh]);
+
+  useEffect(() => {
+    const key = cleanAreaName(areaName);
+    if (!key) return;
+
+    const id = window.setInterval(() => {
+      void refresh(true);
+    }, REFRESH_MS);
+
+    return () => window.clearInterval(id);
+  }, [areaName, refresh]);
 
   return { reading, loading };
 }

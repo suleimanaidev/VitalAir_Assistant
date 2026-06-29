@@ -1,8 +1,10 @@
 "use client";
 
-import { AlertTriangle } from "lucide-react";
-import ExpandableBullets from "@/components/ui/ExpandableBullets";
-import { emojiForHealthItem } from "@/lib/formatAdvice";
+import { motion, useReducedMotion } from "framer-motion";
+import { AlertTriangle, Info, Languages } from "lucide-react";
+import AdviceBulletList from "@/components/ui/AdviceBulletList";
+import HealthGuidanceIllustration from "@/components/illustrations/HealthGuidanceIllustration";
+import { emojiForHealthItem, parseHealthAdvice } from "@/lib/formatAdvice";
 
 export interface HealthAlertCardProps {
   title?: string;
@@ -17,10 +19,17 @@ export default function HealthAlertCard({
   severity = "warning",
   sourceHint,
 }: HealthAlertCardProps) {
+  const parsed = parseHealthAdvice(message);
+  const reduce = useReducedMotion();
+
+  const SeverityIcon = severity === "info" ? Info : AlertTriangle;
+  const pulseSpeed =
+    severity === "critical" ? 1.2 : severity === "warning" ? 1.8 : 0;
+
   const styles = {
-    info: "border-vital-primary/40 bg-vital-primary/5",
-    warning: "border-[#f0c040]/40 bg-[#f0c040]/5",
-    critical: "border-vital-danger/40 bg-vital-danger/5",
+    info: "border-vital-primary/50 bg-vital-primary/8",
+    warning: "border-[#f0c040]/50 bg-[#f0c040]/8",
+    critical: "border-vital-danger/50 bg-vital-danger/8",
   };
 
   const iconStyles = {
@@ -29,25 +38,88 @@ export default function HealthAlertCard({
     critical: "text-vital-danger",
   };
 
+  const titleStyles = {
+    info: "text-vital-primary",
+    warning: "text-[#f0c040]",
+    critical: "text-vital-danger",
+  };
+
   return (
-    <article className={`vital-card flex h-full flex-col border p-5 ${styles[severity]}`}>
-      <header className="flex items-center gap-2">
-        <AlertTriangle className={`h-5 w-5 ${iconStyles[severity]}`} aria-hidden />
-        <h2 className="font-semibold text-vital-text">{title}</h2>
+    <motion.article
+      className={`vital-card flex h-full flex-col border-2 p-5 sm:p-6 ${styles[severity]}`}
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35 }}
+    >
+      <header className="flex items-start gap-3">
+        <motion.span
+          className="mt-0.5 shrink-0"
+          animate={
+            reduce || pulseSpeed === 0
+              ? undefined
+              : { scale: [1, 1.12, 1], opacity: [0.85, 1, 0.85] }
+          }
+          transition={{
+            duration: pulseSpeed,
+            repeat: Infinity,
+            ease: "easeInOut",
+          }}
+        >
+          <SeverityIcon
+            className={`h-6 w-6 ${iconStyles[severity]}`}
+            aria-hidden
+          />
+        </motion.span>
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wide text-vital-muted">
+            Aap ke liye health guidance
+          </p>
+          <h2 className={`mt-1 text-lg font-bold leading-snug sm:text-xl ${titleStyles[severity]}`}>
+            {title}
+          </h2>
+        </div>
       </header>
-      <div className="mt-4 flex-1">
-        <ExpandableBullets
-          text={message}
+
+      <div className="mt-5 flex-1 space-y-4">
+        {!message?.trim() && (
+          <HealthGuidanceIllustration className="mx-auto w-full max-w-[280px] opacity-90" />
+        )}
+
+        {parsed.summaryUr && (
+          <div
+            className="rounded-xl border border-vital-primary/35 bg-vital-primary/12 px-4 py-3.5"
+            role="note"
+          >
+            <div className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-vital-primary">
+              <Languages className="h-3.5 w-3.5" aria-hidden />
+              Roman Urdu — short summary
+            </div>
+            <p className="text-base font-medium leading-relaxed text-vital-text sm:text-[17px]">
+              {parsed.summaryUr}
+            </p>
+          </div>
+        )}
+
+        {parsed.summaryEn && (
+          <p className="text-sm leading-relaxed text-vital-muted sm:text-[15px]">
+            {parsed.summaryEn}
+          </p>
+        )}
+
+        <AdviceBulletList
+          items={parsed.bullets.slice(0, 4)}
           emojiFor={emojiForHealthItem}
           maxVisible={4}
-          emptyMessage="Run a route analysis for personalized health guidance."
+          variant="guidance"
+          emptyMessage="Route analyze karein — AQI, season aur aap ki health profile ke hisaab se 4 tips yahan aayengi."
         />
       </div>
+
       {sourceHint && (
-        <p className="mt-3 border-t border-vital-border/40 pt-3 text-xs text-vital-muted">
+        <p className="mt-4 border-t border-vital-border/50 pt-3 text-xs leading-relaxed text-vital-muted">
           {sourceHint}
         </p>
       )}
-    </article>
+    </motion.article>
   );
 }

@@ -1,8 +1,7 @@
 "use client";
 
-import Link from "next/link";
 import { motion } from "framer-motion";
-import { ArrowRight, Activity, Apple, FileText, Gauge, Route, Shield } from "lucide-react";
+import { Activity, Apple, FileText, Gauge, Route, Shield } from "lucide-react";
 
 const FEATURES = [
   {
@@ -87,27 +86,6 @@ export default function FeaturesSection() {
             </motion.article>
           ))}
         </div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="mt-12 text-center"
-        >
-          <p className="text-sm text-vital-muted">
-            Join thousands of Lahore commuters making smarter health decisions.
-          </p>
-          <motion.div
-            className="mt-4 inline-block"
-            whileHover={{ scale: 1.04 }}
-            whileTap={{ scale: 0.98 }}
-          >
-            <Link href="/onboarding" className="btn-primary inline-flex">
-              Create your free account
-              <ArrowRight className="h-4 w-4" aria-hidden />
-            </Link>
-          </motion.div>
-        </motion.div>
       </div>
     </section>
   );

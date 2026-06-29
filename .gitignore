@@ -12,7 +12,7 @@ backend/.env
 backend/.venv/
 backend/__pycache__/
 backend/**/__pycache__/
-backend/chroma_store/
+backend/faiss_indexes/
 
 # Legacy
 node_modules/

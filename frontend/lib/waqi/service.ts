@@ -9,6 +9,7 @@ import {
   fetchGeoWaqiOnly,
   fetchLiveWaqi,
   filterTrustedLahoreStations,
+  interpolateAqiFromStations,
   mapConcurrent,
   nearestStationReading,
 } from "@/lib/waqi/client";
@@ -29,6 +30,46 @@ async function fetchAtLocation(
   token: string,
   loc: LocationInput
 ): Promise<AreaAqiPayload | null> {
+  // Lahore's verified WAQI stations are clustered in the city centre, so the
+  // raw geo feed snaps every neighbourhood to the same dominant station and
+  // returns an identical AQI. Interpolating across all trusted stations gives
+  // each area a distinct, coordinate-aware estimate (nearest station dominates).
+  const allReadings = await fetchAllLahoreStations(token);
+  const stationReadings = filterTrustedLahoreStations(allReadings);
+
+  if (stationReadings.length >= 2) {
+    const { aqi, nearest } = interpolateAqiFromStations(
+      loc.lat,
+      loc.lon,
+      stationReadings
+    );
+    return toAreaPayload(
+      nearest.data,
+      loc,
+      "interpolated",
+      aqi,
+      nearest.station.label
+    );
+  }
+
+  if (stationReadings.length === 1) {
+    const only = stationReadings[0];
+    return toAreaPayload(
+      only.data,
+      loc,
+      "station",
+      undefined,
+      only.station.label
+    );
+  }
+
+  // No trusted station feeds available — fall back to the geo feed at the
+  // exact coordinates, then to the nearest-station live lookup.
+  const geo = await fetchGeoWaqiOnly(loc.lat, loc.lon, token);
+  if (geo) {
+    return toAreaPayload(geo.data, loc, "geo");
+  }
+
   const live = await fetchLiveWaqi(loc.lat, loc.lon, token);
   if (!live) return null;
   return toAreaPayload(live.data, loc, live.method);
@@ -89,7 +130,18 @@ export async function fetchAreasInBatches(
     }
 
     const nearest = nearestStationReading(loc.lat, loc.lon, stationReadings);
-    return toAreaPayload(nearest.data, loc, "station");
+    const { aqi } = interpolateAqiFromStations(
+      loc.lat,
+      loc.lon,
+      stationReadings
+    );
+    return toAreaPayload(
+      nearest.data,
+      loc,
+      "interpolated",
+      aqi,
+      nearest.station.label
+    );
   });
 
   return results.filter((r): r is AreaAqiPayload => r != null);

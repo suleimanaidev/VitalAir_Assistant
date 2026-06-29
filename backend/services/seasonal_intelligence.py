@@ -243,25 +243,40 @@ def build_personalized_season_intelligence(
             travel_window = "Travel between rain spells; check underpass status"
 
     if "asthma" in conds:
-        health = (
-            f"Asthma on your profile — keep rescue inhaler ready at AQI {aqi}. "
-            + health
-        )
         if aqi >= 100:
+            health = (
+                f"Asthma on your profile — keep rescue inhaler ready at AQI {aqi}. "
+                + health
+            )
             nutrition = (
                 "Anti-inflammatory foods help airways — vitamin C, warm fluids; "
                 + nutrition
             )
+        else:
+            health = (
+                "Asthma profile — inhaler saath rakhein; aaj ki hawa theek hai. "
+                + health
+            )
 
     if "heart disease" in conds:
-        health = (
-            f"Heart condition on your profile — avoid heavy exertion when heat and AQI are both elevated. "
-            + health
-        )
         if temp_c >= 35 and aqi >= 100:
+            health = (
+                f"Heart condition — avoid heavy exertion when heat and AQI are both high. "
+                + health
+            )
             route = (
                 "Cardiovascular strain rises in heat + pollution — prefer AC car or postpone if possible. "
                 + route
+            )
+        elif aqi >= 100:
+            health = (
+                "Heart condition on your profile — take it easy in heat; air is moderate today. "
+                + health
+            )
+        else:
+            health = (
+                "Heart profile — normal commute OK; stay hydrated and avoid sudden exertion. "
+                + health
             )
 
     if "diabetes" in conds:
@@ -270,17 +285,23 @@ def build_personalized_season_intelligence(
             + nutrition
         )
 
-    if sensitivity == "high":
+    if sensitivity == "high" and aqi >= 100:
         health = (
-            f"High pollution sensitivity — even moderate AQI ({aqi}) needs extra protection. "
+            f"High pollution sensitivity — take extra care when AQI is {aqi} or above. "
             + health
         )
 
     if commute_mode in ("walk", "bike"):
-        route = (
-            f"Walking/cycling raises exposure — mask fit critical on this {commute_mode} commute. "
-            + route
-        )
+        if aqi >= 100:
+            route = (
+                f"Walking/cycling raises exposure — consider a mask on this {commute_mode} commute. "
+                + route
+            )
+        else:
+            route = (
+                f"Bike/walk commute is fine today — air is acceptable; stay hydrated. "
+                + route
+            )
     elif commute_mode == "public_transport":
         route = (
             "Stand away from bus exhaust at stops; keep a spare N95 for dusty platforms. "

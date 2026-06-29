@@ -214,7 +214,9 @@ export function interpolateAqiFromStations(
       nearestDist = dist;
       nearest = reading;
     }
-    const w = 1 / Math.max(dist, 0.008) ** 2;
+    // Power 3 (instead of 2) lets the nearest station dominate more, so areas
+    // closer to a given monitor reflect its reading rather than a flat city blend.
+    const w = 1 / Math.max(dist, 0.006) ** 3;
     weightSum += w;
     aqiSum += w * reading.aqi;
   }

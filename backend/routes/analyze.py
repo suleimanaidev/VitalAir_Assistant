@@ -3,7 +3,6 @@ import asyncio
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
-from config import get_settings
 from middleware.jwt_auth import get_optional_user_id
 from schemas.models import AnalyzeRequest, AnalyzeResponse
 from services.analyze_jobs import create_job, run_analyze_job
@@ -15,27 +14,6 @@ class AnalyzeTaskResponse(BaseModel):
     task_id: str
     status: str = "queued"
     city: str = "Lahore"
-
-
-def _enqueue_celery(body: AnalyzeRequest) -> str | None:
-    settings = get_settings()
-    if not settings.use_celery:
-        return None
-    try:
-        from crew.tasks import run_analysis_task
-        from services.redis_client import redis_ping
-
-        if not redis_ping():
-            return None
-
-        task = run_analysis_task.delay(
-            user_profile=body.profile.model_dump(),
-            query=body.query.model_dump(),
-            user_id=body.user_id,
-        )
-        return task.id
-    except Exception:
-        return None
 
 
 @router.post("/analyze", response_model=AnalyzeTaskResponse)
@@ -50,10 +28,6 @@ async def analyze_route(
     body.profile.city = "Lahore"
     if user_id_from_token and not body.user_id:
         body.user_id = user_id_from_token
-
-    task_id = _enqueue_celery(body)
-    if task_id:
-        return AnalyzeTaskResponse(task_id=task_id)
 
     job_id = create_job()
     asyncio.create_task(run_analyze_job(job_id, body))

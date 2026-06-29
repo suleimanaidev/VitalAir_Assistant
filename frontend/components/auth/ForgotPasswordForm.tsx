@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { ArrowLeft, Loader2, Mail, Wind } from "lucide-react";
-import { normalizeEmail, requestPasswordReset } from "@/lib/authApi";
+import { ArrowLeft, Loader2, Mail } from "lucide-react";
+import { normalizeEmail, requestPasswordReset, resetPasswordPath } from "@/lib/authApi";
 
 export default function ForgotPasswordForm() {
   const [email, setEmail] = useState("");
@@ -23,7 +23,7 @@ export default function ForgotPasswordForm() {
 
     try {
       if (!normalizedEmail.includes("@")) {
-        setError("Please enter a valid email address.");
+        setError("Valid email address likhein.");
         return;
       }
 
@@ -32,7 +32,7 @@ export default function ForgotPasswordForm() {
       setResetUrl(result.reset_url ?? null);
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : "Could not send reset link."
+        err instanceof Error ? err.message : "Reset link nahi bhej sakay."
       );
     } finally {
       setIsLoading(false);
@@ -41,13 +41,12 @@ export default function ForgotPasswordForm() {
 
   return (
     <div className="mx-auto w-full max-w-md">
-      <div className="mb-8 text-center">
-        <span className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-vital-primary/15 text-vital-primary">
-          <Wind className="h-7 w-7" aria-hidden />
-        </span>
-        <h1 className="section-title">Forgot password</h1>
-        <p className="section-subtitle mt-2">
-          Enter your email and we&apos;ll help you reset your password.
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-vital-text sm:text-3xl">
+          Password bhool gaye?
+        </h1>
+        <p className="mt-2 text-base text-vital-muted">
+          Email likhein — reset link yahan show hoga (dev mode).
         </p>
       </div>
 
@@ -77,21 +76,27 @@ export default function ForgotPasswordForm() {
 
         {message && (
           <div
-            className="rounded-md border border-vital-primary/30 bg-vital-primary/10 px-3 py-2 text-sm text-vital-text"
+            className="rounded-md border border-vital-primary/30 bg-vital-primary/10 px-3 py-3 text-sm text-vital-text"
             role="status"
           >
-            <p>{message}</p>
-            {resetUrl && (
+            <p className="leading-relaxed">{message}</p>
+            {resetUrl ? (
               <Link
-                href={
-                  resetUrl.startsWith("/")
-                    ? resetUrl
-                    : `${new URL(resetUrl).pathname}${new URL(resetUrl).search}`
-                }
-                className="mt-2 inline-block font-medium text-vital-primary hover:underline"
+                href={resetPasswordPath(resetUrl)}
+                className="mt-3 inline-flex items-center gap-1 font-semibold text-vital-primary hover:underline"
               >
-                Reset your password →
+                Naya password set karein →
               </Link>
+            ) : (
+              <p className="mt-3 text-xs text-vital-muted">
+                Account nahi hai?{" "}
+                <Link
+                  href="/login?mode=register"
+                  className="font-semibold text-vital-primary hover:underline"
+                >
+                  Register tab se account banayein
+                </Link>
+              </p>
             )}
           </div>
         )}
@@ -105,12 +110,12 @@ export default function ForgotPasswordForm() {
           {isLoading ? (
             <>
               <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
-              Sending…
+              Bhej rahe hain…
             </>
           ) : (
             <>
               <Mail className="h-4 w-4" aria-hidden />
-              Send reset link
+              Reset link bhejein
             </>
           )}
         </button>
@@ -122,7 +127,7 @@ export default function ForgotPasswordForm() {
           className="inline-flex items-center gap-1 text-vital-primary hover:underline"
         >
           <ArrowLeft className="h-3.5 w-3.5" aria-hidden />
-          Back to sign in
+          Sign in par wapas
         </Link>
       </p>
     </div>

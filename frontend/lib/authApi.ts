@@ -14,6 +14,17 @@ export function normalizeEmail(email: string): string {
   return email.trim().toLowerCase();
 }
 
+/** Turn backend reset_url into a Next.js path (works with full URL or path). */
+export function resetPasswordPath(resetUrl: string): string {
+  if (resetUrl.startsWith("/")) return resetUrl;
+  try {
+    const u = new URL(resetUrl);
+    return `${u.pathname}${u.search}`;
+  } catch {
+    return resetUrl;
+  }
+}
+
 export class AuthApiError extends Error {
   code?: string;
 
@@ -26,19 +37,28 @@ export class AuthApiError extends Error {
 
 async function authRequest(
   path: string,
-  body: Record<string, string>
+  body: Record<string, string>,
+  timeoutMs = 12_000
 ): Promise<AuthResult> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
   let res: Response;
   try {
     res = await fetch(`${API_BASE}${path}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
+      signal: controller.signal,
     });
-  } catch {
+  } catch (err) {
+    if (err instanceof Error && err.name === "AbortError") {
+      throw new Error("Server took too long to respond. Please try again.");
+    }
     throw new Error(
       "Cannot reach VitalAir server. Start the backend on port 8000 and try again."
     );
+  } finally {
+    clearTimeout(timer);
   }
 
   const data = (await res.json().catch(() => ({}))) as unknown;
@@ -127,7 +147,11 @@ export async function requestPasswordReset(
     throw new Error(parseApiError(data, `Request failed (${res.status})`));
   }
 
-  return data as ForgotPasswordResult;
+  const result = data as ForgotPasswordResult;
+  return {
+    message: result.message,
+    reset_url: result.reset_url ?? null,
+  };
 }
 
 export async function resetPassword(
@@ -141,7 +165,7 @@ export async function resetPassword(
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        token,
+        token: token.trim(),
         password,
         confirm_password: confirmPassword,
       }),

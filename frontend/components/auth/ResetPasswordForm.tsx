@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
-import { Eye, EyeOff, KeyRound, Loader2, Wind } from "lucide-react";
+import { Eye, EyeOff, KeyRound, Loader2 } from "lucide-react";
 import { resetPassword } from "@/lib/authApi";
 
 export default function ResetPasswordForm() {
@@ -51,12 +51,22 @@ export default function ResetPasswordForm() {
 
   return (
     <div className="mx-auto w-full max-w-md">
-      <div className="mb-8 text-center">
-        <span className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-vital-primary/15 text-vital-primary">
-          <Wind className="h-7 w-7" aria-hidden />
-        </span>
-        <h1 className="section-title">Reset password</h1>
-        <p className="section-subtitle mt-2">Choose a new password for your account.</p>
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-vital-text sm:text-3xl">
+          Naya password
+        </h1>
+        <p className="mt-2 text-base text-vital-muted">
+          Kam az kam 8 characters — phir sign in karein.
+        </p>
+        {!token && (
+          <p className="mt-2 text-sm text-vital-danger" role="alert">
+            Link invalid hai.{" "}
+            <Link href="/forgot-password" className="underline">
+              Naya reset link lein
+            </Link>
+            .
+          </p>
+        )}
       </div>
 
       <form onSubmit={handleSubmit} className="vital-card space-y-4 p-6">

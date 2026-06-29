@@ -1,7 +1,8 @@
 import type { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
-import { loginUser } from "@/lib/authApi";
+import { loginUserServer } from "@/lib/authServer";
 import { getNextAuthSecret } from "@/lib/authSecret";
+import { verifyBackendToken } from "@/lib/verifyBackendToken.server";
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -11,14 +12,33 @@ export const authOptions: NextAuthOptions = {
       credentials: {
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
+        accessToken: { label: "Access Token", type: "text" },
+        userId: { label: "User ID", type: "text" },
+        name: { label: "Name", type: "text" },
       },
       async authorize(credentials) {
+        const accessToken = credentials?.accessToken?.trim();
+        const userId = credentials?.userId?.trim();
+
+        if (accessToken && userId) {
+          const verified = await verifyBackendToken(accessToken);
+          if (verified && verified.userId === userId) {
+            return {
+              id: userId,
+              email: credentials?.email || verified.email || undefined,
+              name: credentials?.name || undefined,
+              backendToken: accessToken,
+            };
+          }
+          throw new Error("Session expired. Please sign in again.");
+        }
+
         if (!credentials?.email || !credentials?.password) {
-          return null;
+          throw new Error("Email and password are required.");
         }
 
         try {
-          const data = await loginUser(
+          const data = await loginUserServer(
             credentials.email,
             credentials.password
           );
@@ -29,8 +49,10 @@ export const authOptions: NextAuthOptions = {
             name: data.name,
             backendToken: data.access_token,
           };
-        } catch {
-          return null;
+        } catch (err) {
+          const message =
+            err instanceof Error ? err.message : "Invalid email or password.";
+          throw new Error(message);
         }
       },
     }),
@@ -59,5 +81,5 @@ export const authOptions: NextAuthOptions = {
     },
   },
   secret: getNextAuthSecret(),
-  debug: process.env.NODE_ENV === "development",
+  debug: false,
 };
