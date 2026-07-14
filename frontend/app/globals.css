@@ -183,6 +183,17 @@
     background-clip: text;
   }
 
+  .text-gradient-danger {
+    background: linear-gradient(
+      135deg,
+      var(--vital-text) 0%,
+      var(--vital-danger) 100%
+    );
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
   /* Subtle grid background for hero */
   .bg-grid-pattern {
     background-image: linear-gradient(

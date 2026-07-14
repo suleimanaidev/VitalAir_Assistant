@@ -39,7 +39,7 @@ async function request<T>(
     } catch (err) {
       lastError = err;
       if (attempt === 2 || init?.signal) break;
-      await sleep(700 * (attempt + 1));
+      await sleep(300 * (attempt + 1));
     } finally {
       clearTimeout(timer);
     }

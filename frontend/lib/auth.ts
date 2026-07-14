@@ -28,6 +28,7 @@ export const authOptions: NextAuthOptions = {
               email: credentials?.email || verified.email || undefined,
               name: credentials?.name || undefined,
               backendToken: accessToken,
+              role: verified.role || "user",
             };
           }
           throw new Error("Session expired. Please sign in again.");
@@ -48,6 +49,7 @@ export const authOptions: NextAuthOptions = {
             email: data.email,
             name: data.name,
             backendToken: data.access_token,
+            role: data.role || "user",
           };
         } catch (err) {
           const message =
@@ -67,6 +69,7 @@ export const authOptions: NextAuthOptions = {
         token.backendToken = (user as { backendToken?: string }).backendToken;
         token.email = user.email ?? undefined;
         token.name = user.name ?? undefined;
+        token.role = (user as { role?: string }).role || "user";
       }
       return token;
     },
@@ -75,6 +78,7 @@ export const authOptions: NextAuthOptions = {
         session.user.id = (token.userId as string) ?? token.sub ?? "";
         session.user.email = (token.email as string) ?? session.user.email;
         session.user.name = (token.name as string) ?? session.user.name;
+        session.user.role = (token.role as string) ?? "user";
       }
       session.backendToken = token.backendToken as string | undefined;
       return session;

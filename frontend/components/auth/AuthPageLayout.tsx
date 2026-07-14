@@ -23,20 +23,9 @@ interface AuthPageLayoutProps {
 const DEFAULT_FEATURES: AuthFeature[] = [
   { title: "Live air quality", text: "Real WAQI AQI for any Lahore area" },
   { title: "Personal health guidance", text: "Asthma, age & season aware advice" },
-  { title: "Anti-pollution nutrition", text: "Citrus, ginger & green-tea food tips" },
+  { title: "Anti-pollution nutrition", text: "Apples, greens, and fresh seasonal foods" },
   { title: "Safer commute routes", text: "Lower-pollution path to your destination" },
 ];
-
-const IMAGES = {
-  nutrition: {
-    src: "/images/auth-health-nutrition.png",
-    alt: "Fresh anti-pollution foods — citrus, greens, ginger and green tea",
-  },
-  air: {
-    src: "/images/auth-clean-air.png",
-    alt: "Clean air and healthy lungs over a green city skyline",
-  },
-} as const;
 
 export default function AuthPageLayout({
   children,
@@ -47,8 +36,6 @@ export default function AuthPageLayout({
   features = DEFAULT_FEATURES,
   image = "nutrition",
 }: AuthPageLayoutProps) {
-  const img = IMAGES[image];
-
   return (
     <main className="grid min-h-screen lg:grid-cols-2">
       {/* Brand panel */}
@@ -93,19 +80,49 @@ export default function AuthPageLayout({
           </p>
         </div>
 
-        <div className="relative my-8 overflow-hidden rounded-3xl border border-white/10 shadow-2xl">
-          <Image
-            src={img.src}
-            alt={img.alt}
-            width={1024}
-            height={680}
-            priority
-            className="h-56 w-full object-cover xl:h-72"
-          />
-          <div
-            className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#021712]/70 to-transparent"
-            aria-hidden
-          />
+        <div className="relative my-8 grid grid-cols-2 gap-4">
+          <div className="group relative col-span-2 overflow-hidden rounded-2xl border border-white/10 shadow-xl">
+            <Image
+              src="/images/auth_foods.png"
+              alt="Seasonal anti-pollution foods"
+              width={1024}
+              height={500}
+              priority
+              className="h-44 w-full object-cover transition-transform duration-700 group-hover:scale-105 xl:h-52"
+            />
+            <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#021712]/90 via-[#021712]/20 to-transparent" />
+            <div className="absolute bottom-4 left-5">
+              <p className="text-lg font-semibold tracking-wide text-white drop-shadow-md">Nutrition</p>
+            </div>
+          </div>
+          
+          <div className="group relative overflow-hidden rounded-2xl border border-white/10 shadow-xl">
+            <Image
+              src="/images/auth_health.png"
+              alt="Health element"
+              width={500}
+              height={500}
+              className="h-32 w-full object-cover transition-transform duration-700 group-hover:scale-105 xl:h-40"
+            />
+            <div className="pointer-events-none absolute inset-0 bg-[#021712]/30 backdrop-blur-[2px] transition-all duration-500 group-hover:backdrop-blur-0" />
+            <div className="absolute bottom-3 left-4">
+              <p className="text-sm font-semibold tracking-wide text-white drop-shadow-md">Health</p>
+            </div>
+          </div>
+
+          <div className="group relative overflow-hidden rounded-2xl border border-white/10 shadow-xl">
+            <Image
+              src="/images/auth_warning.png"
+              alt="AQI warning element"
+              width={500}
+              height={500}
+              className="h-32 w-full object-cover transition-transform duration-700 group-hover:scale-105 xl:h-40"
+            />
+            <div className="pointer-events-none absolute inset-0 bg-[#021712]/30 backdrop-blur-[2px] transition-all duration-500 group-hover:backdrop-blur-0" />
+            <div className="absolute bottom-3 left-4">
+              <p className="text-sm font-semibold tracking-wide text-amber-400 drop-shadow-md">Alerts</p>
+            </div>
+          </div>
         </div>
 
         <div className="relative">

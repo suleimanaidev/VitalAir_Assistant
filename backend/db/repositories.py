@@ -5,6 +5,7 @@ from typing import Any, Literal
 from bson import ObjectId
 from pymongo.errors import DuplicateKeyError
 
+from config import get_settings
 from db.connection import get_db_async
 from models.agent_output import RouteOutput
 from schemas.models import SymptomCheckinBody, SymptomCheckinResponse, UserProfile
@@ -18,47 +19,100 @@ def _has_auth_credentials(doc: dict) -> bool:
     return bool(_password_field(doc))
 
 
-async def create_auth_user(email: str, password_hash: str, name: str) -> str:
+def is_admin_email(email: str | None) -> bool:
+    if not email:
+        return False
+    return email.lower().strip() in get_settings().admin_email_list
+
+
+def user_role_from_doc(doc: dict) -> str:
+    if doc.get("role") == "admin":
+        return "admin"
+    if is_admin_email(doc.get("email")):
+        return "admin"
+    return "user"
+
+
+def _user_admin_summary(doc: dict) -> dict:
+    user_id = str(doc["_id"])
+    return {
+        "id": user_id,
+        "name": doc.get("name") or "User",
+        "email": doc.get("email"),
+        "role": user_role_from_doc(doc),
+        "is_active": doc.get("is_active", True) is not False,
+        "age": doc.get("age"),
+        "conditions": list(doc.get("conditions") or []),
+        "city": doc.get("city") or "Lahore",
+        "profile_completed": bool(doc.get("profile_completed") or doc.get("age") is not None),
+        "created_at": doc.get("created_at").isoformat() if doc.get("created_at") else None,
+    }
+
+
+async def get_user_and_collection_by_email(email: str) -> tuple[dict | None, str | None]:
+    """Retrieve user document and which collection it belongs to ("users" or "accounts")."""
+    db = await get_db_async()
+    normalized = email.lower().strip()
+    user = await db.users.find_one({"email": normalized})
+    if user:
+        return user, "users"
+    account = await db.accounts.find_one({"email": normalized})
+    if account:
+        return account, "accounts"
+    return None, None
+
+
+async def create_auth_user(
+    email: str,
+    password_hash: str,
+    name: str,
+    existing_user: dict | None = None,
+    collection: str | None = None,
+) -> tuple[str, str]:
     """
     Register auth user in users collection.
     If a profile-only user exists (no password), upgrade it with credentials.
+    Returns a tuple of (user_id, role).
     """
     db = await get_db_async()
     normalized_email = email.lower().strip()
 
-    existing_user = await db.users.find_one({"email": normalized_email})
+    # Reuse pre-fetched document to avoid redundant db queries
+    if existing_user is None or collection is None:
+        existing_user, collection = await get_user_and_collection_by_email(normalized_email)
+
     if existing_user:
         if _has_auth_credentials(existing_user):
             raise DuplicateKeyError("email already registered")
-        await db.users.update_one(
-            {"_id": existing_user["_id"]},
-            {
-                "$set": {
-                    "name": name,
-                    "hashed_password": password_hash,
-                    "password_hash": password_hash,
-                    "city": existing_user.get("city", "Lahore"),
-                }
-            },
-        )
-        return str(existing_user["_id"])
+        
+        role = user_role_from_doc(existing_user)
+        
+        if collection == "users":
+            await db.users.update_one(
+                {"_id": existing_user["_id"]},
+                {
+                    "$set": {
+                        "name": name,
+                        "hashed_password": password_hash,
+                        "password_hash": password_hash,
+                        "city": existing_user.get("city", "Lahore"),
+                    }
+                },
+            )
+        else:
+            await db.accounts.update_one(
+                {"_id": existing_user["_id"]},
+                {
+                    "$set": {
+                        "name": name,
+                        "hashed_password": password_hash,
+                        "password_hash": password_hash,
+                    }
+                },
+            )
+        return str(existing_user["_id"]), role
 
-    existing_account = await db.accounts.find_one({"email": normalized_email})
-    if existing_account:
-        if _has_auth_credentials(existing_account):
-            raise DuplicateKeyError("email already registered")
-        await db.accounts.update_one(
-            {"_id": existing_account["_id"]},
-            {
-                "$set": {
-                    "name": name,
-                    "hashed_password": password_hash,
-                    "password_hash": password_hash,
-                }
-            },
-        )
-        return str(existing_account["_id"])
-
+    role = "admin" if is_admin_email(normalized_email) else "user"
     doc = {
         "name": name,
         "email": normalized_email,
@@ -67,16 +121,22 @@ async def create_auth_user(email: str, password_hash: str, name: str) -> str:
         "age": None,
         "conditions": [],
         "city": "Lahore",
+        "role": role,
+        "is_active": True,
         "created_at": datetime.utcnow(),
     }
     result = await db.users.insert_one(doc)
-    return str(result.inserted_id)
+    return str(result.inserted_id), role
 
 
 async def ensure_user_email_index() -> None:
     """Unique email index — safe to call on startup."""
     db = await get_db_async()
     await db.users.create_index("email", unique=True, sparse=True)
+    try:
+        await db.users.create_index("role")
+    except Exception:
+        pass
     try:
         await db.accounts.create_index("email", unique=True, sparse=True)
     except Exception:
@@ -628,3 +688,150 @@ def _split_document_text(text: str, chunk_size: int = 500, overlap: int = 50) ->
     from rag.chunking import split_text
 
     return split_text(text, chunk_size=chunk_size, chunk_overlap=overlap)
+
+
+async def promote_admin_emails() -> int:
+    """Set role=admin for emails listed in ADMIN_EMAILS env."""
+    emails = get_settings().admin_email_list
+    if not emails:
+        return 0
+    db = await get_db_async()
+    updated = 0
+    for email in emails:
+        for collection in ("users", "accounts"):
+            result = await db[collection].update_many(
+                {"email": email},
+                {"$set": {"role": "admin", "is_active": True}},
+            )
+            updated += result.modified_count
+    return updated
+
+
+async def admin_stats() -> dict:
+    db = await get_db_async()
+    today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+
+    users_count = await db.users.count_documents({})
+    accounts_count = await db.accounts.count_documents({})
+    queries_total = await db.queries.count_documents({})
+    queries_today = await db.queries.count_documents(
+        {"timestamp": {"$gte": today_start}}
+    )
+    documents_total = await db.user_documents.count_documents({})
+    symptom_today = await db.symptom_checkins.count_documents(
+        {"date": today_start.date().isoformat()}
+    )
+    admin_count = await db.users.count_documents({"role": "admin"})
+
+    return {
+        "users_total": users_count + accounts_count,
+        "queries_total": queries_total,
+        "queries_today": queries_today,
+        "documents_total": documents_total,
+        "symptom_checkins_today": symptom_today,
+        "admin_users": admin_count,
+    }
+
+
+async def list_users_admin(
+    *,
+    skip: int = 0,
+    limit: int = 25,
+    search: str | None = None,
+) -> tuple[list[dict], int]:
+    db = await get_db_async()
+    query: dict = {}
+    if search and search.strip():
+        term = search.strip()
+        query["$or"] = [
+            {"name": {"$regex": term, "$options": "i"}},
+            {"email": {"$regex": term, "$options": "i"}},
+        ]
+
+    total = await db.users.count_documents(query)
+    cursor = (
+        db.users.find(query)
+        .sort("created_at", -1)
+        .skip(max(0, skip))
+        .limit(min(limit, 100))
+    )
+
+    items: list[dict] = []
+    async for doc in cursor:
+        row = _user_admin_summary(doc)
+        row["documents_count"] = await count_user_documents(row["id"])
+        row["queries_count"] = await db.queries.count_documents(
+            {"user_id": ObjectId(row["id"])}
+        )
+        items.append(row)
+
+    return items, total
+
+
+async def get_user_admin_detail(user_id: str) -> dict | None:
+    doc = await get_user_by_id(user_id)
+    if not doc:
+        return None
+    db = await get_db_async()
+    uid = ObjectId(user_id)
+    detail = _user_admin_summary(doc)
+    detail["documents_count"] = await count_user_documents(user_id)
+    detail["queries_count"] = await db.queries.count_documents({"user_id": uid})
+    detail["documents"] = await list_user_documents(user_id)
+    detail["recent_queries"] = await list_queries(user_id=user_id, limit=10)
+    symptom = await db.symptom_checkins.find_one(
+        {"user_id": uid, "date": date.today().isoformat()}
+    )
+    detail["today_symptoms"] = symptom.get("symptoms") if symptom else None
+    return detail
+
+
+async def update_user_admin(
+    user_id: str,
+    *,
+    role: str | None = None,
+    is_active: bool | None = None,
+) -> bool:
+    if not ObjectId.is_valid(user_id):
+        return False
+    db = await get_db_async()
+    payload: dict = {}
+    if role is not None:
+        if role not in ("admin", "user"):
+            raise ValueError("Invalid role")
+        payload["role"] = role
+    if is_active is not None:
+        payload["is_active"] = is_active
+    if not payload:
+        return False
+
+    result = await db.users.update_one({"_id": ObjectId(user_id)}, {"$set": payload})
+    if result.matched_count:
+        return True
+    result = await db.accounts.update_one({"_id": ObjectId(user_id)}, {"$set": payload})
+    return result.matched_count > 0
+
+
+async def list_documents_admin(*, limit: int = 50) -> list[dict]:
+    db = await get_db_async()
+    cursor = db.user_documents.find({}).sort("created_at", -1).limit(min(limit, 200))
+    items: list[dict] = []
+    async for doc in cursor:
+        user_id = str(doc.get("user_id", ""))
+        user_doc = await get_user_by_id(user_id) if user_id else None
+        items.append(
+            {
+                "id": str(doc["_id"]),
+                "user_id": user_id,
+                "user_name": (user_doc or {}).get("name", "Unknown"),
+                "user_email": (user_doc or {}).get("email"),
+                "filename": doc.get("filename", "document"),
+                "content_type": doc.get("content_type", "text/plain"),
+                "size_bytes": doc.get("size_bytes", 0),
+                "extraction_method": doc.get("extraction_method", "text"),
+                "created_at": doc.get("created_at").isoformat()
+                if doc.get("created_at")
+                else None,
+            }
+        )
+    return items

@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { Activity, ChevronDown, ChevronUp, MessageCircle, ShieldAlert } from "lucide-react";
+import { Activity, ChevronDown, ChevronUp, MessageCircle, ShieldAlert, X } from "lucide-react";
 import { useSession } from "next-auth/react";
 
 import AQICard from "@/components/AQICard";
@@ -38,6 +38,7 @@ import { APP_CITY } from "@/lib/constants";
 import { cleanAreaName, formatAreaTitle } from "@/lib/formatLocation";
 import { useAreaAqi } from "@/hooks/useAreaAqi";
 import { useLahoreWeather } from "@/hooks/useLahoreWeather";
+import { usePersistedState } from "@/hooks/usePersistedState";
 import {
   getLahoreSeason,
   isHeatwave,
@@ -202,39 +203,40 @@ export default function DashboardView() {
   const { weather } = useLahoreWeather();
   const liveSeason = useMemo(() => getLahoreSeason(), []);
 
+  const [inputArea, setInputArea] = useState(readStoredDashboardArea);
   const [area, setAreaInternal] = useState(readStoredDashboardArea);
-  const setArea = (value: string) => {
-    setAreaInternal(value);
+
+  const handleSearch = () => {
+    setAreaInternal(inputArea);
     try {
-      if (value.trim()) {
-        sessionStorage.setItem(DASHBOARD_AREA_KEY, value);
+      if (inputArea.trim()) {
+        sessionStorage.setItem(DASHBOARD_AREA_KEY, inputArea);
       }
     } catch {
       /* ignore storage errors */
     }
   };
-  const [destination, setDestination] = useState("");
-  const [routeOpen, setRouteOpen] = useState(false);
+  const [destination, setDestination] = usePersistedState("vitalair-dashboard-destination", "");
+  const [routeOpen, setRouteOpen] = usePersistedState("vitalair-dashboard-routeopen", false);
 
-  const [healthResult, setHealthResult] = useState<AgentHealthResult | null>(null);
-  const [nutritionResult, setNutritionResult] = useState<AgentNutritionResult | null>(null);
-  const [routeResult, setRouteResult] = useState<AgentRouteResult | null>(null);
-  const [todaySymptoms, setTodaySymptoms] = useState<SymptomCheckinResult | null>(null);
+  const [healthResult, setHealthResult] = usePersistedState<AgentHealthResult | null>("vitalair-dash-health-result", null);
+  const [nutritionResult, setNutritionResult] = usePersistedState<AgentNutritionResult | null>("vitalair-dash-nutrition-result", null);
+  const [routeResult, setRouteResult] = usePersistedState<AgentRouteResult | null>("vitalair-dash-route-result", null);
+  const [todaySymptoms, setTodaySymptoms] = usePersistedState<SymptomCheckinResult | null>("vitalair-dash-today-symptoms", null);
 
-  const [healthStatus, setHealthStatus] = useState<AgentStepStatus>("idle");
-  const [nutritionStatus, setNutritionStatus] = useState<AgentStepStatus>("idle");
-  const [routeStatus, setRouteStatus] = useState<AgentStepStatus>("idle");
+  const [healthStatus, setHealthStatus] = usePersistedState<AgentStepStatus>("vitalair-dash-health-status", "idle");
+  const [nutritionStatus, setNutritionStatus] = usePersistedState<AgentStepStatus>("vitalair-dash-nutrition-status", "idle");
+  const [routeStatus, setRouteStatus] = usePersistedState<AgentStepStatus>("vitalair-dash-route-status", "idle");
 
-  const [healthError, setHealthError] = useState<string | null>(null);
-  const [nutritionError, setNutritionError] = useState<string | null>(null);
-  const [routeError, setRouteError] = useState<string | null>(null);
+  const [healthError, setHealthError] = usePersistedState<string | null>("vitalair-dash-health-error", null);
+  const [nutritionError, setNutritionError] = usePersistedState<string | null>("vitalair-dash-nutrition-error", null);
+  const [routeError, setRouteError] = usePersistedState<string | null>("vitalair-dash-route-error", null);
   const [healthLive, setHealthLive] = useState<string | null>(null);
   const [nutritionLive, setNutritionLive] = useState<string | null>(null);
   const [routeLive, setRouteLive] = useState<string | null>(null);
   const [symptomLoading, setSymptomLoading] = useState(false);
   const [symptomSaving, setSymptomSaving] = useState(false);
   const [symptomError, setSymptomError] = useState<string | null>(null);
-  const [chatOpen, setChatOpen] = useState(false);
 
   const { reading: areaReading, loading: areaAqiLoading } = useAreaAqi(area);
 
@@ -488,14 +490,24 @@ export default function DashboardView() {
         </header>
 
         <div className="vital-card mb-6 p-5">
-          <LocationSearchInput
-            label="Your area"
-            placeholder="Koi bhi Lahore area — e.g. Dubai Town"
-            value={area}
-            onChange={setArea}
-          />
+          <div className="flex items-end gap-3">
+            <div className="flex-1">
+              <LocationSearchInput
+                label="Your area"
+                placeholder="Koi bhi Lahore area — e.g. Dubai Town"
+                value={inputArea}
+                onChange={setInputArea}
+              />
+            </div>
+            <button
+              onClick={handleSearch}
+              className="flex h-11 items-center justify-center rounded-lg bg-vital-primary px-6 font-semibold text-white shadow-sm hover:bg-vital-primary/90 focus:outline-none focus:ring-2 focus:ring-vital-primary focus:ring-offset-2 focus:ring-offset-vital-bg"
+            >
+              Search
+            </button>
+          </div>
           <p className="mt-2 text-xs text-vital-muted">
-            Pehle area choose karein — live AQI turant dikhegi.
+            Pehle area choose karein aur Search press karein — live AQI fetch hogi.
           </p>
         </div>
 
@@ -762,38 +774,7 @@ export default function DashboardView() {
           </AgentStepCard>
         </motion.div>
 
-        {session?.backendToken && (
-          <div className="mt-8 vital-card flex flex-col items-center gap-3 border-vital-primary/30 bg-vital-primary/5 p-6 text-center">
-            <span className="flex h-12 w-12 items-center justify-center rounded-full bg-vital-primary/15 text-vital-primary">
-              <MessageCircle className="h-6 w-6" aria-hidden />
-            </span>
-            <div>
-              <p className="text-base font-semibold text-vital-text">
-                Health AI Chat
-              </p>
-              <p className="mt-1 text-sm text-vital-muted">
-                Apni health profile aur uploaded documents ke mutabiq koi bhi
-                sawal poochein.
-              </p>
-            </div>
-            <button
-              type="button"
-              className="btn-primary inline-flex items-center gap-2"
-              onClick={() => setChatOpen(true)}
-            >
-              <MessageCircle className="h-4 w-4" aria-hidden />
-              Open Health AI Chat
-            </button>
-          </div>
-        )}
       </div>
-
-      <PatientRagChatPanel
-        open={chatOpen}
-        onClose={() => setChatOpen(false)}
-        area={area}
-        aqi={heroAqi}
-      />
     </main>
   );
 }

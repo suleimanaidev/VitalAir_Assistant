@@ -44,10 +44,16 @@ class AgentTaskResponse(BaseModel):
     status: str = "queued"
 
 
+class ChatTurn(BaseModel):
+    role: str
+    text: str
+
+
 class PatientRagChatRequest(BaseModel):
     question: str
     area: str | None = None
     aqi: int | None = None
+    history: list[ChatTurn] | None = None
 
 
 class PatientRagChatResponse(BaseModel):
@@ -76,17 +82,24 @@ def _fallback_rag_chat_answer(
     snippets = [p.strip() for p in context.split("\n\n") if len(p.strip()) > 40][:3]
     if not snippets:
         return (
-            "Mujhe aap ke documents mein is sawal ka clear matching context nahi mila. "
-            "General advice: AQI high ho to outdoor time kam rakhein, N95 mask use karein, "
-            "aur symptoms severe hon to doctor se rabta karein."
+            "Is waqt aap ke sawal ka specific context available nahi hai.\n\n"
+            "General WHO-based guidance:\n"
+            "• AQI zyada ho to outdoor waqt kam karein aur N95 mask lagayein.\n"
+            "• Ghar mein windows band rakhein aur air purifier chalayein.\n"
+            "• Agar saans ki takleef, chest tightness, ya lagatar cough ho to foran doctor se milein.\n\n"
+            "Apne area ka AQI check karein aur usi ke mutabiq precautions lein."
         )
     intro = (
         "Aap ke uploaded health documents aur WHO context ke mutabiq:"
         if has_patient_docs
-        else "WHO health context ke mutabiq:"
+        else "WHO air-quality health guidance ke mutabiq:"
     )
     bullets = "\n".join(f"• {snippet[:280]}" for snippet in snippets)
-    return f"{intro}\n{bullets}\n\nSawal: {question}"
+    return (
+        f"{intro}\n{bullets}\n\n"
+        "Agar symptoms severe hon (saans mein mushkil, chest pain) to "
+        "doctor/ER se foran rabta karein."
+    )
 
 
 @router.post("/agents/rag-chat", response_model=PatientRagChatResponse)
@@ -104,6 +117,23 @@ async def patient_rag_chat(
     user_doc_chunks = await _prepare_user_rag(user_id_from_token)
     profile_summary = ""
     user_doc = await get_user_by_id(user_id_from_token)
+    
+    # Resolve area and AQI dynamically if not provided
+    area = (body.area or "").strip()
+    if not area:
+        if user_doc:
+            area = user_doc.get("city") or "Lahore"
+        else:
+            area = "Lahore"
+            
+    aqi_val = body.aqi
+    if aqi_val is None:
+        try:
+            from services.agent_runners import fetch_area_aqi
+            aqi_val = fetch_area_aqi(area)
+        except Exception:
+            aqi_val = 120
+
     if user_doc:
         profile = profile_from_user_doc(user_doc)
         conditions = ", ".join(profile.conditions) or "none"
@@ -119,7 +149,7 @@ async def patient_rag_chat(
         5,
         user_id=user_id_from_token,
         user_doc_chunks=user_doc_chunks,
-        extra_queries=[body.area or "Lahore air quality patient health"],
+        extra_queries=[area or "Lahore air quality patient health"],
     )
     if profile_summary:
         context = f"Health profile: {profile_summary}\n\n{context}"
@@ -132,8 +162,8 @@ async def patient_rag_chat(
         question=question,
         rag_context=context,
         has_patient_docs=has_patient_docs,
-        area=(body.area or "").strip(),
-        aqi=body.aqi,
+        area=area,
+        aqi=aqi_val,
     )
     mode = "openai_rag" if answer else "context_fallback"
     if not answer:

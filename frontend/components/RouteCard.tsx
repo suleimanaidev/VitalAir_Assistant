@@ -72,12 +72,12 @@ export default function RouteCard({
           {routeOptions.map((opt) => (
             <li
               key={opt.rank}
-              className="rounded-lg border border-vital-border/50 bg-vital-bg/40 p-4"
+              className="group relative overflow-hidden rounded-xl border border-white/5 bg-vital-card/40 p-5 shadow-lg backdrop-blur-md transition-all duration-300 hover:-translate-y-1 hover:border-vital-primary/40 hover:bg-vital-card hover:shadow-glow-primary"
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium text-vital-text">
-                    <span className="mr-2 inline-flex h-5 w-5 items-center justify-center rounded-full bg-vital-primary/15 text-xs font-bold text-vital-primary">
+                  <p className="text-base font-semibold text-vital-text group-hover:text-vital-primary transition-colors">
+                    <span className="mr-3 inline-flex h-6 w-6 items-center justify-center rounded-full bg-vital-primary/20 text-xs font-extrabold text-vital-primary shadow-sm">
                       {opt.rank}
                     </span>
                     {opt.label}
@@ -97,8 +97,8 @@ export default function RouteCard({
               </div>
 
               {opt.via_areas.length > 0 && (
-                <p className="mt-2 flex items-start gap-1.5 text-xs text-vital-primary">
-                  <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
+                <p className="mt-3 flex items-start gap-2 text-sm text-vital-primary">
+                  <MapPin className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
                   <span>
                     Low-AQI corridor via{" "}
                     <strong>{opt.via_areas.join(", ")}</strong>

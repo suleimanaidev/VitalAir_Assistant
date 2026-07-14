@@ -50,12 +50,12 @@ SEASON_HEALTH_FALLBACK: dict[str, list[str]] = {
 
 SEASON_DIET_POOL: dict[str, list[str]] = {
     "winter_smog": [
-        "Subah kinnow ya malta — vitamin C ke liye (Punjab mein aam)",
-        "Garam adrak-honey wali chai — halki, zyada shakkar na ho",
+        "Subah taza seb (apple) — fiber aur vitamins ke liye",
+        "Garam yakhni ya soup — throat clear rakhne ke liye",
         "Thori si badam ya akhrot — subah ke nashte ke sath",
         "Raat ko haldi wala doodh (haldi doodh)",
         "Ghar ka palak saag ya aloo palak",
-        "Hari chai — din mein ek cup",
+        "Taza pani aur nimbu — din mein ek cup",
         "Rohu machli ya anda — hafte mein do dafa protein",
         "Gajar aur chukandar ka fresh juice",
         "Moong ki daal ka halka soup",
@@ -65,7 +65,7 @@ SEASON_DIET_POOL: dict[str, list[str]] = {
     ],
     "spring_dust": [
         "Amrood aur ber — seasonal phal",
-        "Kinnow ya malta ka juice",
+        "Falsa ya aloo bukhara",
         "Local shahad — pollen season (agar sugar theek ho)",
         "Halka khana — zyada oily na ho",
         "Sprouted moong ki chat — ghar pe",
@@ -99,11 +99,11 @@ SEASON_DIET_POOL: dict[str, list[str]] = {
         "Ubalta hua ya filter pani hi peena",
         "Halka khana — moong daal, sabzi, dahi",
         "Ghar ka pakaya khana — street food skip karein",
-        "Kinnow — immunity ke liye",
+        "Jamun — immunity ke liye",
         "Garam sabzi soup agar zukam ho",
         "Adrak wali khichdi",
         "Garam roti — naram, taza",
-        "Tulsi wali herbal chai",
+        "Tulsi aur adrak ka pani",
         "Papita — hazma theek rehne ke liye",
         "Ghar ka chicken yakhni soup",
         "Thori si bhuni chana — snack",
@@ -137,7 +137,7 @@ CONDITION_HEALTH: dict[str, list[str]] = {
 
 CONDITION_DIET: dict[str, list[str]] = {
     "asthma": [
-        "Garam adrak wali chai — thanda drink kam karein",
+        "Garam pani aur adrak — thanda drink kam karein",
         "Rohu machli — hafte mein do dafa (omega-3)",
         "Anda ya doodh — vitamin D ke liye",
     ],
@@ -480,32 +480,50 @@ def format_diet_plan(
     patient_bullets = build_patient_doc_bullets(rag_text, aqi=aqi)
     rag_bullets = bullets_from_text(rag_text, max_items=2)
 
-    pool = list(SEASON_DIET_POOL.get(season_id, SEASON_DIET_POOL["winter_smog"]))
-    if season_id == "summer_heatwave":
-        pool = [p for p in pool if "ginger tea" not in p.lower()]
+    # --- Priority order: patient docs → conditions → season pool → RAG ---
+    # This ensures personalized content is never pushed out by generic items.
+    picked: list[str] = []
+    seen_lower: set[str] = set()
 
-    picked = _pick_varied(pool, seed, 2)
-    intel_item = season_intel.nutrition_agent_focus.split(";")[0].strip()
-    if intel_item and intel_item.lower() not in {p.lower() for p in picked}:
-        picked.insert(0, intel_item)
+    def _add(item: str) -> bool:
+        """Add item if unique and under limit; return True if added."""
+        key = item.strip().lower()[:80]
+        if key in seen_lower or len(picked) >= 4:
+            return False
+        picked.append(item)
+        seen_lower.add(key)
+        return True
 
+    # 1. Patient-uploaded document bullets (highest priority)
+    for item in patient_bullets[:2]:
+        _add(item[:90])
+
+    # 2. Condition-specific diet items (asthma, diabetes, heart disease)
     for cond in conditions_list:
         cond_items = _pick_varied(CONDITION_DIET.get(cond, []), seed + ord(cond[0]), 1)
         for item in cond_items:
-            if item.lower() not in {p.lower() for p in picked}:
-                picked.append(item)
+            _add(item)
 
-    for item in patient_bullets[:2]:
-        short = item[:90]
-        if short.lower() not in {p.lower() for p in picked}:
-            picked.append(short)
+    # 3. Season intelligence focus item
+    intel_item = season_intel.nutrition_agent_focus.split(";")[0].strip()
+    if intel_item:
+        _add(intel_item)
 
+    # 4. Season pool items to fill remaining slots
+    pool = list(SEASON_DIET_POOL.get(season_id, SEASON_DIET_POOL["winter_smog"]))
+    if season_id == "summer_heatwave":
+        pool = [p for p in pool if "ginger tea" not in p.lower()]
+    for item in _pick_varied(pool, seed, 4):
+        _add(item)
+
+    # 5. RAG-sourced bullets
     for item in rag_bullets:
-        if item.lower() not in {p.lower() for p in picked} and len(item) < 90:
-            picked.append(item)
+        if len(item) < 90:
+            _add(item)
 
+    # 6. High-sensitivity AQI boost
     if sensitivity == "high" and aqi >= 120:
-        picked.append("Aaj extra vitamin C — subah kinnow ya malta.")
+        _add("Aaj extra vitamins — subah taza seb.")
 
     if not picked:
         picked = list(SEASON_DIET_POOL.get(season_id, SEASON_DIET_POOL["winter_smog"])[:4])

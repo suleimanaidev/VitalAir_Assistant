@@ -85,8 +85,6 @@ export function useLahoreAreas(options?: { rotate?: boolean; enabled?: boolean }
       setLoading(false);
     }
     void refresh(cachedAreas.length > 0);
-    const refreshId = window.setInterval(() => void refresh(true), REFRESH_MS);
-    return () => window.clearInterval(refreshId);
   }, [enabled]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {

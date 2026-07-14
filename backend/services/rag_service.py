@@ -184,11 +184,15 @@ def build_diet_rag_query(
     season_id: str,
     temp_c: float,
     conditions: list[str],
+    age: int = 25,
+    sensitivity: str = "medium",
+    commute_mode: str = "car",
 ) -> str:
     cond = ", ".join(conditions) if conditions else "general"
     return (
         f"anti pollution nutrition diet vitamin C omega-3 Lahore AQI {aqi} "
-        f"{area} season {season_id} {temp_c}C conditions {cond}"
+        f"{area} season {season_id} {temp_c}C conditions {cond} "
+        f"age {age} sensitivity {sensitivity} commute {commute_mode}"
     )
 
 

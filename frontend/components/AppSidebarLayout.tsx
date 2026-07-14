@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   History,
   LayoutDashboard,
@@ -12,6 +12,7 @@ import {
   Map,
   Menu,
   MessageCircle,
+  Shield,
   UserCircle,
   Wind,
   X,
@@ -41,13 +42,22 @@ export default function AppSidebarLayout({
   const { data: session, status } = useSession();
   const [mobileOpen, setMobileOpen] = useState(false);
   const isAuthenticated = status === "authenticated";
+  const isAdmin = session?.user?.role === "admin";
+
+  const navLinks = useMemo(
+    () =>
+      isAdmin
+        ? [...APP_LINKS, { href: "/admin", label: "Admin", icon: Shield }]
+        : [...APP_LINKS],
+    [isAdmin]
+  );
 
   useEffect(() => {
     if (!isAuthenticated) return;
-    for (const link of APP_LINKS) {
+    for (const link of navLinks) {
       router.prefetch(link.href);
     }
-  }, [isAuthenticated, router]);
+  }, [isAuthenticated, router, navLinks]);
 
   const handleSignOut = () => {
     useVitalAirStore.getState().clearHealthProfile();
@@ -74,7 +84,7 @@ export default function AppSidebarLayout({
           App
         </p>
         <nav className="mt-3 space-y-1" aria-label="Application navigation">
-          {APP_LINKS.map((link) => {
+          {navLinks.map((link) => {
             const Icon = link.icon;
             const active = isActive(pathname, link.href);
             const href = isAuthenticated ? link.href : authLink(link.href, false);

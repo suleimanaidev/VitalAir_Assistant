@@ -3,10 +3,10 @@
 import { motion, useReducedMotion } from "framer-motion";
 
 const FLOATERS = [
-  { emoji: "🫁", left: "8%", top: "18%", delay: 0 },
-  { emoji: "😷", left: "88%", top: "12%", delay: 0.4 },
-  { emoji: "💧", left: "92%", top: "55%", delay: 0.8 },
-  { emoji: "🛡️", left: "15%", top: "82%", delay: 1.4 },
+  { text: "AI Air Quality", icon: "✨", left: "2%", top: "15%", delay: 0 },
+  { text: "Diet Planner", icon: "🥗", left: "78%", top: "10%", delay: 0.4 },
+  { text: "Safe Routes", icon: "🗺️", left: "82%", top: "68%", delay: 0.8 },
+  { text: "Health Shield", icon: "🛡️", left: "6%", top: "78%", delay: 1.4 },
 ] as const;
 
 export function BreathingLungs({
@@ -100,26 +100,27 @@ export function FloatingHealthIcons() {
 
   return (
     <>
-      {FLOATERS.map(({ emoji, left, top, delay }) => (
-        <motion.span
-          key={`${emoji}-${left}`}
-          className="pointer-events-none absolute select-none text-2xl opacity-40 sm:text-3xl"
+      {FLOATERS.map(({ text, icon, left, top, delay }) => (
+        <motion.div
+          key={`${text}-${left}`}
+          className="pointer-events-none absolute hidden select-none items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-4 py-2 shadow-xl backdrop-blur-md md:flex z-10"
           style={{ left, top }}
-          initial={{ opacity: 0, y: 8 }}
+          initial={{ opacity: 0, y: 15 }}
           animate={{
-            opacity: [0.25, 0.55, 0.25],
-            y: [0, -14, 0],
+            opacity: [0.6, 1, 0.6],
+            y: [0, -15, 0],
           }}
           transition={{
-            duration: 4 + delay,
+            duration: 5 + delay,
             repeat: Infinity,
             delay,
             ease: "easeInOut",
           }}
           aria-hidden
         >
-          {emoji}
-        </motion.span>
+          <span className="text-xl">{icon}</span>
+          <span className="text-sm font-medium text-white/90 drop-shadow-sm">{text}</span>
+        </motion.div>
       ))}
     </>
   );

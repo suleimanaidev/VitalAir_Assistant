@@ -103,7 +103,8 @@ export default function LoginForm() {
         ? callbackUrl
         : "/dashboard";
 
-    window.location.assign(safeCallback);
+    router.refresh();
+    router.push(safeCallback);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {

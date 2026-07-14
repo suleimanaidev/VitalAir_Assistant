@@ -6,6 +6,7 @@ import { getBackendJwtSecret } from "@/lib/jwtSecret.server";
 export interface VerifiedBackendToken {
   userId: string;
   email?: string;
+  role?: string;
 }
 
 /** Verify backend-issued JWT locally — skips a second login API round-trip. */
@@ -25,7 +26,9 @@ export async function verifyBackendToken(
     if (!userId || typeof userId !== "string") return null;
     const email =
       typeof payload.email === "string" ? payload.email : undefined;
-    return { userId, email };
+    const role =
+      typeof payload.role === "string" ? payload.role : undefined;
+    return { userId, email, role };
   } catch {
     return null;
   }

@@ -1,3 +1,4 @@
+import asyncio
 import logging
 
 from fastapi import APIRouter, HTTPException
@@ -15,7 +16,10 @@ from db.repositories import (
     get_email_for_reset_token,
     get_stored_password_hash,
     get_user_by_email,
+    get_user_by_id,
     update_user_password,
+    user_role_from_doc,
+    get_user_and_collection_by_email,
 )
 
 logger = logging.getLogger(__name__)
@@ -61,6 +65,7 @@ class AuthResponse(BaseModel):
     user_id: str
     email: str
     name: str
+    role: str = "user"
 
 
 class ForgotPasswordBody(BaseModel):
@@ -90,22 +95,29 @@ async def register(body: RegisterBody) -> AuthResponse:
     name = body.name.strip()
 
     try:
-        existing = await get_auth_user_by_email(email)
-        if existing:
+        user_doc, collection = await get_user_and_collection_by_email(email)
+        if user_doc and _has_auth_credentials(user_doc):
             raise HTTPException(
                 status_code=400,
                 detail="You are already registered. Please sign in instead.",
             )
 
-        password_hash = hash_password(body.password)
-        user_id = await create_auth_user(email, password_hash, name)
-        token = create_access_token(user_id, email)
+        password_hash = await asyncio.to_thread(hash_password, body.password)
+        user_id, role = await create_auth_user(
+            email,
+            password_hash,
+            name,
+            existing_user=user_doc,
+            collection=collection,
+        )
+        token = create_access_token(user_id, email, role)
 
         return AuthResponse(
             access_token=token,
             user_id=user_id,
             email=email,
             name=name,
+            role=role,
         )
     except HTTPException:
         raise
@@ -133,7 +145,8 @@ async def login(body: LoginBody) -> AuthResponse:
         user = await get_auth_user_by_email(email)
         stored_hash = get_stored_password_hash(user) if user else None
 
-        if not user or not stored_hash or not verify_password(body.password, stored_hash):
+        password_verified = await asyncio.to_thread(verify_password, body.password, stored_hash)
+        if not user or not stored_hash or not password_verified:
             # Helpful hint if email exists but no password (onboarding-only profile)
             any_doc = await get_user_by_email(email)
             if any_doc and not stored_hash:
@@ -143,12 +156,17 @@ async def login(body: LoginBody) -> AuthResponse:
                 )
             raise HTTPException(status_code=401, detail="Invalid email or password")
 
-        token = create_access_token(str(user["_id"]), user.get("email", email))
+        if user.get("is_active") is False:
+            raise HTTPException(status_code=403, detail="Account disabled")
+
+        role = user_role_from_doc(user)
+        token = create_access_token(str(user["_id"]), user.get("email", email), role)
         return AuthResponse(
             access_token=token,
             user_id=str(user["_id"]),
             email=user.get("email", email),
             name=user.get("name", "User"),
+            role=role,
         )
     except HTTPException:
         raise
@@ -216,7 +234,7 @@ async def reset_password(body: ResetPasswordBody) -> dict[str, str]:
                 detail="Invalid or expired reset link. Request a new one.",
             )
 
-        password_hash = hash_password(body.password)
+        password_hash = await asyncio.to_thread(hash_password, body.password)
         updated = await update_user_password(email, password_hash)
         if not updated:
             raise HTTPException(

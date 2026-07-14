@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { Loader2, MessageCircle, Send } from "lucide-react";
 import { askPatientRagChat } from "@/lib/documentsApi";
+import { useVitalAirStore } from "@/store/useVitalAirStore";
 
 interface ChatTurn {
   role: "user" | "assistant";
@@ -20,7 +21,10 @@ export default function ChatView() {
   const [question, setQuestion] = useState("");
   const [asking, setAsking] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [turns, setTurns] = useState<ChatTurn[]>([]);
+  
+  const turns = useVitalAirStore((s) => s.chatTurns);
+  const setTurns = useVitalAirStore((s) => s.setChatTurns);
+
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const send = async (text: string) => {
@@ -30,14 +34,16 @@ export default function ChatView() {
     setError(null);
     setAsking(true);
     setQuestion("");
-    setTurns((t) => [...t, { role: "user", text: prompt }]);
+    const newTurns = [...turns, { role: "user" as const, text: prompt }];
+    setTurns(newTurns);
 
     try {
-      const res = await askPatientRagChat(prompt);
-      setTurns((t) => [
-        ...t,
+      const storedArea = typeof window !== "undefined" ? window.localStorage.getItem("vitalair-dashboard-area") || "Gulberg" : "Gulberg";
+      const res = await askPatientRagChat(prompt, { area: storedArea });
+      setTurns([
+        ...newTurns,
         {
-          role: "assistant",
+          role: "assistant" as const,
           text: res.answer,
           meta:
             (res.has_patient_docs

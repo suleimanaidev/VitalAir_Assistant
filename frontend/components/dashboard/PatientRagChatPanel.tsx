@@ -91,7 +91,7 @@ export default function PatientRagChatPanel({
               if (e.key === "Enter") void onAsk();
             }}
             placeholder="Meri report ke hisaab se aaj kya precaution loon?"
-            className="input-field flex-1"
+            className="flex-1 rounded-lg border border-vital-border bg-vital-bg px-4 py-2.5 text-vital-text placeholder:text-vital-muted focus:border-vital-primary focus:outline-none focus:ring-1 focus:ring-vital-primary"
             disabled={asking}
           />
           <button

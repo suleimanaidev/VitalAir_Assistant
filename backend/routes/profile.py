@@ -7,6 +7,7 @@ from db.repositories import (
     is_profile_complete,
     profile_from_user_doc,
     update_user_profile,
+    user_role_from_doc,
 )
 from middleware.jwt_auth import AuthContext, get_auth_context
 from schemas.models import ProfileResponse, UserProfile
@@ -20,6 +21,7 @@ def _profile_response(user_id: str, doc: dict) -> ProfileResponse:
         user_id=user_id,
         profile=profile,
         profile_complete=is_profile_complete(doc),
+        role=user_role_from_doc(doc),
     )
 
 

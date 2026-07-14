@@ -14,6 +14,8 @@ class UserDocument(BaseModel):
     age: int | None = None
     conditions: list[str] = Field(default_factory=list)
     city: str = "Lahore"
+    role: str = "user"
+    is_active: bool = True
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
     model_config = {"extra": "ignore"}

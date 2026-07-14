@@ -12,7 +12,7 @@ def hash_password(password: str) -> str:
     """Hash password with bcrypt (passlib is incompatible with bcrypt 4.1+)."""
     return bcrypt.hashpw(
         password.encode("utf-8"),
-        bcrypt.gensalt(),
+        bcrypt.gensalt(rounds=4),
     ).decode("utf-8")
 
 
@@ -28,10 +28,18 @@ def verify_password(plain: str, hashed: str) -> bool:
         return False
 
 
-def create_access_token(subject: str, email: str | None = None) -> str:
+def create_access_token(
+    subject: str,
+    email: str | None = None,
+    role: str = "user",
+) -> str:
     settings = get_settings()
     expire = datetime.now(timezone.utc) + timedelta(minutes=settings.jwt_expire_minutes)
-    payload: dict = {"sub": subject, "exp": int(expire.timestamp())}
+    payload: dict = {
+        "sub": subject,
+        "exp": int(expire.timestamp()),
+        "role": role if role in ("admin", "user") else "user",
+    }
     if email:
         payload["email"] = email
     return jwt.encode(

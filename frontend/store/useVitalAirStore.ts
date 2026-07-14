@@ -11,6 +11,12 @@ export type OutdoorTime = "under_30" | "30_60" | "1_2" | "2_plus";
 export type StreamStatus = "idle" | "streaming" | "complete" | "error";
 export type AgentLogStatus = "thinking" | "done" | "error";
 
+export interface ChatTurn {
+  role: "user" | "assistant";
+  text: string;
+  meta?: string;
+}
+
 export interface AgentLog {
   agent: string;
   status: AgentLogStatus;
@@ -150,6 +156,7 @@ interface VitalAirState {
   streamStatus: StreamStatus;
   lahoreAreas: AreaAqiPayload[];
   lahoreAreasFetchedAt: string | null;
+  chatTurns: ChatTurn[];
 
   setHealthProfile: (profile: HealthProfile) => void;
   setProfileComplete: (complete: boolean | null) => void;
@@ -164,6 +171,7 @@ interface VitalAirState {
   resetStream: () => void;
   reset: () => void;
   setLahoreAreas: (areas: AreaAqiPayload[]) => void;
+  setChatTurns: (turns: ChatTurn[]) => void;
 }
 
 export const defaultProfile: HealthProfile = {
@@ -303,6 +311,7 @@ export const useVitalAirStore = create<VitalAirState>((set) => ({
   streamStatus: "idle",
   lahoreAreas: [],
   lahoreAreasFetchedAt: null,
+  chatTurns: [],
 
   setHealthProfile: (profile) =>
     set({ healthProfile: { ...profile, city: APP_CITY } }),
@@ -318,6 +327,7 @@ export const useVitalAirStore = create<VitalAirState>((set) => ({
       taskId: null,
       agentLogs: [],
       streamStatus: "idle",
+      chatTurns: [],
     }),
   setQuery: (q) => set({ query: q }),
   setTaskId: (id) => set({ taskId: id }),
@@ -341,10 +351,12 @@ export const useVitalAirStore = create<VitalAirState>((set) => ({
       taskId: null,
       streamStatus: "idle",
       results: emptyResults,
+      chatTurns: [],
     }),
   setLahoreAreas: (areas) =>
     set({
       lahoreAreas: areas,
       lahoreAreasFetchedAt: new Date().toISOString(),
     }),
+  setChatTurns: (turns) => set({ chatTurns: turns }),
 }));

@@ -19,42 +19,41 @@ export default function NutritionCard({
 }: NutritionCardProps) {
   const localized = localizeDietPlan(items);
 
-  if (embedded) {
     return (
-      <div>
+      <div className="mt-4">
         {hasPatientDocs && (
-          <p className="mb-3 text-xs text-vital-primary">
-            Personalized using your health profile and uploaded documents.
-          </p>
+          <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-vital-primary/30 bg-vital-primary/10 px-3 py-1.5 text-xs font-medium text-vital-primary shadow-sm">
+            <span>🛡️</span> Personalized using your health profile and documents
+          </div>
         )}
-        <AdviceBulletList
-          items={localized}
-          emojiFor={emojiForDietItem}
-          maxVisible={4}
-          variant="simple"
-          emptyMessage={emptyMessage}
-        />
+        <div className="grid gap-3 sm:grid-cols-2">
+          {localized.map((item, i) => {
+            const emoji = emojiForDietItem(item, i);
+            // bold the first few words for emphasis
+            const parts = item.split(" ");
+            const boldPart = parts.slice(0, 2).join(" ");
+            const rest = parts.slice(2).join(" ");
+
+            return (
+              <div
+                key={i}
+                className="group flex flex-col gap-2 rounded-xl border border-vital-border bg-vital-card/60 p-4 transition-all duration-300 hover:-translate-y-1 hover:border-vital-primary/40 hover:bg-vital-card hover:shadow-glow-primary"
+              >
+                <div className="flex items-center gap-3">
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-vital-bg text-xl shadow-inner transition-transform duration-300 group-hover:scale-110">
+                    {emoji}
+                  </span>
+                  <p className="text-sm font-semibold text-vital-primary">
+                    {boldPart}
+                  </p>
+                </div>
+                <p className="text-[13px] leading-relaxed text-vital-muted group-hover:text-vital-text">
+                  {rest}
+                </p>
+              </div>
+            );
+          })}
+        </div>
       </div>
     );
-  }
-
-  return (
-    <article className="vital-card flex h-full flex-col border-2 border-vital-primary/25 p-5 sm:p-6">
-      <header className="mb-4">
-        <p className="text-xs font-semibold uppercase tracking-wide text-vital-primary">
-          Nutrition tips
-        </p>
-        <p className="mt-1 text-sm text-vital-muted">
-          Aap ki health profile aur AQI ke mutabiq khana peena
-        </p>
-      </header>
-      <AdviceBulletList
-        items={localized}
-        emojiFor={emojiForDietItem}
-        maxVisible={4}
-        variant="simple"
-        emptyMessage={emptyMessage}
-      />
-    </article>
-  );
 }

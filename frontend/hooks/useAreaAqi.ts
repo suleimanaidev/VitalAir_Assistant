@@ -62,16 +62,5 @@ export function useAreaAqi(areaName: string) {
     void refresh(false);
   }, [refresh]);
 
-  useEffect(() => {
-    const key = cleanAreaName(areaName);
-    if (!key) return;
-
-    const id = window.setInterval(() => {
-      void refresh(true);
-    }, REFRESH_MS);
-
-    return () => window.clearInterval(id);
-  }, [areaName, refresh]);
-
   return { reading, loading };
 }

@@ -248,6 +248,9 @@ def run_nutrition_agent(
         season_id=season_id,
         temp_c=temp_c,
         conditions=conditions,
+        age=profile.age,
+        sensitivity=sensitivity,
+        commute_mode=commute,
     )
     _emit(
         publish_log,

@@ -42,7 +42,7 @@ AGENT_STEPS: list[tuple[str, str]] = [
     ("Smart Route Navigator", "Finding 3 low-AQI paths across Lahore…"),
 ]
 
-AGENT_STEP_DELAY = 0.7
+AGENT_STEP_DELAY = 0.15
 from tools.waqi_core import fetch_aqi_for_area
 
 
@@ -160,7 +160,7 @@ def _log_step(
     work()
     if publish_log:
         publish_log(agent, "done", "Completed")
-        time.sleep(0.3)
+        time.sleep(0.05)
 
 
 def run_mock_analysis(

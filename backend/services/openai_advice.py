@@ -2,6 +2,10 @@
 
 from __future__ import annotations
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 from config import get_settings
 from services.seasonal_intelligence import lahore_now
 from tools.lahore_season import is_smog_season
@@ -12,11 +16,13 @@ def _chat(
     user: str,
     max_tokens: int = 600,
     temperature: float = 0.4,
-    timeout_seconds: float = 18.0,
+    timeout_seconds: float = 8.0,
 ) -> str | None:
     settings = get_settings()
     if not settings.has_openai:
+        logger.debug("OpenAI key not configured — skipping _chat")
         return None
+    logger.debug("_chat → model=%s timeout=%.1fs", get_settings().openai_model or "gpt-4o-mini", timeout_seconds)
     try:
         from openai import OpenAI
 
@@ -37,7 +43,8 @@ def _chat(
         )
         text = response.choices[0].message.content
         return text.strip() if text else None
-    except Exception:
+    except Exception as exc:
+        logger.warning("OpenAI _chat failed: %s", exc)
         return None
 
 
@@ -54,6 +61,7 @@ def generate_health_advice(
     destination: str = "",
     has_patient_docs: bool = False,
 ) -> str | None:
+    logger.debug("generate_health_advice  aqi=%d season=%s src=%s dst=%s", aqi, season_id, source, destination)
     no_smog = not is_smog_season(season_id)
     hour = lahore_now().hour
     season_rule = (
@@ -124,6 +132,7 @@ def generate_diet_plan(
     has_patient_docs: bool = False,
     profile_summary: str = "",
 ) -> list[str] | None:
+    logger.debug("generate_diet_plan  aqi=%d season=%s src=%s", aqi, season_id, source)
     season_focus = {
         "summer_heatwave": "cooling, hydrating foods; avoid heavy fried items",
         "pre_monsoon_heat": "cooling drinks and light meals for rising heat",
@@ -145,6 +154,11 @@ def generate_diet_plan(
             "You are a Lahore/Punjab nutrition advisor. Return ONLY a JSON array of exactly 4 "
             "strings in ROMAN URDU. Each string must be ONE clear actionable tip: "
             "food/drink + kab + kyun (for this user's conditions and AQI). "
+            "CRITICAL: You MUST tailor each tip to the user's specific health conditions, "
+            "age, sensitivity, and commute mode from the profile below. "
+            "If the user has asthma, recommend anti-inflammatory foods. "
+            "If diabetic, avoid sugary items and mention sugar-safe alternatives. "
+            "If heart disease, recommend low-sodium heart-healthy options. "
             "Use only common Lahore/Punjab foods. Avoid random exotic items. "
             "Do NOT repeat the same food in multiple tips. "
             "Keep each tip under 90 characters. "
@@ -162,6 +176,7 @@ def generate_diet_plan(
         ),
         max_tokens=320,
         temperature=0.45,
+        timeout_seconds=12.0,
     )
     if not raw:
         return None
@@ -189,21 +204,25 @@ def generate_patient_rag_chat_answer(
     aqi: int | None = None,
 ) -> str | None:
     """Answer a user question using retrieved WHO + personal health document context."""
+    logger.debug("generate_patient_rag_chat_answer  q=%s… area=%s aqi=%s", question[:60], area, aqi)
+    
     doc_rule = (
-        "Personal uploaded documents are included. Use them only when relevant, "
-        "and do not invent medicines, diagnoses, or lab values."
+        "Search and utilize the user's uploaded health documents (available in the context below) to answer the user's questions specifically and personally. Do not invent medicines, diagnoses, or lab values."
         if has_patient_docs
-        else "No uploaded patient document context was found. Say that clearly and "
-        "answer with general WHO-based air-quality guidance."
+        else "No uploaded patient documents were found. Clearly state that no documents were found, and answer based on general WHO-based air-quality guidance."
     )
+    
+    system_prompt = (
+        "You are VitalAir's doctor-aware health assistant for Lahore.\n"
+        "Instructions:\n"
+        "- Reference and prioritize the user's health profile parameters (age, sensitivity, conditions, commute) and the current AQI to customize your advice.\n"
+        f"- {doc_rule}\n"
+        "- Respond strictly in Roman Urdu (Urdu in Latin script) but use short English medical terms where appropriate (e.g. 'asthma flare-up', 'inhaler', 'bronchodilator', 'nebulizer', 'AQI exposure'). Keep the language natural, helpful, and empathetic.\n"
+        "- Be concise: one direct answer plus 3 bullet points. Never diagnose; recommend a doctor/ER for severe symptoms."
+    )
+    
     return _chat(
-        system=(
-            "You are VitalAir's doctor-aware health assistant for Lahore. "
-            "Answer in simple Roman Urdu with short English medical terms where useful. "
-            "Be concise: one direct answer plus 3 bullet points. "
-            "Never diagnose; recommend a doctor/ER for severe symptoms. "
-            f"{doc_rule}"
-        ),
+        system=system_prompt,
         user=(
             f"User question: {question}\n"
             f"Area: {area or 'not provided'}\n"

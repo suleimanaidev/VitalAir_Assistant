@@ -170,10 +170,10 @@ export default function HeroSection() {
             </ul>
           </motion.div>
 
-          <motion.div variants={item} className="lg:justify-self-end">
+          <motion.div variants={item} className="w-full lg:justify-self-end z-20">
             <motion.div
-              className={`vital-card w-full max-w-md p-6 glow-primary ${
-                isHazardous ? "shadow-glow-danger" : ""
+              className={`vital-card relative w-full max-w-md overflow-hidden p-6 sm:p-8 backdrop-blur-xl bg-vital-card/80 border-white/10 shadow-2xl ${
+                isHazardous ? "shadow-glow-danger" : "shadow-glow-primary"
               }`}
               whileHover={{
                 y: -6,
@@ -204,8 +204,8 @@ export default function HeroSection() {
               </div>
 
               <p
-                className={`mt-6 text-7xl font-bold tabular-nums ${
-                  isHazardous ? "text-vital-danger" : "text-vital-primary"
+                className={`mt-6 text-7xl font-bold tabular-nums tracking-tight ${
+                  isHazardous ? "text-gradient-danger" : "text-gradient-primary"
                 }`}
               >
                 {DEMO_AQI.value}
@@ -237,7 +237,7 @@ export default function HeroSection() {
                 {DEMO_AQI.adviceUr}
               </p>
 
-              <p className="mt-4 border-t border-vital-border/50 pt-3 text-xs text-vital-muted">
+              <p className="mt-5 border-t border-white/10 pt-4 text-xs leading-relaxed text-vital-muted">
                 Enter your route on the dashboard to get health tips and safer
                 road options for today.
               </p>

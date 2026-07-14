@@ -12,6 +12,7 @@ export interface AgentStepCardProps {
   subtitle?: string;
   status: AgentStepStatus;
   onRun?: () => void;
+  onReset?: () => void;
   runLabel?: string;
   disabled?: boolean;
   error?: string | null;
@@ -34,6 +35,7 @@ export default function AgentStepCard({
   subtitle,
   status,
   onRun,
+  onReset,
   runLabel = "Run agent",
   disabled = false,
   error,
@@ -110,15 +112,28 @@ export default function AgentStepCard({
           </button>
         )}
 
-        {status === "done" && onRun && (
-          <button
-            type="button"
-            className="btn-ghost mt-4 text-sm"
-            onClick={onRun}
-            disabled={disabled}
-          >
-            Run again
-          </button>
+        {status === "done" && (
+          <div className="mt-4 flex items-center gap-3">
+            {onReset && (
+              <button
+                type="button"
+                className="btn-ghost text-sm text-vital-muted hover:text-vital-danger hover:border-vital-danger/40"
+                onClick={onReset}
+              >
+                Close / Reset
+              </button>
+            )}
+            {onRun && (
+              <button
+                type="button"
+                className="btn-secondary text-sm"
+                onClick={onRun}
+                disabled={disabled}
+              >
+                Run again
+              </button>
+            )}
+          </div>
         )}
       </div>
     </article>

@@ -106,13 +106,28 @@ export default function HealthAlertCard({
           </p>
         )}
 
-        <AdviceBulletList
-          items={parsed.bullets.slice(0, 4)}
-          emojiFor={emojiForHealthItem}
-          maxVisible={4}
-          variant="guidance"
-          emptyMessage="Route analyze karein — AQI, season aur aap ki health profile ke hisaab se 4 tips yahan aayengi."
-        />
+        <div className="mt-4 grid gap-3">
+          {parsed.bullets.slice(0, 4).map((bullet, i) => {
+            const emoji = emojiForHealthItem(bullet, i);
+            const clean = bullet.replace(/^[\s•\-*]+/, "");
+            return (
+              <div
+                key={i}
+                className="group flex items-start gap-3 rounded-xl border border-vital-border/60 bg-vital-bg/70 px-4 py-3.5 transition-all duration-300 hover:scale-[1.01] hover:border-vital-primary/40 hover:bg-vital-card hover:shadow-glow-primary"
+              >
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-vital-primary/10 text-lg shadow-inner">
+                  {emoji}
+                </span>
+                <p className="text-[15px] leading-relaxed text-vital-text sm:text-base">
+                  {clean}
+                </p>
+              </div>
+            );
+          })}
+          {parsed.bullets.length === 0 && (
+             <p className="text-base text-vital-muted">Route analyze karein — AQI, season aur aap ki health profile ke hisaab se 4 tips yahan aayengi.</p>
+          )}
+        </div>
       </div>
 
       {sourceHint && (

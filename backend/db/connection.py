@@ -9,8 +9,8 @@ from config import get_settings
 _client: AsyncIOMotorClient | None = None
 _client_failed_at: float | None = None
 _client_lock = asyncio.Lock()
-_CLIENT_RETRY_COOLDOWN_SEC = 30.0
-_CLIENT_INIT_TIMEOUT_SEC = 12.0
+_CLIENT_RETRY_COOLDOWN_SEC = 15.0
+_CLIENT_INIT_TIMEOUT_SEC = 6.0
 
 
 class MongoUnavailableError(RuntimeError):
@@ -20,11 +20,11 @@ class MongoUnavailableError(RuntimeError):
 def _build_client() -> AsyncIOMotorClient:
     return AsyncIOMotorClient(
         get_settings().mongodb_uri,
-        serverSelectionTimeoutMS=5000,
-        connectTimeoutMS=5000,
-        socketTimeoutMS=8000,
+        serverSelectionTimeoutMS=3000,
+        connectTimeoutMS=3000,
+        socketTimeoutMS=5000,
         maxPoolSize=20,
-        waitQueueTimeoutMS=5000,
+        waitQueueTimeoutMS=3000,
     )
 
 
@@ -96,7 +96,7 @@ async def ping_db() -> bool:
     for attempt in range(2):
         try:
             client = await get_client_async()
-            await asyncio.wait_for(client.admin.command("ping"), timeout=5.0)
+            await asyncio.wait_for(client.admin.command("ping"), timeout=3.0)
             _client_failed_at = None
             return True
         except (MongoUnavailableError, PyMongoError, asyncio.TimeoutError):

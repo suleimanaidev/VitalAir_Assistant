@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowLeft,
@@ -13,6 +13,7 @@ import {
   History,
   Menu,
   MessageCircle,
+  Shield,
   UserCircle,
   Wind,
   X,
@@ -48,6 +49,15 @@ export default function Navbar() {
   const { data: session, status } = useSession();
   const isAuthenticated = status === "authenticated";
   const isLoadingSession = status === "loading";
+  const isAdmin = session?.user?.role === "admin";
+
+  const appNavLinks = useMemo(
+    () =>
+      isAdmin
+        ? [...APP_LINKS, { href: "/admin", label: "Admin", icon: Shield }]
+        : [...APP_LINKS],
+    [isAdmin]
+  );
 
   const isHome = pathname === "/";
   const isLoginPage = pathname === "/login";
@@ -124,7 +134,7 @@ export default function Navbar() {
             ))}
 
           {showAppNav &&
-            APP_LINKS.map((link) => {
+            appNavLinks.map((link) => {
               const Icon = link.icon;
               return (
                 <li key={link.href}>
@@ -249,7 +259,7 @@ export default function Navbar() {
                 ))}
 
               {showAppNav &&
-                APP_LINKS.map((link) => {
+                appNavLinks.map((link) => {
                   const Icon = link.icon;
                   return (
                     <li key={link.href}>

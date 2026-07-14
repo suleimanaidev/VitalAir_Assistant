@@ -8,6 +8,7 @@ export interface AuthResult {
   user_id: string;
   email: string;
   name: string;
+  role?: string;
 }
 
 export function normalizeEmail(email: string): string {

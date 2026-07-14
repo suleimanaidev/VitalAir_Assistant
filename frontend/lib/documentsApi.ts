@@ -61,7 +61,11 @@ export async function deleteHealthDocument(id: string): Promise<void> {
 
 export async function askPatientRagChat(
   question: string,
-  options?: { area?: string; aqi?: number }
+  options?: { 
+    area?: string; 
+    aqi?: number; 
+    history?: { role: "user" | "assistant"; text: string }[];
+  }
 ): Promise<PatientRagChatResult> {
   const res = await fetch("/api/rag/chat", {
     method: "POST",
@@ -70,6 +74,7 @@ export async function askPatientRagChat(
       question,
       area: options?.area,
       aqi: options?.aqi,
+      history: options?.history,
     }),
   });
   const data = await res.json().catch(() => ({}));

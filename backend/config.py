@@ -33,6 +33,11 @@ class Settings(BaseSettings):
     jwt_expire_minutes: int = 1440
     frontend_url: str = ""
     faiss_index_dir: str = "./faiss_indexes"
+    admin_emails: str = ""
+
+    @property
+    def admin_email_list(self) -> list[str]:
+        return [e.strip().lower() for e in self.admin_emails.split(",") if e.strip()]
 
     @property
     def cors_origin_list(self) -> list[str]:

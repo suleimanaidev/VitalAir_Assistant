@@ -176,6 +176,7 @@ class ProfileResponse(BaseModel):
     user_id: str
     profile: UserProfile
     profile_complete: bool = False
+    role: str = "user"
 
 
 class SymptomCheckinBody(BaseModel):

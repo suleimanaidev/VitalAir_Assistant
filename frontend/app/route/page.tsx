@@ -1,16 +1,33 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import ProfileSetupGuard from "@/components/auth/ProfileSetupGuard";
 import AppSidebarLayout from "@/components/AppSidebarLayout";
 import LeafletMap from "@/components/map/LeafletMap";
 import { useLahoreAreas } from "@/hooks/useLahoreAreas";
 import { APP_CITY } from "@/lib/constants";
-import type { LahoreArea } from "@/lib/lahoreAreas";
+import { LAHORE_AREAS, type LahoreArea } from "@/lib/lahoreAreas";
 
 export default function RoutePageView() {
   const { areas, error } = useLahoreAreas();
   const [activeArea, setActiveArea] = useState<LahoreArea | null>(null);
+
+  useEffect(() => {
+    const saved = typeof window !== "undefined" ? window.sessionStorage.getItem("vitalair-dashboard-area") : null;
+    if (saved) {
+      const match = LAHORE_AREAS.find((a) => a.name.toLowerCase() === saved.toLowerCase());
+      if (match) setActiveArea(match);
+    }
+  }, []);
+
+  const handleAreaSelect = (area: LahoreArea | null) => {
+    setActiveArea(area);
+    if (area) {
+      try {
+        window.sessionStorage.setItem("vitalair-dashboard-area", area.name);
+      } catch {}
+    }
+  };
 
   return (
     <ProfileSetupGuard>
@@ -32,7 +49,7 @@ export default function RoutePageView() {
             <LeafletMap
               areas={areas}
               activeAreaId={activeArea?.id}
-              onAreaSelect={setActiveArea}
+              onAreaSelect={handleAreaSelect}
             />
           </div>
         </div>

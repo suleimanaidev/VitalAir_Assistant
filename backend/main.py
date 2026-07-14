@@ -17,8 +17,9 @@ from fastapi.responses import HTMLResponse, JSONResponse
 
 from config import get_settings
 from db.connection import close_db, ping_db
-from db.repositories import ensure_user_email_index
+from db.repositories import ensure_user_email_index, promote_admin_emails
 from routes import (
+    admin,
     agents,
     analyze,
     analyze_stream,
@@ -43,6 +44,10 @@ async def lifespan(_app: FastAPI):
         pass
     try:
         await asyncio.wait_for(ensure_user_email_index(), timeout=8.0)
+    except Exception:
+        pass
+    try:
+        await asyncio.wait_for(promote_admin_emails(), timeout=8.0)
     except Exception:
         pass
     try:
@@ -73,6 +78,7 @@ app.include_router(profile.router, prefix="/api")
 app.include_router(agents.router, prefix="/api")
 app.include_router(documents.router, prefix="/api")
 app.include_router(symptoms.router, prefix="/api")
+app.include_router(admin.router, prefix="/api")
 
 
 _API_META = {

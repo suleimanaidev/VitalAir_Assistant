@@ -30,6 +30,7 @@ _locks_guard = threading.Lock()
 
 try:
     import faiss  # noqa: F401
+    from sentence_transformers import SentenceTransformer  # noqa: F401
 
     _faiss_available = True
 except ImportError:
