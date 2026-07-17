@@ -28,7 +28,7 @@ export default function NutritionCard({
         )}
         <div className="grid gap-3 sm:grid-cols-2">
           {localized.map((item, i) => {
-            const emoji = emojiForDietItem(item, i);
+            const emoji = emojiForDietItem(item);
             // bold the first few words for emphasis
             const parts = item.split(" ");
             const boldPart = parts.slice(0, 2).join(" ");

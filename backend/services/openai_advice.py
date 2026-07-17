@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from functools import lru_cache
 
 logger = logging.getLogger(__name__)
 
@@ -48,6 +49,7 @@ def _chat(
         return None
 
 
+@lru_cache(maxsize=128)
 def generate_health_advice(
     *,
     aqi: int,
@@ -103,6 +105,7 @@ def generate_health_advice(
             "Give exactly 4 bullet points (• prefix), no more. Each bullet one clear, "
             "actionable step tailored to age, conditions, sensitivity, and commute. "
             "Start with one English summary line, then one Roman Urdu summary line, then bullets. "
+            "CRITICAL: In the Roman Urdu summary line, you MUST explicitly mention the user's health condition if they have one (e.g., 'Kyunke aap ko asthma hai, isliye...'). "
             "Be cautious and professional — never diagnose; recommend medical care when symptoms are severe. "
             f"{season_rule} {time_rule} {doc_rule}"
         ),
@@ -117,6 +120,7 @@ def generate_health_advice(
     )
 
 
+@lru_cache(maxsize=128)
 def generate_diet_plan(
     *,
     aqi: int,
@@ -152,7 +156,8 @@ def generate_diet_plan(
     raw = _chat(
         system=(
             "You are a Lahore/Punjab nutrition advisor. Return ONLY a JSON array of exactly 4 "
-            "strings in ROMAN URDU. Each string must be ONE clear actionable tip: "
+            "strings in natural, conversational ROMAN URDU (like how Pakistanis chat on WhatsApp, avoid overly formal or literal translations). "
+            "Each string must be ONE clear actionable tip: "
             "food/drink + kab + kyun (for this user's conditions and AQI). "
             "CRITICAL: You MUST tailor each tip to the user's specific health conditions, "
             "age, sensitivity, and commute mode from the profile below. "

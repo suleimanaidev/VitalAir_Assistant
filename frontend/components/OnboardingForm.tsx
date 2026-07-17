@@ -5,6 +5,10 @@ import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowLeft, ArrowRight, Loader2, MapPin } from "lucide-react";
+import { useForm, Controller } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+
 import ProgressBar from "@/components/ProgressBar";
 import {
   COMMUTE_OPTIONS,
@@ -13,19 +17,28 @@ import {
   SENSITIVITY_OPTIONS,
   inputClass,
 } from "@/lib/healthProfileOptions";
-import {
-  profilePayloadFromHealth,
-  updateMyProfile,
-} from "@/lib/profileApi";
+import { profilePayloadFromHealth, updateMyProfile } from "@/lib/profileApi";
 import { APP_CITY } from "@/lib/constants";
 import {
   useVitalAirStore,
-  type CommuteMode,
   type HealthProfile,
-  type OutdoorTime,
-  type Sensitivity,
   defaultProfile,
+  type Sensitivity,
+  type CommuteMode,
+  type OutdoorTime,
 } from "@/store/useVitalAirStore";
+
+const profileSchema = z.object({
+  name: z.string().min(1, "Name is required"),
+  age: z.coerce.number().min(1, "Age must be at least 1").max(120, "Age must be 120 or younger"),
+  conditions: z.array(z.string()).min(1, "Please select at least one condition"),
+  sensitivity: z.enum(["low", "medium", "high"]),
+  commuteMode: z.enum(["car", "bike", "walk", "public_transport"]),
+  outdoorTime: z.enum(["less_30", "30_60", "1_2", "2_plus"])
+});
+
+type ProfileFormValues = z.infer<typeof profileSchema>;
+
 const slide = {
   enter: { opacity: 0, x: 24 },
   center: { opacity: 1, x: 0 },
@@ -51,61 +64,70 @@ export default function OnboardingForm() {
   const [step, setStep] = useState(1);
   const [submitting, setSubmitting] = useState(false);
 
-  const [name, setName] = useState(defaultProfile.name);
+  const { register, handleSubmit, control, watch, setValue, trigger, formState: { errors } } = useForm<ProfileFormValues>({
+    resolver: zodResolver(profileSchema),
+    defaultValues: {
+      name: defaultProfile.name,
+      age: defaultProfile.age,
+      conditions: [],
+      sensitivity: defaultProfile.sensitivity,
+      commuteMode: defaultProfile.commuteMode,
+      outdoorTime: defaultProfile.outdoorTime
+    }
+  });
+
+  const conditions = watch("conditions");
+  const sensitivity = watch("sensitivity");
+  const commuteMode = watch("commuteMode");
+  const outdoorTime = watch("outdoorTime");
 
   useEffect(() => {
-    if (session?.user?.name) setName(session.user.name);
-  }, [session?.user?.name]);
-  const [age, setAge] = useState(String(defaultProfile.age));
-  const [conditions, setConditions] = useState<string[]>([]);
-  const [sensitivity, setSensitivity] = useState<Sensitivity>(
-    defaultProfile.sensitivity
-  );
-  const [commuteMode, setCommuteMode] = useState<CommuteMode>(
-    defaultProfile.commuteMode
-  );
-  const [outdoorTime, setOutdoorTime] = useState<OutdoorTime>(
-    defaultProfile.outdoorTime
-  );
+    if (session?.user?.name) {
+      setValue("name", session.user.name);
+    }
+  }, [session?.user?.name, setValue]);
 
   const toggleCondition = (id: string) => {
     if (id === "none") {
-      setConditions(["none"]);
+      setValue("conditions", ["none"], { shouldValidate: true });
       return;
     }
-    setConditions((prev) => {
-      const withoutNone = prev.filter((c) => c !== "none");
-      return withoutNone.includes(id)
-        ? withoutNone.filter((c) => c !== id)
-        : [...withoutNone, id];
-    });
+    const current = conditions || [];
+    const withoutNone = current.filter((c) => c !== "none");
+    const next = withoutNone.includes(id)
+      ? withoutNone.filter((c) => c !== id)
+      : [...withoutNone, id];
+    setValue("conditions", next, { shouldValidate: true });
   };
 
-  const step1Valid =
-    name.trim().length > 0 && Number(age) >= 1 && Number(age) <= 120;
-  const step2Valid = conditions.length > 0;
-
-  const handleNext = () => {
-    if (step < 3) setStep((s) => s + 1);
+  const handleNext = async () => {
+    let isValid = false;
+    if (step === 1) {
+      isValid = await trigger(["name", "age"]);
+    } else if (step === 2) {
+      isValid = await trigger(["conditions", "sensitivity"]);
+    }
+    if (isValid && step < 3) {
+      setStep((s) => s + 1);
+    }
   };
 
   const handleBack = () => {
     if (step > 1) setStep((s) => s - 1);
   };
 
-  const buildProfile = (): HealthProfile => ({
-    name: name.trim(),
-    age: Number(age),
-    city: APP_CITY,
-    conditions: conditions.includes("none") ? [] : conditions,
-    sensitivity,
-    commuteMode,
-    outdoorTime,
-  });
-
-  const handleSubmit = async () => {
+  const onSubmit = async (data: ProfileFormValues) => {
     setSubmitting(true);
-    const profile = buildProfile();
+    const profile: HealthProfile = {
+      name: data.name.trim(),
+      age: data.age,
+      city: APP_CITY,
+      conditions: data.conditions.includes("none") ? [] : data.conditions,
+      sensitivity: data.sensitivity as Sensitivity,
+      commuteMode: data.commuteMode as CommuteMode,
+      outdoorTime: data.outdoorTime as OutdoorTime,
+    };
+    
     setHealthProfile(profile);
 
     try {
@@ -134,15 +156,7 @@ export default function OnboardingForm() {
     <motion.div className="vital-card p-6 sm:p-8">
       <ProgressBar currentStep={step} />
 
-      <form
-        className="mt-8"
-        onSubmit={(e) => {
-          e.preventDefault();
-          if (step === 3) void handleSubmit();
-          else if ((step === 1 && step1Valid) || (step === 2 && step2Valid))
-            handleNext();
-        }}
-      >
+      <form className="mt-8" onSubmit={handleSubmit(onSubmit)}>
         <AnimatePresence mode="wait">
           {step === 1 && (
             <motion.div
@@ -158,29 +172,27 @@ export default function OnboardingForm() {
                 title="Basic info"
                 subtitle="Tell us a little about yourself."
               />
-              <label className="block text-sm font-medium text-vital-text">
-                Name
+              <div>
+                <label className="block text-sm font-medium text-vital-text">Name</label>
                 <input
                   type="text"
                   className={inputClass}
                   placeholder="e.g. Suleiman Ahmed"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  required
+                  {...register("name")}
                 />
-              </label>
-              <label className="block text-sm font-medium text-vital-text">
-                Age
+                {errors.name && <p className="mt-1 text-sm text-vital-danger">{errors.name.message}</p>}
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-vital-text">Age</label>
                 <input
                   type="number"
-                  min={1}
-                  max={120}
                   className={inputClass}
-                  value={age}
-                  onChange={(e) => setAge(e.target.value)}
-                  required
+                  {...register("age")}
                 />
-              </label>
+                {errors.age && <p className="mt-1 text-sm text-vital-danger">{errors.age.message}</p>}
+              </div>
+              
               <div className="rounded-md border border-vital-border bg-vital-bg px-3 py-2.5">
                 <p className="text-xs font-medium text-vital-muted">City</p>
                 <p className="mt-1 flex items-center gap-2 text-vital-text">
@@ -214,7 +226,7 @@ export default function OnboardingForm() {
                     <label
                       key={id}
                       className={`flex cursor-pointer items-center gap-3 rounded-md border px-3 py-2.5 transition-colors ${
-                        conditions.includes(id)
+                        (conditions || []).includes(id)
                           ? "border-vital-primary bg-vital-primary/10"
                           : "border-vital-border hover:border-vital-muted"
                       }`}
@@ -222,14 +234,16 @@ export default function OnboardingForm() {
                       <input
                         type="checkbox"
                         className="h-4 w-4 accent-[#00C896]"
-                        checked={conditions.includes(id)}
+                        checked={(conditions || []).includes(id)}
                         onChange={() => toggleCondition(id)}
                       />
                       <span className="text-sm text-vital-text">{label}</span>
                     </label>
                   ))}
                 </div>
+                {errors.conditions && <p className="mt-1 text-sm text-vital-danger">{errors.conditions.message}</p>}
               </fieldset>
+              
               <fieldset>
                 <legend className="text-sm font-medium text-vital-text">
                   Pollution sensitivity
@@ -246,15 +260,15 @@ export default function OnboardingForm() {
                     >
                       <input
                         type="radio"
-                        name="sensitivity"
+                        value={value}
+                        {...register("sensitivity")}
                         className="sr-only"
-                        checked={sensitivity === value}
-                        onChange={() => setSensitivity(value)}
                       />
                       {label}
                     </label>
                   ))}
                 </div>
+                {errors.sensitivity && <p className="mt-1 text-sm text-vital-danger">{errors.sensitivity.message}</p>}
               </fieldset>
             </motion.div>
           )}
@@ -289,16 +303,17 @@ export default function OnboardingForm() {
                     >
                       <input
                         type="radio"
-                        name="commute"
+                        value={value}
+                        {...register("commuteMode")}
                         className="sr-only"
-                        checked={commuteMode === value}
-                        onChange={() => setCommuteMode(value)}
                       />
                       {label}
                     </label>
                   ))}
                 </div>
+                {errors.commuteMode && <p className="mt-1 text-sm text-vital-danger">{errors.commuteMode.message}</p>}
               </fieldset>
+              
               <fieldset>
                 <legend className="text-sm font-medium text-vital-text">
                   Daily outdoor time
@@ -315,15 +330,15 @@ export default function OnboardingForm() {
                     >
                       <input
                         type="radio"
-                        name="outdoor"
+                        value={value}
+                        {...register("outdoorTime")}
                         className="sr-only"
-                        checked={outdoorTime === value}
-                        onChange={() => setOutdoorTime(value)}
                       />
                       {label}
                     </label>
                   ))}
                 </div>
+                {errors.outdoorTime && <p className="mt-1 text-sm text-vital-danger">{errors.outdoorTime.message}</p>}
               </fieldset>
             </motion.div>
           )}
@@ -339,15 +354,13 @@ export default function OnboardingForm() {
             <ArrowLeft className="h-4 w-4" aria-hidden />
             Back
           </button>
+          
           {step < 3 ? (
             <button
-              type="submit"
+              type="button"
+              onClick={handleNext}
               className="btn-primary text-sm disabled:opacity-50"
-              disabled={
-                submitting ||
-                (step === 1 && !step1Valid) ||
-                (step === 2 && !step2Valid)
-              }
+              disabled={submitting}
             >
               Next
               <ArrowRight className="h-4 w-4" aria-hidden />

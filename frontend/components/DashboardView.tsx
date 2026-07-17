@@ -16,24 +16,18 @@ import SeasonIntelligenceCard from "@/components/SeasonIntelligenceCard";
 import AgentStepCard, {
   type AgentStepStatus,
 } from "@/components/dashboard/AgentStepCard";
+import AgentResultsSection from "@/components/dashboard/AgentResultsSection";
 import PatientRagChatPanel from "@/components/dashboard/PatientRagChatPanel";
 import SymptomCheckinCard from "@/components/dashboard/SymptomCheckinCard";
 import LocationSearchInput from "@/components/map/LocationSearchInput";
 import { formatAqiUpdated, aqiLabel } from "@/lib/aqi";
 import {
   fetchTodaySymptoms,
-  startHealthAgentJob,
-  startNutritionAgentJob,
-  startRouteAgentJob,
   saveTodaySymptoms,
-  type AgentHealthResult,
-  type AgentNutritionResult,
-  type AgentRouteResult,
   type SymptomCheckinPayload,
   type SymptomCheckinResult,
-  type UserProfilePayload,
 } from "@/lib/api";
-import { streamAgentJob } from "@/lib/agentStream";
+
 import { APP_CITY } from "@/lib/constants";
 import { cleanAreaName, formatAreaTitle } from "@/lib/formatLocation";
 import { useAreaAqi } from "@/hooks/useAreaAqi";
@@ -164,17 +158,7 @@ function dailyRiskFromContext(
   };
 }
 
-function profilePayload(profile: HealthProfile): UserProfilePayload {
-  return {
-    name: profile.name || "User",
-    age: profile.age,
-    conditions: profile.conditions,
-    city: APP_CITY,
-    sensitivity: profile.sensitivity,
-    commuteMode: profile.commuteMode,
-    outdoorTime: profile.outdoorTime,
-  };
-}
+
 
 const DASHBOARD_AREA_KEY = "vitalair-dashboard-area";
 
@@ -216,24 +200,7 @@ export default function DashboardView() {
       /* ignore storage errors */
     }
   };
-  const [destination, setDestination] = usePersistedState("vitalair-dashboard-destination", "");
-  const [routeOpen, setRouteOpen] = usePersistedState("vitalair-dashboard-routeopen", false);
-
-  const [healthResult, setHealthResult] = usePersistedState<AgentHealthResult | null>("vitalair-dash-health-result", null);
-  const [nutritionResult, setNutritionResult] = usePersistedState<AgentNutritionResult | null>("vitalair-dash-nutrition-result", null);
-  const [routeResult, setRouteResult] = usePersistedState<AgentRouteResult | null>("vitalair-dash-route-result", null);
   const [todaySymptoms, setTodaySymptoms] = usePersistedState<SymptomCheckinResult | null>("vitalair-dash-today-symptoms", null);
-
-  const [healthStatus, setHealthStatus] = usePersistedState<AgentStepStatus>("vitalair-dash-health-status", "idle");
-  const [nutritionStatus, setNutritionStatus] = usePersistedState<AgentStepStatus>("vitalair-dash-nutrition-status", "idle");
-  const [routeStatus, setRouteStatus] = usePersistedState<AgentStepStatus>("vitalair-dash-route-status", "idle");
-
-  const [healthError, setHealthError] = usePersistedState<string | null>("vitalair-dash-health-error", null);
-  const [nutritionError, setNutritionError] = usePersistedState<string | null>("vitalair-dash-nutrition-error", null);
-  const [routeError, setRouteError] = usePersistedState<string | null>("vitalair-dash-route-error", null);
-  const [healthLive, setHealthLive] = useState<string | null>(null);
-  const [nutritionLive, setNutritionLive] = useState<string | null>(null);
-  const [routeLive, setRouteLive] = useState<string | null>(null);
   const [symptomLoading, setSymptomLoading] = useState(false);
   const [symptomSaving, setSymptomSaving] = useState(false);
   const [symptomError, setSymptomError] = useState<string | null>(null);
@@ -244,21 +211,13 @@ export default function DashboardView() {
   const heroLabel = areaReading?.label ?? (heroAqi != null ? aqiLabel(heroAqi) : "—");
   const aqiReady = heroAqi != null && !areaAqiLoading;
 
-  const activeSeason = useMemo(() => {
-    if (healthResult?.season) {
-      return {
-        id: healthResult.season as LahoreSeasonId,
-        labelEn: healthResult.season_label ?? liveSeason.labelEn,
-      };
-    }
-    return liveSeason;
-  }, [healthResult, liveSeason]);
+  const activeSeason = liveSeason;
 
-  const activeTempC = healthResult?.temperature_c ?? weather?.temperature_c;
+  const activeTempC = weather?.temperature_c;
   const activeHeatwave = activeTempC != null && isHeatwave(activeTempC);
 
   const healthSeverity = severityFromContext(
-    healthResult?.aqi ?? heroAqi ?? 0,
+    heroAqi ?? 0,
     activeSeason.id,
     activeTempC,
     activeHeatwave
@@ -312,138 +271,9 @@ export default function DashboardView() {
     return () => {
       alive = false;
     };
-  }, [session?.backendToken]);
+  }, [session?.backendToken, setTodaySymptoms]);
 
-  const runHealth = async () => {
-    if (!area.trim() || !aqiReady) return;
-    setHealthError(null);
-    setHealthStatus("loading");
-    setHealthLive("Starting Digital Pulmonologist…");
-    try {
-      const { task_id } = await startHealthAgentJob(
-        {
-          area: cleanAreaName(area),
-          profile: profilePayload(profile),
-          user_id: userId ?? undefined,
-          aqi: heroAqi ?? undefined,
-        },
-        session?.backendToken
-      );
-      const data = await streamAgentJob(task_id, "health", session?.backendToken, {
-        onProgress: (message) => setHealthLive(message),
-      });
-      setHealthResult(data);
-      setHealthStatus("done");
-    } catch (err) {
-      setHealthError(err instanceof Error ? err.message : "Health agent failed");
-      setHealthStatus("error");
-    } finally {
-      setHealthLive(null);
-    }
-  };
 
-  const runNutrition = async () => {
-    if (!area.trim() || !aqiReady) return;
-    setNutritionError(null);
-    setNutritionStatus("loading");
-    setNutritionLive("Starting Environmental Nutritionist…");
-    try {
-      const { task_id } = await startNutritionAgentJob(
-        {
-          area: cleanAreaName(area),
-          profile: profilePayload(profile),
-          user_id: userId ?? undefined,
-          aqi: heroAqi ?? undefined,
-        },
-        session?.backendToken
-      );
-      const data = await streamAgentJob(
-        task_id,
-        "nutrition",
-        session?.backendToken,
-        { onProgress: (message) => setNutritionLive(message) }
-      );
-      setNutritionResult(data);
-      setNutritionStatus("done");
-    } catch (err) {
-      setNutritionError(
-        err instanceof Error ? err.message : "Nutrition agent failed"
-      );
-      setNutritionStatus("error");
-    } finally {
-      setNutritionLive(null);
-    }
-  };
-
-  const runRoute = async () => {
-    const from = cleanAreaName(area);
-    const to = cleanAreaName(destination);
-    if (!from || !to || !aqiReady) return;
-
-    setRouteError(null);
-    setRouteStatus("loading");
-    setRouteLive("Starting Smart Route Navigator…");
-    setQuery({ source: from, destination: to });
-
-    try {
-      const { task_id } = await startRouteAgentJob(
-        {
-          profile: profilePayload(profile),
-          query: { source: from, destination: to },
-          user_id: userId ?? undefined,
-          aqi: heroAqi ?? undefined,
-        },
-        session?.backendToken
-      );
-      const data = await streamAgentJob(task_id, "route", session?.backendToken, {
-        onProgress: (message) => setRouteLive(message),
-      });
-      setRouteResult(data);
-      setRouteStatus("done");
-
-      const safe = data.safe_route;
-      setResults({
-        aqi: data.aqi,
-        aqiLabel: data.aqi_label,
-        healthAdvice: healthResult?.health_advice ?? "",
-        dietPlan: nutritionResult?.diet_plan ?? [],
-        personalExposureScore: data.personal_exposure_score ?? null,
-        healthExplainability: healthResult?.health_explainability ?? null,
-        seasonIntelligence: data.season_intelligence ?? null,
-        safeRoute: safe?.cleanest && safe?.fastest
-          ? {
-              cleanest: safe.cleanest as never,
-              fastest: safe.fastest as never,
-              recommendation: safe.recommendation ?? safe.reasoning ?? safe.summary,
-              distance: safe.distance,
-              exposure: safe.exposure,
-              waypoints: safe.waypoints ?? [],
-              aqiCheckpoints: safe.aqi_checkpoints,
-              routeOptions: safe.route_options,
-            }
-          : safe?.route_options?.length
-            ? {
-                cleanest: null,
-                fastest: null,
-                recommendation: safe.reasoning ?? safe.summary,
-                distance: safe.distance,
-                exposure: safe.exposure,
-                waypoints: safe.waypoints ?? [],
-                routeOptions: safe.route_options,
-              }
-            : null,
-        season: data.season_intelligence?.id,
-        seasonLabel: data.season_intelligence?.label_en,
-        temperatureC: healthResult?.temperature_c,
-        contextSummary: data.context_summary,
-      });
-    } catch (err) {
-      setRouteError(err instanceof Error ? err.message : "Route agent failed");
-      setRouteStatus("error");
-    } finally {
-      setRouteLive(null);
-    }
-  };
 
   const saveSymptomCheckin = async (payload: SymptomCheckinPayload) => {
     if (!session?.backendToken) return;
@@ -574,204 +404,19 @@ export default function DashboardView() {
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
         >
-          {(healthLive || nutritionLive || routeLive) && (
-            <div
-              className="vital-card flex items-start gap-3 border-vital-primary/30 bg-vital-primary/5 p-4"
-              role="status"
-              aria-live="polite"
-            >
-              <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-vital-primary/15 text-sm">
-                🤖
-              </span>
-              <div className="min-w-0">
-                <p className="text-sm font-medium text-vital-text">Agent working…</p>
-                <p className="mt-1 text-sm text-vital-muted">
-                  {healthLive || nutritionLive || routeLive}
-                </p>
-              </div>
-            </div>
-          )}
-
-          <AgentStepCard
-            step={1}
-            icon="🌫️"
-            title="Air Quality Monitor"
-            status={aqiStepStatus}
-          >
-            {heroAqi != null ? (
-              <AQICard
-                city={formatAreaTitle(areaReading?.area ?? area)}
-                aqi={heroAqi}
-                label={heroLabel}
-                pm25Index={areaReading?.pm25_index ?? areaReading?.pm25}
-                station={areaReading?.station}
-                fetchMethod={areaReading?.fetch_method}
-                isStale={areaReading?.is_stale}
-                updatedAt={
-                  areaReading?.updated_at
-                    ? formatAqiUpdated(
-                        areaReading.updated_at,
-                        areaReading.station_reported_at
-                      )
-                    : "Just now"
-                }
-              />
-            ) : (
-              <p className="text-sm text-vital-muted">
-                Area select karein ya type karein list se.
-              </p>
-            )}
-          </AgentStepCard>
-
-          <AgentStepCard
-            step={2}
-            icon="🫁"
-            title="Digital Pulmonologist"
-            subtitle="WHO knowledge + aap ki health profile + uploaded documents (RAG)"
-            status={!aqiReady ? "locked" : healthStatus}
-            onRun={runHealth}
-            runLabel="Get personal health advice"
-            disabled={!aqiReady}
-            error={healthError}
-            liveMessage={healthLive}
-          >
-            {healthResult ? (
-              <>
-                <HealthAlertCard
-                  title={healthTitleFromContext(healthResult.aqi, profile)}
-                  message={healthResult.health_advice}
-                  severity={healthSeverity}
-                  sourceHint={
-                    healthResult.has_patient_docs
-                      ? `WHO RAG + ${healthResult.rag_sources_used} sources + your uploaded health files.`
-                      : `WHO RAG · ${healthResult.rag_sources_used} knowledge sources · ${healthResult.agent_mode}.`
-                  }
-                />
-                {healthResult.health_explainability && (
-                  <div className="mt-4">
-                    <HealthExplainabilityPanel
-                      data={healthResult.health_explainability}
-                    />
-                  </div>
-                )}
-              </>
-            ) : (
-              <p className="text-sm text-vital-muted">
-                AQI {heroAqi ?? "—"} ke mutabiq personalized health tips — asthma,
-                age, commute profile use hoti hai.
-              </p>
-            )}
-          </AgentStepCard>
-
-          <AgentStepCard
-            step={3}
-            icon="🥦"
-            title="Environmental Nutritionist"
-            subtitle="Anti-pollution food guide — season & AQI aware"
-            status={!aqiReady ? "locked" : nutritionStatus}
-            onRun={runNutrition}
-            runLabel="Get food guide"
-            disabled={!aqiReady}
-            error={nutritionError}
-            liveMessage={nutritionLive}
-          >
-            {nutritionResult ? (
-              <NutritionCard
-                embedded
-                items={nutritionResult.diet_plan}
-                hasPatientDocs={nutritionResult.has_patient_docs}
-              />
-            ) : (
-              <p className="text-sm text-vital-muted">
-                Vitamin C, ginger, omega-3 — RAG diet knowledge se tips.
-              </p>
-            )}
-          </AgentStepCard>
-
-          <AgentStepCard
-            step={4}
-            icon="🗺️"
-            title="Smart Route Navigator"
-            subtitle="Sirf jab travel karna ho — 3 low-AQI routes (free OSRM)"
-            status={!aqiReady ? "locked" : routeStatus}
-            error={routeError}
-            liveMessage={routeLive}
-          >
-            <button
-              type="button"
-              className="mb-4 flex w-full items-center justify-between rounded-lg border border-vital-border bg-vital-bg/50 px-3 py-2 text-sm text-vital-text"
-              onClick={() => setRouteOpen((o) => !o)}
-            >
-              <span>Planning to travel?</span>
-              {routeOpen ? (
-                <ChevronUp className="h-4 w-4" aria-hidden />
-              ) : (
-                <ChevronDown className="h-4 w-4" aria-hidden />
-              )}
-            </button>
-
-            {routeOpen && (
-              <div className="space-y-4">
-                <LocationSearchInput
-                  label="From"
-                  value={area}
-                  onChange={setArea}
-                  disabled={routeStatus === "loading"}
-                />
-                <LocationSearchInput
-                  label="To"
-                  placeholder="e.g. DHA Phase 5"
-                  value={destination}
-                  onChange={setDestination}
-                  disabled={routeStatus === "loading"}
-                />
-                <button
-                  type="button"
-                  className="btn-primary w-full"
-                  onClick={runRoute}
-                  disabled={
-                    !aqiReady ||
-                    routeStatus === "loading" ||
-                    !destination.trim()
-                  }
-                >
-                  {routeStatus === "loading"
-                    ? "Finding safer routes…"
-                    : "Analyze route"}
-                </button>
-              </div>
-            )}
-
-            {routeResult && (
-              <div className="mt-4 space-y-4">
-                {routeResult.season_intelligence && (
-                  <SeasonIntelligenceCard data={routeResult.season_intelligence} />
-                )}
-                {routeResult.personal_exposure_score && (
-                  <ExposureScoreCard pes={routeResult.personal_exposure_score} />
-                )}
-                <RouteCard
-                  from={cleanAreaName(area)}
-                  to={cleanAreaName(destination)}
-                  routeOptions={routeResult.safe_route?.route_options}
-                />
-                <p className="text-center text-sm text-vital-muted">
-                  <Link
-                    href="/route"
-                    className="text-vital-primary underline-offset-2 hover:underline"
-                  >
-                    View route lines on Lahore map →
-                  </Link>
-                </p>
-              </div>
-            )}
-
-            {!routeOpen && !routeResult && (
-              <p className="text-sm text-vital-muted">
-                Ghar baithe rehna ho to is step ko skip kar sakte hain.
-              </p>
-            )}
-          </AgentStepCard>
+          <AgentResultsSection
+            area={area}
+            heroAqi={heroAqi}
+            heroLabel={heroLabel}
+            areaReading={areaReading}
+            aqiReady={aqiReady}
+            profile={profile}
+            userId={userId}
+            session={session}
+            activeSeason={activeSeason}
+            activeHeatwave={activeHeatwave}
+            aqiStepStatus={aqiStepStatus}
+          />
         </motion.div>
 
       </div>

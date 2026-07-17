@@ -11,6 +11,7 @@ import {
   Tooltip,
   ZoomControl,
 } from "react-leaflet";
+import L from "leaflet";
 
 import FitLahoreBounds from "@/components/map/FitLahoreBounds";
 import MapFocusArea from "@/components/map/MapFocusArea";
@@ -97,6 +98,8 @@ export default function LeafletMapInner({
         zoomControl={false}
         maxBounds={lahoreMaxBounds()}
         maxBoundsViscosity={1}
+        dragging={!L.Browser.mobile}
+        tap={!L.Browser.mobile}
       >
         <ZoomControl position="bottomright" />
         <FitLahoreBounds bounds={LAHORE_BOUNDS} />

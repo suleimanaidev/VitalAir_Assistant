@@ -3,10 +3,8 @@
 import { motion, useReducedMotion } from "framer-motion";
 
 const FLOATERS = [
-  { text: "AI Air Quality", icon: "✨", left: "2%", top: "15%", delay: 0 },
   { text: "Diet Planner", icon: "🥗", left: "78%", top: "10%", delay: 0.4 },
   { text: "Safe Routes", icon: "🗺️", left: "82%", top: "68%", delay: 0.8 },
-  { text: "Health Shield", icon: "🛡️", left: "6%", top: "78%", delay: 1.4 },
 ] as const;
 
 export function BreathingLungs({

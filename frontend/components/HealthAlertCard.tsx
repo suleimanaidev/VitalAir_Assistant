@@ -108,7 +108,7 @@ export default function HealthAlertCard({
 
         <div className="mt-4 grid gap-3">
           {parsed.bullets.slice(0, 4).map((bullet, i) => {
-            const emoji = emojiForHealthItem(bullet, i);
+            const emoji = emojiForHealthItem(bullet);
             const clean = bullet.replace(/^[\s•\-*]+/, "");
             return (
               <div

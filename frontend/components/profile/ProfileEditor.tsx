@@ -3,6 +3,10 @@
 import { useEffect, useState } from "react";
 import { Loader2, Save } from "lucide-react";
 import { useSession } from "next-auth/react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+
 import {
   COMMUTE_OPTIONS,
   HEALTH_CONDITIONS,
@@ -10,10 +14,7 @@ import {
   SENSITIVITY_OPTIONS,
   inputClass,
 } from "@/lib/healthProfileOptions";
-import {
-  profilePayloadFromHealth,
-  updateMyProfile,
-} from "@/lib/profileApi";
+import { profilePayloadFromHealth, updateMyProfile } from "@/lib/profileApi";
 import { APP_CITY } from "@/lib/constants";
 import {
   defaultProfile,
@@ -23,6 +24,17 @@ import {
   type OutdoorTime,
   type Sensitivity,
 } from "@/store/useVitalAirStore";
+
+const profileSchema = z.object({
+  name: z.string().min(1, "Name is required"),
+  age: z.coerce.number().min(1, "Age must be at least 1").max(120, "Age must be 120 or younger"),
+  conditions: z.array(z.string()).min(1, "Please select at least one condition"),
+  sensitivity: z.enum(["low", "medium", "high"]),
+  commuteMode: z.enum(["car", "bike", "walk", "public_transport"]),
+  outdoorTime: z.enum(["less_30", "30_60", "1_2", "2_plus"])
+});
+
+type ProfileFormValues = z.infer<typeof profileSchema>;
 
 interface ProfileEditorProps {
   onSaved?: () => void;
@@ -39,84 +51,69 @@ export default function ProfileEditor({ onSaved }: ProfileEditorProps) {
     name: session?.user?.name ?? defaultProfile.name,
   };
 
-  const [name, setName] = useState(initial.name);
-  const [age, setAge] = useState(String(initial.age));
-  const [conditions, setConditions] = useState<string[]>(
-    initial.conditions.length ? initial.conditions : ["none"]
-  );
-  const [sensitivity, setSensitivity] = useState<Sensitivity>(
-    initial.sensitivity
-  );
-  const [commuteMode, setCommuteMode] = useState<CommuteMode>(
-    initial.commuteMode
-  );
-  const [outdoorTime, setOutdoorTime] = useState<OutdoorTime>(
-    initial.outdoorTime
-  );
+  const { register, handleSubmit, setValue, watch, formState: { errors } } = useForm<ProfileFormValues>({
+    resolver: zodResolver(profileSchema),
+    defaultValues: {
+      name: initial.name,
+      age: initial.age,
+      conditions: initial.conditions.length ? initial.conditions : ["none"],
+      sensitivity: initial.sensitivity,
+      commuteMode: initial.commuteMode,
+      outdoorTime: initial.outdoorTime
+    }
+  });
+
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  const conditions = watch("conditions");
+  const sensitivity = watch("sensitivity");
+  const commuteMode = watch("commuteMode");
+  const outdoorTime = watch("outdoorTime");
+
   useEffect(() => {
     if (!stored) return;
-    setName(stored.name);
-    setAge(String(stored.age));
-    setConditions(
-      stored.conditions.length ? stored.conditions : ["none"]
-    );
-    setSensitivity(stored.sensitivity);
-    setCommuteMode(stored.commuteMode);
-    setOutdoorTime(stored.outdoorTime);
-  }, [stored]);
+    setValue("name", stored.name);
+    setValue("age", stored.age);
+    setValue("conditions", stored.conditions.length ? stored.conditions : ["none"]);
+    setValue("sensitivity", stored.sensitivity);
+    setValue("commuteMode", stored.commuteMode);
+    setValue("outdoorTime", stored.outdoorTime);
+  }, [stored, setValue]);
 
   const toggleCondition = (id: string) => {
     if (id === "none") {
-      setConditions(["none"]);
+      setValue("conditions", ["none"], { shouldValidate: true });
       return;
     }
-    setConditions((prev) => {
-      const withoutNone = prev.filter((c) => c !== "none");
-      return withoutNone.includes(id)
-        ? withoutNone.filter((c) => c !== id)
-        : [...withoutNone, id];
-    });
+    const current = conditions || [];
+    const withoutNone = current.filter((c) => c !== "none");
+    const next = withoutNone.includes(id)
+      ? withoutNone.filter((c) => c !== id)
+      : [...withoutNone, id];
+    setValue("conditions", next, { shouldValidate: true });
   };
 
-  const buildProfile = (): HealthProfile => ({
-    name: name.trim(),
-    age: Number(age),
-    city: APP_CITY,
-    conditions: conditions.includes("none") ? [] : conditions,
-    sensitivity,
-    commuteMode,
-    outdoorTime,
-  });
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const onSubmit = async (data: ProfileFormValues) => {
     setError(null);
     setMessage(null);
-
-    if (!name.trim()) {
-      setError("Please enter your name.");
-      return;
-    }
-    const ageNum = Number(age);
-    if (ageNum < 1 || ageNum > 120) {
-      setError("Age must be between 1 and 120.");
-      return;
-    }
-    if (conditions.length === 0) {
-      setError("Select at least one health condition (or None).");
-      return;
-    }
 
     if (!session?.user?.id) {
       setError("You must be signed in to save your profile.");
       return;
     }
 
-    const profile = buildProfile();
+    const profile: HealthProfile = {
+      name: data.name.trim(),
+      age: data.age,
+      city: APP_CITY,
+      conditions: data.conditions.includes("none") ? [] : data.conditions,
+      sensitivity: data.sensitivity as Sensitivity,
+      commuteMode: data.commuteMode as CommuteMode,
+      outdoorTime: data.outdoorTime as OutdoorTime,
+    };
+
     setSaving(true);
     try {
       const saved = await updateMyProfile(profilePayloadFromHealth(profile));
@@ -132,32 +129,31 @@ export default function ProfileEditor({ onSaved }: ProfileEditorProps) {
   };
 
   return (
-    <form onSubmit={(e) => void handleSubmit(e)} className="vital-card space-y-8 p-6 sm:p-8">
+    <form onSubmit={handleSubmit(onSubmit)} className="vital-card space-y-8 p-6 sm:p-8">
       <section className="space-y-4">
         <h2 className="text-lg font-semibold text-vital-text">About you</h2>
-        <label className="block text-sm font-medium text-vital-text">
-          Full name
+        <div>
+          <label className="block text-sm font-medium text-vital-text">Full name</label>
           <input
-            required
+            type="text"
             className={inputClass}
-            value={name}
-            onChange={(e) => setName(e.target.value)}
             disabled={saving}
+            {...register("name")}
           />
-        </label>
-        <label className="block text-sm font-medium text-vital-text">
-          Age
+          {errors.name && <p className="mt-1 text-sm text-vital-danger">{errors.name.message}</p>}
+        </div>
+        
+        <div>
+          <label className="block text-sm font-medium text-vital-text">Age</label>
           <input
             type="number"
-            required
-            min={1}
-            max={120}
             className={inputClass}
-            value={age}
-            onChange={(e) => setAge(e.target.value)}
             disabled={saving}
+            {...register("age")}
           />
-        </label>
+          {errors.age && <p className="mt-1 text-sm text-vital-danger">{errors.age.message}</p>}
+        </div>
+        
         <p className="text-sm text-vital-muted">
           City: <span className="text-vital-text">{APP_CITY}</span> (Lahore-only)
         </p>
@@ -170,7 +166,7 @@ export default function ProfileEditor({ onSaved }: ProfileEditorProps) {
         </p>
         <div className="flex flex-wrap gap-2">
           {HEALTH_CONDITIONS.map(({ id, label }) => {
-            const active = conditions.includes(id);
+            const active = (conditions || []).includes(id);
             return (
               <button
                 key={id}
@@ -188,27 +184,33 @@ export default function ProfileEditor({ onSaved }: ProfileEditorProps) {
             );
           })}
         </div>
+        {errors.conditions && <p className="mt-1 text-sm text-vital-danger">{errors.conditions.message}</p>}
       </section>
 
       <section className="space-y-3">
         <h2 className="text-lg font-semibold text-vital-text">Air sensitivity</h2>
         <div className="grid gap-2 sm:grid-cols-3">
           {SENSITIVITY_OPTIONS.map(({ value, label }) => (
-            <button
+            <label
               key={value}
-              type="button"
-              disabled={saving}
-              onClick={() => setSensitivity(value)}
-              className={`rounded-lg border px-3 py-2.5 text-sm ${
+              className={`cursor-pointer rounded-lg border px-3 py-2.5 text-sm text-center ${
                 sensitivity === value
                   ? "border-vital-primary bg-vital-primary/15 text-vital-primary"
-                  : "border-vital-border text-vital-muted"
+                  : "border-vital-border text-vital-muted hover:text-vital-text"
               }`}
             >
+              <input
+                type="radio"
+                value={value}
+                {...register("sensitivity")}
+                disabled={saving}
+                className="sr-only"
+              />
               {label}
-            </button>
+            </label>
           ))}
         </div>
+        {errors.sensitivity && <p className="mt-1 text-sm text-vital-danger">{errors.sensitivity.message}</p>}
       </section>
 
       <section className="space-y-3">
@@ -216,41 +218,52 @@ export default function ProfileEditor({ onSaved }: ProfileEditorProps) {
         <p className="text-sm font-medium text-vital-muted">Usual commute</p>
         <div className="grid gap-2 sm:grid-cols-2">
           {COMMUTE_OPTIONS.map(({ value, label }) => (
-            <button
+            <label
               key={value}
-              type="button"
-              disabled={saving}
-              onClick={() => setCommuteMode(value)}
-              className={`rounded-lg border px-3 py-2.5 text-sm ${
+              className={`cursor-pointer rounded-lg border px-3 py-2.5 text-sm text-center ${
                 commuteMode === value
                   ? "border-vital-primary bg-vital-primary/15 text-vital-primary"
-                  : "border-vital-border text-vital-muted"
+                  : "border-vital-border text-vital-muted hover:text-vital-text"
               }`}
             >
+              <input
+                type="radio"
+                value={value}
+                {...register("commuteMode")}
+                disabled={saving}
+                className="sr-only"
+              />
               {label}
-            </button>
+            </label>
           ))}
         </div>
+        {errors.commuteMode && <p className="mt-1 text-sm text-vital-danger">{errors.commuteMode.message}</p>}
+
         <p className="mt-4 text-sm font-medium text-vital-muted">
           Daily outdoor time
         </p>
         <div className="grid gap-2 sm:grid-cols-2">
           {OUTDOOR_OPTIONS.map(({ value, label }) => (
-            <button
+            <label
               key={value}
-              type="button"
-              disabled={saving}
-              onClick={() => setOutdoorTime(value)}
-              className={`rounded-lg border px-3 py-2.5 text-sm ${
+              className={`cursor-pointer rounded-lg border px-3 py-2.5 text-sm text-center ${
                 outdoorTime === value
                   ? "border-vital-primary bg-vital-primary/15 text-vital-primary"
-                  : "border-vital-border text-vital-muted"
+                  : "border-vital-border text-vital-muted hover:text-vital-text"
               }`}
             >
+              <input
+                type="radio"
+                value={value}
+                {...register("outdoorTime")}
+                disabled={saving}
+                className="sr-only"
+              />
               {label}
-            </button>
+            </label>
           ))}
         </div>
+        {errors.outdoorTime && <p className="mt-1 text-sm text-vital-danger">{errors.outdoorTime.message}</p>}
       </section>
 
       {error && (
@@ -284,4 +297,3 @@ export default function ProfileEditor({ onSaved }: ProfileEditorProps) {
     </form>
   );
 }
-
