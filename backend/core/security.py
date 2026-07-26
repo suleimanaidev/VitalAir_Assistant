@@ -12,7 +12,7 @@ def hash_password(password: str) -> str:
     """Hash password with bcrypt (passlib is incompatible with bcrypt 4.1+)."""
     return bcrypt.hashpw(
         password.encode("utf-8"),
-        bcrypt.gensalt(rounds=4),
+        bcrypt.gensalt(rounds=10),
     ).decode("utf-8")
 
 

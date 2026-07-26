@@ -1,5 +1,7 @@
 import asyncio
 import logging
+import time
+from datetime import datetime, timedelta
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, EmailStr, Field, model_validator
@@ -7,7 +9,7 @@ from pymongo.errors import DuplicateKeyError, PyMongoError, ServerSelectionTimeo
 
 from core.security import create_access_token, hash_password, verify_password
 from config import get_settings
-from db.connection import MongoUnavailableError
+from db.connection import MongoUnavailableError, get_db_async
 from db.repositories import (
     create_auth_user,
     create_password_reset_token,
@@ -91,6 +93,7 @@ class ResetPasswordBody(BaseModel):
 
 @router.post("/auth/register", response_model=AuthResponse)
 async def register(body: RegisterBody) -> AuthResponse:
+    t0 = time.perf_counter()
     email = str(body.email).lower().strip()
     name = body.name.strip()
 
@@ -111,6 +114,9 @@ async def register(body: RegisterBody) -> AuthResponse:
             collection=collection,
         )
         token = create_access_token(user_id, email, role)
+
+        duration = (time.perf_counter() - t0) * 1000
+        logger.info("Register request for %s completed in %.2f ms", email, duration)
 
         return AuthResponse(
             access_token=token,
@@ -139,6 +145,7 @@ async def register(body: RegisterBody) -> AuthResponse:
 
 @router.post("/auth/login", response_model=AuthResponse)
 async def login(body: LoginBody) -> AuthResponse:
+    t0 = time.perf_counter()
     email = str(body.email).lower().strip()
 
     try:
@@ -161,6 +168,10 @@ async def login(body: LoginBody) -> AuthResponse:
 
         role = user_role_from_doc(user)
         token = create_access_token(str(user["_id"]), user.get("email", email), role)
+
+        duration = (time.perf_counter() - t0) * 1000
+        logger.info("Login request for %s completed in %.2f ms", email, duration)
+
         return AuthResponse(
             access_token=token,
             user_id=str(user["_id"]),
@@ -188,6 +199,18 @@ async def forgot_password(body: ForgotPasswordBody) -> ForgotPasswordResponse:
     frontend_url = settings.effective_frontend_url
 
     try:
+        db = await get_db_async()
+        one_hour_ago = datetime.utcnow() - timedelta(hours=1)
+        request_count = await db.password_reset_requests.count_documents({
+            "email": email,
+            "timestamp": {"$gte": one_hour_ago}
+        })
+        if request_count >= 3:
+            raise HTTPException(
+                status_code=429,
+                detail="Too many password reset requests. Max 3 requests per email per hour.",
+            )
+
         any_doc = await get_user_by_email(email)
         stored_hash = get_stored_password_hash(any_doc) if any_doc else None
 
@@ -200,7 +223,12 @@ async def forgot_password(body: ForgotPasswordBody) -> ForgotPasswordResponse:
                 reset_url=None,
             )
 
-        token = await create_password_reset_token(email)
+        await db.password_reset_requests.insert_one({
+            "email": email,
+            "timestamp": datetime.utcnow()
+        })
+
+        token = await create_password_reset_token(email, expires_minutes=15)
         reset_url = (
             f"{frontend_url}/reset-password?token={token}"
             if token

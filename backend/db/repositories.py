@@ -1,3 +1,4 @@
+import asyncio
 import secrets
 from datetime import date, datetime, timedelta
 from typing import Any, Literal
@@ -53,10 +54,11 @@ async def get_user_and_collection_by_email(email: str) -> tuple[dict | None, str
     """Retrieve user document and which collection it belongs to ("users" or "accounts")."""
     db = await get_db_async()
     normalized = email.lower().strip()
-    user = await db.users.find_one({"email": normalized})
+    user_task = db.users.find_one({"email": normalized})
+    account_task = db.accounts.find_one({"email": normalized})
+    user, account = await asyncio.gather(user_task, account_task)
     if user:
         return user, "users"
-    account = await db.accounts.find_one({"email": normalized})
     if account:
         return account, "accounts"
     return None, None
@@ -257,10 +259,12 @@ async def get_today_symptom_checkin(
 async def get_user_by_email(email: str) -> dict | None:
     db = await get_db_async()
     normalized = email.lower().strip()
-    user = await db.users.find_one({"email": normalized})
+    user_task = db.users.find_one({"email": normalized})
+    account_task = db.accounts.find_one({"email": normalized})
+    user, account = await asyncio.gather(user_task, account_task)
     if user:
         return user
-    return await db.accounts.find_one({"email": normalized})
+    return account
 
 
 async def get_auth_user_by_email(email: str) -> dict | None:
@@ -532,7 +536,7 @@ def get_stored_password_hash(user: dict) -> str | None:
 
 
 async def create_password_reset_token(
-    email: str, *, expires_minutes: int = 60
+    email: str, *, expires_minutes: int = 15
 ) -> str | None:
     user = await get_auth_user_by_email(email)
     if not user:
