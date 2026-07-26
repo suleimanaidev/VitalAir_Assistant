@@ -99,7 +99,6 @@ export default function LeafletMapInner({
         maxBounds={lahoreMaxBounds()}
         maxBoundsViscosity={1}
         dragging={!L.Browser.mobile}
-        tap={!L.Browser.mobile}
       >
         <ZoomControl position="bottomright" />
         <FitLahoreBounds bounds={LAHORE_BOUNDS} />

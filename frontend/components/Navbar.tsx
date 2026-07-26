@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
 import { useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -45,6 +45,7 @@ function authHref(path: string, isAuthenticated: boolean) {
 
 export default function Navbar() {
   const pathname = usePathname();
+  const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
   const { data: session, status } = useSession();
   const isAuthenticated = status === "authenticated";
@@ -84,9 +85,10 @@ export default function Navbar() {
 
   const closeMobile = () => setMobileOpen(false);
 
-  const handleSignOut = () => {
+  const handleSignOut = async () => {
     useVitalAirStore.getState().clearHealthProfile();
-    void signOut({ callbackUrl: "/login" });
+    await signOut({ redirect: false });
+    router.push("/login");
   };
 
   const logoHref = isAuthenticated ? "/dashboard" : "/";

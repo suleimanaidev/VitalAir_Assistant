@@ -160,6 +160,19 @@
     color: var(--vital-primary);
   }
 
+  /* Reusable input-field style */
+  .input-field {
+    @apply rounded-lg border border-vital-border bg-vital-bg px-4 py-2.5 text-vital-text placeholder:text-vital-muted transition-all duration-150;
+  }
+
+  .input-field:focus {
+    @apply border-vital-primary outline-none ring-1 ring-vital-primary;
+  }
+
+  .input-field:disabled {
+    @apply opacity-60 cursor-not-allowed;
+  }
+
   /* Section heading with accent line */
   .section-title {
     @apply text-2xl font-bold tracking-tight sm:text-3xl md:text-4xl;

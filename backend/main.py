@@ -11,8 +11,10 @@ load_dotenv(_ROOT / ".env", override=False)
 from contextlib import asynccontextmanager
 import asyncio
 
+import time
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse
 
 from config import get_settings
@@ -60,6 +62,8 @@ async def lifespan(_app: FastAPI):
 
 app = FastAPI(title="VitalAir Assistant API", version="2.0.0", lifespan=lifespan)
 
+app.add_middleware(GZipMiddleware, minimum_size=1000)
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origin_list,
@@ -67,6 +71,15 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.middleware("http")
+async def add_process_time_header(request: Request, call_next):
+    start_time = time.perf_counter()
+    response = await call_next(request)
+    process_time = (time.perf_counter() - start_time) * 1000
+    response.headers["X-Process-Time"] = f"{process_time:.2f}ms"
+    return response
 
 app.include_router(auth.router, prefix="/api")
 app.include_router(analyze.router, prefix="/api")

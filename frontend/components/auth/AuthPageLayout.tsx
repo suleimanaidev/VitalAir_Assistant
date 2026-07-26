@@ -39,7 +39,7 @@ export default function AuthPageLayout({
   return (
     <main className="grid min-h-screen lg:grid-cols-2">
       {/* Brand panel */}
-      <aside className="relative hidden overflow-hidden lg:flex lg:flex-col lg:justify-between lg:p-10">
+      <aside className="relative hidden overflow-hidden lg:flex lg:flex-col lg:justify-center lg:p-16 lg:px-20">
         <div
           className="pointer-events-none absolute inset-0 bg-gradient-to-br from-[#04241d] via-[#06402f] to-[#021712]"
           aria-hidden
@@ -57,7 +57,8 @@ export default function AuthPageLayout({
           aria-hidden
         />
 
-        <div className="relative">
+        {/* Floating back button at top left of brand panel */}
+        <div className="absolute left-16 top-10">
           <Link
             href={backHref}
             className="inline-flex items-center gap-2 text-sm text-white/70 transition-colors hover:text-white"
@@ -65,8 +66,12 @@ export default function AuthPageLayout({
             <ArrowLeft className="h-4 w-4" aria-hidden />
             {backLabel}
           </Link>
+        </div>
 
-          <div className="mt-12 flex items-center gap-3">
+        {/* Centered Content Wrapper */}
+        <div className="relative flex flex-col gap-6 max-w-md w-full my-auto">
+          {/* Logo & Brand title */}
+          <div className="flex items-center gap-3">
             <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/15 text-white backdrop-blur">
               <Wind className="h-6 w-6" aria-hidden />
             </span>
@@ -75,57 +80,30 @@ export default function AuthPageLayout({
             </span>
           </div>
 
-          <p className="mt-4 max-w-sm text-lg leading-relaxed text-white/80">
+          {/* Subtitle / Tagline */}
+          <p className="text-lg leading-relaxed text-white/80">
             {panelSubtitle}
           </p>
-        </div>
 
-        <div className="relative my-8 grid grid-cols-2 gap-4">
-          <div className="group relative col-span-2 overflow-hidden rounded-2xl border border-white/10 shadow-xl">
+          {/* Simplified Single Visual Preview Card */}
+          <div className="group relative overflow-hidden rounded-2xl border border-white/10 shadow-xl my-2">
             <Image
-              src="/images/auth_foods.png"
-              alt="Seasonal anti-pollution foods"
-              width={1024}
-              height={500}
+              src={image === "nutrition" ? "/images/auth_foods.png" : "/images/auth_health.png"}
+              alt="VitalAir preview panel"
+              width={600}
+              height={300}
               priority
               className="h-44 w-full object-cover transition-transform duration-700 group-hover:scale-105 xl:h-52"
             />
-            <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#021712]/90 via-[#021712]/20 to-transparent" />
+            <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#021712]/95 via-transparent to-transparent" />
             <div className="absolute bottom-4 left-5">
-              <p className="text-lg font-semibold tracking-wide text-white drop-shadow-md">Nutrition</p>
-            </div>
-          </div>
-          
-          <div className="group relative overflow-hidden rounded-2xl border border-white/10 shadow-xl">
-            <Image
-              src="/images/auth_health.png"
-              alt="Health element"
-              width={500}
-              height={500}
-              className="h-32 w-full object-cover transition-transform duration-700 group-hover:scale-105 xl:h-40"
-            />
-            <div className="pointer-events-none absolute inset-0 bg-[#021712]/30 backdrop-blur-[2px] transition-all duration-500 group-hover:backdrop-blur-0" />
-            <div className="absolute bottom-3 left-4">
-              <p className="text-sm font-semibold tracking-wide text-white drop-shadow-md">Health</p>
+              <p className="text-sm font-semibold tracking-wide text-white drop-shadow-md">
+                {image === "nutrition" ? "Seasonal anti-pollution nutrition advice" : "Real-time air quality & health alerts"}
+              </p>
             </div>
           </div>
 
-          <div className="group relative overflow-hidden rounded-2xl border border-white/10 shadow-xl">
-            <Image
-              src="/images/auth_warning.png"
-              alt="AQI warning element"
-              width={500}
-              height={500}
-              className="h-32 w-full object-cover transition-transform duration-700 group-hover:scale-105 xl:h-40"
-            />
-            <div className="pointer-events-none absolute inset-0 bg-[#021712]/30 backdrop-blur-[2px] transition-all duration-500 group-hover:backdrop-blur-0" />
-            <div className="absolute bottom-3 left-4">
-              <p className="text-sm font-semibold tracking-wide text-amber-400 drop-shadow-md">Alerts</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="relative">
+          {/* Features check bullets */}
           <ul className="space-y-4">
             {features.map((f) => (
               <li key={f.title} className="flex items-start gap-3">
@@ -140,7 +118,9 @@ export default function AuthPageLayout({
               </li>
             ))}
           </ul>
-          <p className="mt-8 border-t border-white/10 pt-5 text-xs text-white/50">
+
+          {/* Divider and Footer */}
+          <p className="border-t border-white/10 pt-5 text-xs text-white/50">
             Free OSRM routing · WHO-based guidance · Your data stays private.
           </p>
         </div>

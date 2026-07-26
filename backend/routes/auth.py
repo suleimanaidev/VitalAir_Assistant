@@ -22,6 +22,8 @@ from db.repositories import (
     update_user_password,
     user_role_from_doc,
     get_user_and_collection_by_email,
+    is_profile_complete,
+    profile_from_user_doc,
 )
 
 logger = logging.getLogger(__name__)
@@ -68,6 +70,8 @@ class AuthResponse(BaseModel):
     email: str
     name: str
     role: str = "user"
+    profile_complete: bool = False
+    profile: dict | None = None
 
 
 class ForgotPasswordBody(BaseModel):
@@ -149,10 +153,15 @@ async def login(body: LoginBody) -> AuthResponse:
     email = str(body.email).lower().strip()
 
     try:
+        t_db_start = time.perf_counter()
         user = await get_auth_user_by_email(email)
         stored_hash = get_stored_password_hash(user) if user else None
+        t_db = (time.perf_counter() - t_db_start) * 1000
 
+        t_pwd_start = time.perf_counter()
         password_verified = await asyncio.to_thread(verify_password, body.password, stored_hash)
+        t_pwd = (time.perf_counter() - t_pwd_start) * 1000
+
         if not user or not stored_hash or not password_verified:
             # Helpful hint if email exists but no password (onboarding-only profile)
             any_doc = await get_user_by_email(email)
@@ -166,11 +175,23 @@ async def login(body: LoginBody) -> AuthResponse:
         if user.get("is_active") is False:
             raise HTTPException(status_code=403, detail="Account disabled")
 
+        t_jwt_start = time.perf_counter()
         role = user_role_from_doc(user)
         token = create_access_token(str(user["_id"]), user.get("email", email), role)
+        t_jwt = (time.perf_counter() - t_jwt_start) * 1000
 
         duration = (time.perf_counter() - t0) * 1000
-        logger.info("Login request for %s completed in %.2f ms", email, duration)
+        logger.info(
+            "Login request for %s completed in %.2f ms (t_db: %.2f ms, t_pwd: %.2f ms, t_jwt: %.2f ms)",
+            email,
+            duration,
+            t_db,
+            t_pwd,
+            t_jwt,
+        )
+
+        profile_complete = is_profile_complete(user)
+        profile_data = profile_from_user_doc(user).model_dump() if profile_complete else None
 
         return AuthResponse(
             access_token=token,
@@ -178,6 +199,8 @@ async def login(body: LoginBody) -> AuthResponse:
             email=user.get("email", email),
             name=user.get("name", "User"),
             role=role,
+            profile_complete=profile_complete,
+            profile=profile_data,
         )
     except HTTPException:
         raise
@@ -237,7 +260,7 @@ async def forgot_password(body: ForgotPasswordBody) -> ForgotPasswordResponse:
         return ForgotPasswordResponse(
             message=(
                 "Agar is email par account hai to neeche reset link use karein "
-                "(link 60 minute ke liye valid hai)."
+                "(link 15 minute ke liye valid hai)."
             ),
             reset_url=reset_url,
         )

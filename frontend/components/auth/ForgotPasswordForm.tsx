@@ -27,10 +27,13 @@ export default function ForgotPasswordForm() {
         return;
       }
 
+      console.log(`Sending password reset request for email: ${normalizedEmail}`);
       const result = await requestPasswordReset(normalizedEmail);
+      console.log("Password reset request succeeded:", result);
       setMessage(result.message);
       setResetUrl(result.reset_url ?? null);
     } catch (err) {
+      console.error("Password reset request failed error details:", err);
       setError(
         err instanceof Error ? err.message : "Reset link nahi bhej sakay."
       );
@@ -103,7 +106,7 @@ export default function ForgotPasswordForm() {
 
         <button
           type="submit"
-          className="btn-primary inline-flex w-full items-center justify-center gap-2 py-3"
+          className="w-full rounded-lg bg-vital-primary py-2.5 text-sm font-semibold text-vital-bg hover:brightness-110 shadow-[0_4px_18px_rgba(0,200,150,0.25)] hover:shadow-[0_4px_24px_rgba(0,200,150,0.4)] active:scale-[0.98] transition-all inline-flex items-center justify-center gap-2"
           disabled={isLoading}
           aria-busy={isLoading}
         >

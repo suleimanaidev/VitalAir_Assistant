@@ -9,6 +9,8 @@ export interface AuthResult {
   email: string;
   name: string;
   role?: string;
+  profile_complete?: boolean;
+  profile?: any;
 }
 
 export function normalizeEmail(email: string): string {

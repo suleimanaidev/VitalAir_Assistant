@@ -71,6 +71,19 @@ export default function LoginForm() {
   }, []);
 
   const finishSession = async (auth: AuthResult) => {
+    // Seed the Zustand store immediately so useUserHealthProfile detects the cache on mount
+    setUserId(auth.user_id);
+    if (auth.profile_complete !== undefined) {
+      const setProfileCompleteStore = useVitalAirStore.getState().setProfileComplete;
+      const setHealthProfile = useVitalAirStore.getState().setHealthProfile;
+      setProfileCompleteStore(auth.profile_complete);
+      
+      if (auth.profile_complete && auth.profile) {
+        const { healthProfileFromApi } = await import("@/lib/profileApi");
+        setHealthProfile(healthProfileFromApi(auth.profile));
+      }
+    }
+
     const result = await signIn("credentials", {
       email: auth.email,
       password,
@@ -96,15 +109,18 @@ export default function LoginForm() {
       throw new Error("Sign in failed. Please try again.");
     }
 
-    setUserId(auth.user_id);
-
     const safeCallback =
       callbackUrl.startsWith("/") && !callbackUrl.startsWith("//")
         ? callbackUrl
         : "/dashboard";
 
-    router.refresh();
+    // Navigate immediately first
     router.push(safeCallback);
+    
+    // Refresh to clear router cache in the background
+    setTimeout(() => {
+      router.refresh();
+    }, 150);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -387,7 +403,7 @@ export default function LoginForm() {
 
         <button
           type="submit"
-          className="btn-primary inline-flex w-full items-center justify-center gap-2 py-3"
+          className="w-full rounded-lg bg-vital-primary py-2.5 text-sm font-semibold text-vital-bg hover:brightness-110 shadow-[0_4px_18px_rgba(0,200,150,0.25)] hover:shadow-[0_4px_24px_rgba(0,200,150,0.4)] active:scale-[0.98] transition-all inline-flex items-center justify-center gap-2"
           disabled={isLoading}
           aria-busy={isLoading}
         >

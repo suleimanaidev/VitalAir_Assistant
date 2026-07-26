@@ -27,11 +27,11 @@ import {
 
 const profileSchema = z.object({
   name: z.string().min(1, "Name is required"),
-  age: z.coerce.number().min(1, "Age must be at least 1").max(120, "Age must be 120 or younger"),
+  age: z.number().min(1, "Age must be at least 1").max(120, "Age must be 120 or younger"),
   conditions: z.array(z.string()).min(1, "Please select at least one condition"),
   sensitivity: z.enum(["low", "medium", "high"]),
   commuteMode: z.enum(["car", "bike", "walk", "public_transport"]),
-  outdoorTime: z.enum(["less_30", "30_60", "1_2", "2_plus"])
+  outdoorTime: z.enum(["under_30", "30_60", "1_2", "2_plus"])
 });
 
 type ProfileFormValues = z.infer<typeof profileSchema>;
@@ -149,7 +149,7 @@ export default function ProfileEditor({ onSaved }: ProfileEditorProps) {
             type="number"
             className={inputClass}
             disabled={saving}
-            {...register("age")}
+            {...register("age", { valueAsNumber: true })}
           />
           {errors.age && <p className="mt-1 text-sm text-vital-danger">{errors.age.message}</p>}
         </div>

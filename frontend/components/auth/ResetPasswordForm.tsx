@@ -43,6 +43,7 @@ export default function ResetPasswordForm() {
       await resetPassword(token, password, confirmPassword);
       router.replace("/login?reset=success");
     } catch (err) {
+      console.error("Password reset error:", err);
       setError(err instanceof Error ? err.message : "Could not reset password.");
     } finally {
       setIsLoading(false);
@@ -143,7 +144,7 @@ export default function ResetPasswordForm() {
 
         <button
           type="submit"
-          className="btn-primary inline-flex w-full items-center justify-center gap-2 py-3"
+          className="w-full rounded-lg bg-vital-primary py-2.5 text-sm font-semibold text-vital-bg hover:brightness-110 shadow-[0_4px_18px_rgba(0,200,150,0.25)] hover:shadow-[0_4px_24px_rgba(0,200,150,0.4)] active:scale-[0.98] transition-all inline-flex items-center justify-center gap-2"
           disabled={isLoading}
           aria-busy={isLoading}
         >

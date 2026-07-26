@@ -15,20 +15,27 @@ export function useUserHealthProfile() {
   const setProfileCompleteStore = useVitalAirStore((s) => s.setProfileComplete);
   const setUserId = useVitalAirStore((s) => s.setUserId);
   const healthProfile = useVitalAirStore((s) => s.healthProfile);
+  
+  const storeProfileComplete = useVitalAirStore((s) => s.profileComplete);
+  const storeUserId = useVitalAirStore((s) => s.userId);
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [profileComplete, setProfileComplete] = useState<boolean | null>(null);
+  const [localProfileComplete, setLocalProfileComplete] = useState<boolean | null>(null);
+
+  const isCached = storeProfileComplete !== null && storeUserId === session?.user?.id;
+  const profileComplete = isCached ? storeProfileComplete : localProfileComplete;
 
   useEffect(() => {
     if (status !== "authenticated" || !session?.user?.id) {
-      setProfileComplete(null);
+      setLocalProfileComplete(null);
       setLoading(false);
       return;
     }
 
     const store = useVitalAirStore.getState();
     if (store.profileComplete !== null && store.userId === session.user.id) {
-      setProfileComplete(store.profileComplete);
+      setLocalProfileComplete(store.profileComplete);
       setLoading(false);
       return;
     }
@@ -37,7 +44,7 @@ export function useUserHealthProfile() {
 
     if (!session.backendToken) {
       setError("Session expired. Please sign in again.");
-      setProfileComplete(false);
+      setLocalProfileComplete(false);
       return;
     }
 
@@ -48,7 +55,7 @@ export function useUserHealthProfile() {
     void fetchMyProfile()
       .then((data) => {
         if (cancelled) return;
-        setProfileComplete(data.profile_complete);
+        setLocalProfileComplete(data.profile_complete);
         setProfileCompleteStore(data.profile_complete);
         if (data.profile_complete) {
           setHealthProfile(healthProfileFromApi(data.profile));
@@ -62,7 +69,7 @@ export function useUserHealthProfile() {
           void signOut({ callbackUrl: "/login" });
           return;
         }
-        setProfileComplete(false);
+        setLocalProfileComplete(false);
         setError(msg);
       })
       .finally(() => {
@@ -82,7 +89,7 @@ export function useUserHealthProfile() {
   ]);
 
   return {
-    loading: status === "loading" || loading,
+    loading: (status === "loading" && !isCached) || loading,
     error,
     profileComplete,
     isAuthenticated: status === "authenticated",

@@ -59,9 +59,10 @@ export default function AppSidebarLayout({
     }
   }, [isAuthenticated, router, navLinks]);
 
-  const handleSignOut = () => {
+  const handleSignOut = async () => {
     useVitalAirStore.getState().clearHealthProfile();
-    void signOut({ callbackUrl: "/login" });
+    await signOut({ redirect: false });
+    router.push("/login");
   };
 
   const SidebarContent = () => (
