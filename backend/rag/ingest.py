@@ -39,7 +39,7 @@ def _load_txt_files(folder: Path) -> list[tuple[str, str]]:
 
 def ingest_health_docs() -> bool:
     if not faiss_is_available():
-        print("FAISS/sentence-transformers not installed. pip install -r requirements.txt")
+        print("FAISS not installed or OpenAI API key not configured. pip install -r requirements.txt")
         return False
 
     health_items: list[tuple[str, dict]] = []

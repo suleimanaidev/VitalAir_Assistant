@@ -20,18 +20,15 @@ from rag.chunking import split_text
 
 logger = logging.getLogger(__name__)
 
-EMBED_MODEL = "all-MiniLM-L6-v2"
-EMBED_DIM = 384
+EMBED_MODEL = "text-embedding-3-small"
+EMBED_DIM = 1536
 
 _faiss_available = False
-_encoder = None
 _locks: dict[str, threading.Lock] = {}
 _locks_guard = threading.Lock()
 
 try:
     import faiss  # noqa: F401
-    from sentence_transformers import SentenceTransformer  # noqa: F401
-
     _faiss_available = True
 except ImportError:
     faiss = None  # type: ignore
@@ -58,24 +55,38 @@ def _lock_for(key: str) -> threading.Lock:
         return _locks[key]
 
 
-def get_encoder():
-    global _encoder
-    if not _faiss_available:
-        return None
-    if _encoder is None:
-        from sentence_transformers import SentenceTransformer
-
-        logger.info("Loading embedding model: %s", EMBED_MODEL)
-        _encoder = SentenceTransformer(EMBED_MODEL)
-    return _encoder
-
-
 def embed_texts(texts: list[str]) -> np.ndarray:
-    model = get_encoder()
-    if model is None:
-        raise RuntimeError("FAISS/sentence-transformers not available")
-    vectors = model.encode(texts, normalize_embeddings=True, show_progress_bar=False)
-    return np.asarray(vectors, dtype=np.float32)
+    if not texts:
+        return np.zeros((0, EMBED_DIM), dtype=np.float32)
+
+    settings = get_settings()
+    if not settings.has_openai:
+        raise RuntimeError("OpenAI API key not configured")
+
+    from openai import OpenAI, RateLimitError, APITimeoutError, APIConnectionError, APIError
+
+    client = OpenAI(
+        api_key=settings.openai_api_key.strip(),
+        timeout=12.0,
+        max_retries=3,
+    )
+
+    try:
+        response = client.embeddings.create(
+            input=texts,
+            model=EMBED_MODEL,
+        )
+        vectors = [item.embedding for item in response.data]
+        return np.asarray(vectors, dtype=np.float32)
+    except (RateLimitError, APITimeoutError, APIConnectionError) as exc:
+        logger.error("OpenAI embedding API network/rate error: %s", exc)
+        raise RuntimeError(f"OpenAI embedding failed due to network/rate issue: {exc}") from exc
+    except APIError as exc:
+        logger.error("OpenAI embedding API error: %s", exc)
+        raise RuntimeError(f"OpenAI embedding failed with API error: {exc}") from exc
+    except Exception as exc:
+        logger.exception("Unexpected error during OpenAI embedding: %s", exc)
+        raise RuntimeError(f"Unexpected embedding failure: {exc}") from exc
 
 
 class FaissIndexManager:
@@ -93,15 +104,32 @@ class FaissIndexManager:
         if not _faiss_available:
             return
         if self.index_path.exists() and self.meta_path.exists():
-            self.index = faiss.read_index(str(self.index_path))
-            raw = json.loads(self.meta_path.read_text(encoding="utf-8"))
-            self.entries = list(raw.get("entries") or [])
-            logger.info(
-                "Loaded FAISS index %s (%d vectors)", self.label, self.index.ntotal
-            )
-        else:
-            self.index = faiss.IndexFlatL2(EMBED_DIM)
-            self.entries = []
+            try:
+                loaded_index = faiss.read_index(str(self.index_path))
+                if loaded_index.d == EMBED_DIM:
+                    self.index = loaded_index
+                    raw = json.loads(self.meta_path.read_text(encoding="utf-8"))
+                    self.entries = list(raw.get("entries") or [])
+                    logger.info(
+                        "Loaded FAISS index %s (%d vectors, dim=%d)", self.label, self.index.ntotal, self.index.d
+                    )
+                    return
+                else:
+                    logger.warning(
+                        "FAISS index %s dimensionality mismatch (loaded=%d, expected=%d). Deleting old files to trigger rebuild...",
+                        self.label, loaded_index.d, EMBED_DIM
+                    )
+            except Exception as e:
+                logger.error("Failed to load FAISS index %s: %s. Rebuilding...", self.label, e)
+            
+            try:
+                self.index_path.unlink(missing_ok=True)
+                self.meta_path.unlink(missing_ok=True)
+            except Exception:
+                pass
+
+        self.index = faiss.IndexFlatL2(EMBED_DIM)
+        self.entries = []
 
     def save(self) -> None:
         if not _faiss_available or self.index is None:

@@ -70,6 +70,7 @@ After **any** `.env` change → restart **both** terminals.
 
 | Variable | User action |
 |----------|-------------|
+| `ADMIN_EMAILS` | Comma-separated list of emails to auto-promote to admin on backend startup. Example: `alice@example.com,bob@example.com`. Users with these emails get access to the Admin Control Panel at `/admin`. Leave empty if no admins are needed. After changing, restart the backend and re-login to refresh the session token. |
 | `GOOGLE_MAPS_API_KEY` | Leave **empty** → free OSRM routing (recommended). Only set if you want paid Google Directions |
 | `SERPER_API_KEY` | Not required for dashboard, login, or routes |
 
