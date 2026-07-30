@@ -39,7 +39,7 @@ export default function AuthPageLayout({
   return (
     <main className="grid min-h-screen lg:grid-cols-2">
       {/* Brand panel */}
-      <aside className="relative hidden overflow-hidden lg:flex lg:flex-col lg:justify-center lg:p-16 lg:px-20">
+      <aside className="relative hidden overflow-hidden lg:flex lg:flex-col lg:items-center lg:justify-center lg:p-10 lg:px-12">
         <div
           className="pointer-events-none absolute inset-0 bg-gradient-to-br from-[#04241d] via-[#06402f] to-[#021712]"
           aria-hidden
@@ -57,8 +57,8 @@ export default function AuthPageLayout({
           aria-hidden
         />
 
-        {/* Floating back button at top left of brand panel */}
-        <div className="absolute left-16 top-10">
+        {/* Floating back button at top left */}
+        <div className="absolute left-10 top-8">
           <Link
             href={backHref}
             className="inline-flex items-center gap-2 text-sm text-white/70 transition-colors hover:text-white"
@@ -68,59 +68,59 @@ export default function AuthPageLayout({
           </Link>
         </div>
 
-        {/* Centered Content Wrapper */}
-        <div className="relative flex flex-col gap-6 max-w-md w-full my-auto">
+        {/* Centered Compact Content Wrapper — Matches Login Card Size */}
+        <div className="relative flex flex-col gap-4 max-w-md w-full my-auto rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur-md shadow-2xl">
           {/* Logo & Brand title */}
           <div className="flex items-center gap-3">
-            <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/15 text-white backdrop-blur">
-              <Wind className="h-6 w-6" aria-hidden />
+            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-vital-primary/20 text-vital-primary">
+              <Wind className="h-5 w-5" aria-hidden />
             </span>
-            <span className="text-3xl font-bold tracking-tight text-white">
+            <span className="text-2xl font-bold tracking-tight text-white">
               Vital<span className="text-vital-primary">Air</span>
             </span>
           </div>
 
           {/* Subtitle / Tagline */}
-          <p className="text-lg leading-relaxed text-white/80">
+          <p className="text-sm text-white/80 leading-relaxed">
             {panelSubtitle}
           </p>
 
-          {/* Simplified Single Visual Preview Card */}
-          <div className="group relative overflow-hidden rounded-2xl border border-white/10 shadow-xl my-2">
+          {/* Compact Visual Preview Card */}
+          <div className="group relative overflow-hidden rounded-xl border border-white/10 shadow-lg">
             <Image
               src={image === "nutrition" ? "/images/auth_foods.png" : "/images/auth_health.png"}
               alt="VitalAir preview panel"
               width={600}
               height={300}
               priority
-              className="h-44 w-full object-cover transition-transform duration-700 group-hover:scale-105 xl:h-52"
+              className="h-32 w-full object-cover transition-transform duration-700 group-hover:scale-105"
             />
-            <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#021712]/95 via-transparent to-transparent" />
-            <div className="absolute bottom-4 left-5">
-              <p className="text-sm font-semibold tracking-wide text-white drop-shadow-md">
+            <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#021712]/90 via-transparent to-transparent" />
+            <div className="absolute bottom-2.5 left-3.5">
+              <p className="text-xs font-semibold text-white drop-shadow-md">
                 {image === "nutrition" ? "Seasonal anti-pollution nutrition advice" : "Real-time air quality & health alerts"}
               </p>
             </div>
           </div>
 
-          {/* Features check bullets */}
-          <ul className="space-y-4">
+          {/* Features compact 2x2 grid */}
+          <div className="grid grid-cols-2 gap-3 pt-1">
             {features.map((f) => (
-              <li key={f.title} className="flex items-start gap-3">
+              <div key={f.title} className="flex items-start gap-2">
                 <CheckCircle2
-                  className="mt-0.5 h-5 w-5 shrink-0 text-vital-primary"
+                  className="mt-0.5 h-4 w-4 shrink-0 text-vital-primary"
                   aria-hidden
                 />
                 <div>
-                  <p className="font-semibold text-white">{f.title}</p>
-                  <p className="text-sm text-white/70">{f.text}</p>
+                  <p className="text-xs font-semibold text-white">{f.title}</p>
+                  <p className="text-[11px] leading-tight text-white/70">{f.text}</p>
                 </div>
-              </li>
+              </div>
             ))}
-          </ul>
+          </div>
 
           {/* Divider and Footer */}
-          <p className="border-t border-white/10 pt-5 text-xs text-white/50">
+          <p className="border-t border-white/10 pt-3 text-[11px] text-white/50 text-center">
             Free OSRM routing · WHO-based guidance · Your data stays private.
           </p>
         </div>

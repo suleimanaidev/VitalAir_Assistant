@@ -50,8 +50,30 @@ def _user_admin_summary(doc: dict) -> dict:
     }
 
 
+_indexes_ensured = False
+
+
+async def ensure_indexes() -> None:
+    global _indexes_ensured
+    if _indexes_ensured:
+        return
+    try:
+        db = await get_db_async()
+        await asyncio.gather(
+            db.users.create_index("email", unique=True, sparse=True),
+            db.accounts.create_index("email", unique=True, sparse=True),
+            db.queries.create_index([("user_id", 1), ("created_at", -1)]),
+            db.symptom_checkins.create_index([("user_id", 1), ("date", -1)]),
+            db.documents.create_index("user_id"),
+        )
+        _indexes_ensured = True
+    except Exception:
+        pass
+
+
 async def get_user_and_collection_by_email(email: str) -> tuple[dict | None, str | None]:
     """Retrieve user document and which collection it belongs to ("users" or "accounts")."""
+    await ensure_indexes()
     db = await get_db_async()
     normalized = email.lower().strip()
     user_task = db.users.find_one({"email": normalized})

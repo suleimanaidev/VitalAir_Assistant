@@ -1,3 +1,4 @@
+import asyncio
 import json
 import re
 from collections.abc import Callable
@@ -45,6 +46,113 @@ AGENT_STEPS: list[tuple[str, str]] = [
 ]
 
 
+import time
+import logging
+
+logger = logging.getLogger(__name__)
+
+
+async def run_parallel_agents_pipeline_async(
+    payload: AnalyzeRequest,
+    publish_log: PublishLog | None = None,
+    user_doc_chunks: list[str] | None = None,
+) -> AnalyzeResponse:
+    from services.agent_runners import (
+        fetch_area_aqi,
+        run_health_agent_async,
+        run_nutrition_agent_async,
+        run_route_agent_async,
+    )
+
+    t_pipeline_start = time.perf_counter()
+    logger.info("=== [VITALAIR PIPELINE] STARTING PARALLEL AGENT RUN ===")
+
+    # 1. Direct WAQI API fetch for AQI (no LLM reasoning step)
+    t_aqi0 = time.perf_counter()
+    if publish_log:
+        publish_log("Air Quality Monitor", "thinking", f"Fetching real-time AQI for {payload.query.source}…")
+    aqi_val = fetch_area_aqi(payload.query.source)
+    t_aqi1 = time.perf_counter()
+    aqi_ms = (t_aqi1 - t_aqi0) * 1000
+    logger.info(f"[TIMING] [AQI API FETCH] Completed in {aqi_ms:.2f}ms (AQI={aqi_val})")
+    if publish_log:
+        publish_log("Air Quality Monitor", "done", f"AQI: {aqi_val}")
+
+    # 2. Run Health Agent, Nutritionist Agent, and Route Agent CONCURRENTLY via asyncio.gather()
+    async def task_health():
+        t0 = time.perf_counter()
+        logger.info(f"[TIMING] [START] Health Agent (Digital Pulmonologist) at t={t0 - t_pipeline_start:.3f}s")
+        res = await run_health_agent_async(
+            payload.profile,
+            payload.query.source,
+            user_id=payload.user_id,
+            user_doc_chunks=user_doc_chunks,
+            aqi=aqi_val,
+            destination=payload.query.destination,
+            publish_log=publish_log,
+        )
+        t1 = time.perf_counter()
+        dur = (t1 - t0) * 1000
+        logger.info(f"[TIMING] [END] Health Agent at t={t1 - t_pipeline_start:.3f}s (duration: {dur:.2f}ms)")
+        return res
+
+    async def task_nutrition():
+        t0 = time.perf_counter()
+        logger.info(f"[TIMING] [START] Nutritionist Agent (Environmental Nutritionist) at t={t0 - t_pipeline_start:.3f}s")
+        res = await run_nutrition_agent_async(
+            payload.profile,
+            payload.query.source,
+            user_id=payload.user_id,
+            user_doc_chunks=user_doc_chunks,
+            aqi=aqi_val,
+            publish_log=publish_log,
+        )
+        t1 = time.perf_counter()
+        dur = (t1 - t0) * 1000
+        logger.info(f"[TIMING] [END] Nutritionist Agent at t={t1 - t_pipeline_start:.3f}s (duration: {dur:.2f}ms)")
+        return res
+
+    async def task_route():
+        t0 = time.perf_counter()
+        logger.info(f"[TIMING] [START] Route Agent (Smart Route Navigator) at t={t0 - t_pipeline_start:.3f}s")
+        res = await run_route_agent_async(
+            payload.profile,
+            payload.query,
+            aqi=aqi_val,
+            publish_log=publish_log,
+        )
+        t1 = time.perf_counter()
+        dur = (t1 - t0) * 1000
+        logger.info(f"[TIMING] [END] Route Agent at t={t1 - t_pipeline_start:.3f}s (duration: {dur:.2f}ms)")
+        return res
+
+    health_res, nutrition_res, route_res = await asyncio.gather(
+        task_health(),
+        task_nutrition(),
+        task_route(),
+    )
+
+    t_pipeline_end = time.perf_counter()
+    total_ms = (t_pipeline_end - t_pipeline_start) * 1000
+    logger.info(f"=== [VITALAIR PIPELINE] FINISHED ALL AGENTS IN {total_ms:.2f}ms ===")
+
+    return AnalyzeResponse(
+        aqi_at_time=aqi_val,
+        health_advice=health_res.health_advice,
+        diet_plan=nutrition_res.diet_plan,
+        safe_route=route_res.safe_route,
+        personal_exposure_score=route_res.personal_exposure_score,
+        health_explainability=health_res.health_explainability,
+        season_intelligence=route_res.season_intelligence,
+        season=route_res.season_intelligence.id,
+        season_label=route_res.season_intelligence.name,
+        temperature_c=health_res.temperature_c,
+        humidity=None,
+        heatwave=False,
+        context_summary=route_res.context_summary,
+    )
+
+
 def run_vitalair_crew(
     user_profile: dict,
     query: dict,
@@ -67,23 +175,25 @@ def run_vitalair_crew(
                 user_doc_chunks=user_doc_chunks,
                 publish_log=publish_log,
             )
-        elif crewai_is_available():
-            try:
-                from crew.vitalair_crew_live import run_live_crew
-
-                result = run_live_crew(payload)
-            except Exception:
-                result = run_mock_analysis(
-                    payload,
-                    user_doc_chunks=user_doc_chunks,
-                    publish_log=publish_log,
-                )
         else:
-            result = run_mock_analysis(
-                payload,
-                user_doc_chunks=user_doc_chunks,
-                publish_log=publish_log,
-            )
+            try:
+                loop = asyncio.get_running_loop()
+            except RuntimeError:
+                loop = None
+
+            if loop and loop.is_running():
+                result = asyncio.run_coroutine_threadsafe(
+                    run_parallel_agents_pipeline_async(
+                        payload, publish_log=publish_log, user_doc_chunks=user_doc_chunks
+                    ),
+                    loop,
+                ).result()
+            else:
+                result = asyncio.run(
+                    run_parallel_agents_pipeline_async(
+                        payload, publish_log=publish_log, user_doc_chunks=user_doc_chunks
+                    )
+                )
     finally:
         reset_active_keyword_chunks(kw_token)
         reset_active_user_id(ctx_token)

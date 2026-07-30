@@ -12,45 +12,99 @@ from services.seasonal_intelligence import lahore_now
 from tools.lahore_season import is_smog_season
 
 
+import asyncio
+import logging
+from functools import lru_cache
+
+logger = logging.getLogger(__name__)
+
+from config import get_settings
+from services.seasonal_intelligence import lahore_now
+from tools.lahore_season import is_smog_season
+
+_OPENAI_SEMAPHORE = asyncio.Semaphore(5)
+
+
+async def _async_chat(
+    system: str,
+    user: str,
+    max_tokens: int = 600,
+    temperature: float = 0.4,
+    timeout_seconds: float = 12.0,
+) -> str | None:
+    settings = get_settings()
+    if not settings.has_openai:
+        logger.debug("OpenAI key not configured — skipping _async_chat")
+        return None
+    logger.debug("_async_chat → model=%s timeout=%.1fs", get_settings().openai_model or "gpt-4o-mini", timeout_seconds)
+    
+    from openai import AsyncOpenAI, RateLimitError, APITimeoutError, APIConnectionError, APIError
+
+    client = AsyncOpenAI(
+        api_key=settings.openai_api_key.strip(),
+        timeout=timeout_seconds,
+        max_retries=0,
+    )
+    model = settings.openai_model.strip() or "gpt-4o-mini"
+    
+    delays = [1.0, 2.0, 4.0]
+    for attempt, delay in enumerate([0.0] + delays):
+        if delay > 0:
+            logger.warning("OpenAI rate limit / retry hit (attempt %d/%d), backing off %.1fs...", attempt, len(delays), delay)
+            await asyncio.sleep(delay)
+        
+        try:
+            async with _OPENAI_SEMAPHORE:
+                response = await client.chat.completions.create(
+                    model=model,
+                    messages=[
+                        {"role": "system", "content": system},
+                        {"role": "user", "content": user},
+                    ],
+                    max_tokens=max_tokens,
+                    temperature=temperature,
+                )
+                text = response.choices[0].message.content
+                return text.strip() if text else None
+        except (RateLimitError, APITimeoutError, APIConnectionError) as exc:
+            logger.warning("OpenAI transient error on attempt %d: %s", attempt + 1, exc)
+            if attempt == len(delays):
+                logger.error("OpenAI retries exhausted due to rate limit/timeout: %s", exc)
+                return "high demand, try again shortly"
+        except APIError as exc:
+            logger.error("OpenAI API error: %s", exc)
+            return None
+        except Exception as exc:
+            logger.exception("Unexpected error during OpenAI chat: %s", exc)
+            return None
+
+    return None
+
+
 def _chat(
     system: str,
     user: str,
     max_tokens: int = 600,
     temperature: float = 0.4,
-    timeout_seconds: float = 8.0,
+    timeout_seconds: float = 12.0,
 ) -> str | None:
-    settings = get_settings()
-    if not settings.has_openai:
-        logger.debug("OpenAI key not configured — skipping _chat")
-        return None
-    logger.debug("_chat → model=%s timeout=%.1fs", get_settings().openai_model or "gpt-4o-mini", timeout_seconds)
+    """Sync wrapper for _async_chat."""
     try:
-        from openai import OpenAI
-
-        client = OpenAI(
-            api_key=settings.openai_api_key.strip(),
-            timeout=timeout_seconds,
-            max_retries=0,
-        )
-        model = settings.openai_model.strip() or "gpt-4o-mini"
-        response = client.chat.completions.create(
-            model=model,
-            messages=[
-                {"role": "system", "content": system},
-                {"role": "user", "content": user},
-            ],
-            max_tokens=max_tokens,
-            temperature=temperature,
-        )
-        text = response.choices[0].message.content
-        return text.strip() if text else None
-    except Exception as exc:
-        logger.warning("OpenAI _chat failed: %s", exc)
-        return None
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        loop = None
+    
+    if loop and loop.is_running():
+        # If in event loop, execute in thread pool safely
+        return asyncio.run_coroutine_threadsafe(
+            _async_chat(system, user, max_tokens, temperature, timeout_seconds),
+            loop,
+        ).result()
+    else:
+        return asyncio.run(_async_chat(system, user, max_tokens, temperature, timeout_seconds))
 
 
-@lru_cache(maxsize=128)
-def generate_health_advice(
+async def generate_health_advice_async(
     *,
     aqi: int,
     conditions: str,
@@ -63,7 +117,7 @@ def generate_health_advice(
     destination: str = "",
     has_patient_docs: bool = False,
 ) -> str | None:
-    logger.debug("generate_health_advice  aqi=%d season=%s src=%s dst=%s", aqi, season_id, source, destination)
+    logger.debug("generate_health_advice_async aqi=%d season=%s src=%s dst=%s", aqi, season_id, source, destination)
     no_smog = not is_smog_season(season_id)
     hour = lahore_now().hour
     season_rule = (
@@ -97,7 +151,7 @@ def generate_health_advice(
         else "No patient documents uploaded — provide general WHO-based advice for "
         "their conditions and AQI. Do NOT invent prescriptions or uploaded records."
     )
-    return _chat(
+    return await _async_chat(
         system=(
             "You are a professional digital pulmonologist for VitalAir Lahore. "
             "Based on the patient's uploaded documents (if any), health profile, "
@@ -121,7 +175,40 @@ def generate_health_advice(
 
 
 @lru_cache(maxsize=128)
-def generate_diet_plan(
+def generate_health_advice(
+    *,
+    aqi: int,
+    conditions: str,
+    rag_context: str,
+    profile_summary: str,
+    season_id: str = "winter_smog",
+    season_label: str = "Lahore",
+    temp_c: float = 0.0,
+    source: str = "",
+    destination: str = "",
+    has_patient_docs: bool = False,
+) -> str | None:
+    return _chat(
+        system=(
+            "You are a professional digital pulmonologist for VitalAir Lahore. "
+            "Based on the patient's uploaded documents (if any), health profile, "
+            "and current air quality, provide structured, highly accurate health advice. "
+            "Give exactly 4 bullet points (• prefix), no more. Each bullet one clear, "
+            "actionable step tailored to age, conditions, sensitivity, and commute. "
+            "Start with one English summary line, then one Roman Urdu summary line, then bullets. "
+            "CRITICAL: In the Roman Urdu summary line, you MUST explicitly mention the user's health condition if they have one (e.g., 'Kyunke aap ko asthma hai, isliye...'). "
+            "Be cautious and professional — never diagnose; recommend medical care when symptoms are severe."
+        ),
+        user=(
+            f"Season: {season_label} ({season_id})\n"
+            f"Route: {source} → {destination}\n"
+            f"AQI: {aqi}\nProfile: {profile_summary}\nConditions: {conditions}\n\n"
+            f"Retrieved patient & WHO context:\n{rag_context[:4000]}"
+        ),
+    )
+
+
+async def generate_diet_plan_async(
     *,
     aqi: int,
     rag_context: str,
@@ -136,7 +223,7 @@ def generate_diet_plan(
     has_patient_docs: bool = False,
     profile_summary: str = "",
 ) -> list[str] | None:
-    logger.debug("generate_diet_plan  aqi=%d season=%s src=%s", aqi, season_id, source)
+    logger.debug("generate_diet_plan_async aqi=%d season=%s src=%s", aqi, season_id, source)
     season_focus = {
         "summer_heatwave": "cooling, hydrating foods; avoid heavy fried items",
         "pre_monsoon_heat": "cooling drinks and light meals for rising heat",
@@ -153,7 +240,7 @@ def generate_diet_plan(
         else "No patient documents — use profile conditions and general anti-pollution diet guidance."
     )
 
-    raw = _chat(
+    raw = await _async_chat(
         system=(
             "You are a Lahore/Punjab nutrition advisor. Return ONLY a JSON array of exactly 4 "
             "strings in natural, conversational ROMAN URDU (like how Pakistanis chat on WhatsApp, avoid overly formal or literal translations). "
@@ -200,6 +287,52 @@ def generate_diet_plan(
     return None
 
 
+@lru_cache(maxsize=128)
+def generate_diet_plan(
+    *,
+    aqi: int,
+    rag_context: str,
+    season_id: str = "winter_smog",
+    season_label: str = "Lahore",
+    conditions: str = "",
+    age: int = 25,
+    sensitivity: str = "medium",
+    commute_mode: str = "car",
+    source: str = "",
+    destination: str = "",
+    has_patient_docs: bool = False,
+    profile_summary: str = "",
+) -> list[str] | None:
+    raw = _chat(
+        system=(
+            "You are a Lahore/Punjab nutrition advisor. Return ONLY a JSON array of exactly 4 strings in ROMAN URDU."
+        ),
+        user=(
+            f"Health profile: {profile_summary or 'not provided'}\n"
+            f"Area: {source}\nAQI {aqi} in Lahore.\n"
+            f"Retrieved context:\n{rag_context[:3500]}"
+        ),
+        max_tokens=320,
+        temperature=0.45,
+        timeout_seconds=12.0,
+    )
+    if not raw:
+        return None
+    try:
+        import json
+
+        start = raw.find("[")
+        end = raw.rfind("]")
+        if start < 0 or end <= start:
+            return None
+        items = json.loads(raw[start : end + 1])
+        if isinstance(items, list):
+            return [str(x).strip() for x in items if str(x).strip()][:4]
+    except Exception:
+        pass
+    return None
+
+
 def generate_patient_rag_chat_answer(
     *,
     question: str,
@@ -209,7 +342,7 @@ def generate_patient_rag_chat_answer(
     aqi: int | None = None,
 ) -> str | None:
     """Answer a user question using retrieved WHO + personal health document context."""
-    logger.debug("generate_patient_rag_chat_answer  q=%s… area=%s aqi=%s", question[:60], area, aqi)
+    logger.debug("generate_patient_rag_chat_answer q=%s… area=%s aqi=%s", question[:60], area, aqi)
     
     doc_rule = (
         "Search and utilize the user's uploaded health documents (available in the context below) to answer the user's questions specifically and personally. Do not invent medicines, diagnoses, or lab values."
@@ -237,3 +370,4 @@ def generate_patient_rag_chat_answer(
         max_tokens=420,
         temperature=0.35,
     )
+

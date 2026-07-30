@@ -23,7 +23,12 @@ from services.lahore_context import (
     get_analysis_context,
     strip_wrong_season_phrases,
 )
-from services.openai_advice import generate_diet_plan, generate_health_advice
+from services.openai_advice import (
+    generate_diet_plan,
+    generate_diet_plan_async,
+    generate_health_advice,
+    generate_health_advice_async,
+)
 from services.personal_exposure_score import compute_personal_exposure_score
 from services.rag_service import (
     build_diet_rag_query,
@@ -390,7 +395,7 @@ def run_route_agent(
         aqi=aqi_val,
         temp_c=float(ctx.get("temperature_c") or 0),
         conditions=list(profile.conditions or []),
-        age=int(profile.age or 25),
+        age=profile.age or 25,
         sensitivity=getattr(profile, "sensitivity", "medium"),
         commute_mode=getattr(profile, "commute_mode", "car"),
     )
@@ -409,3 +414,282 @@ def run_route_agent(
         ),
         route_source=route.get("source", "osrm"),
     )
+
+
+import asyncio
+
+async def run_health_agent_async(
+    profile: AnalyzeProfile,
+    area: str,
+    *,
+    user_id: str | None = None,
+    user_doc_chunks: list[str] | None = None,
+    aqi: int | None = None,
+    destination: str | None = None,
+    symptom_summary: str | None = None,
+    symptom_score: int | None = None,
+    publish_log: PublishLog | None = None,
+) -> AgentHealthResponse:
+    ctx = get_analysis_context()
+    season_id = ctx["season"]
+    temp_c = float(ctx.get("temperature_c") or 0)
+    _emit(publish_log, HEALTH_AGENT, "thinking", f"Checking live AQI for {area}…")
+    aqi_val = aqi if aqi is not None else fetch_area_aqi(area)
+
+    sensitivity = getattr(profile, "sensitivity", "medium")
+    commute = getattr(profile, "commute_mode", "car")
+    outdoor = getattr(profile, "outdoor_time", "30_60")
+    conditions = list(profile.conditions or [])
+    conditions_str = ", ".join(conditions) or "no listed conditions"
+
+    rag_query = build_health_rag_query(
+        aqi=aqi_val,
+        area=area,
+        conditions=conditions,
+        age=profile.age,
+        sensitivity=sensitivity,
+        commute_mode=commute,
+        outdoor_time=outdoor,
+        season_id=season_id,
+        temp_c=temp_c,
+        destination=destination,
+    )
+    if symptom_summary and symptom_score is not None:
+        rag_query = (
+            f"{rag_query}\nToday's symptom check-in: {symptom_summary} "
+            f"(score {symptom_score}/12)."
+        )
+    extra = build_health_rag_extra_queries(conditions, aqi_val)
+
+    _emit(
+        publish_log,
+        HEALTH_AGENT,
+        "thinking",
+        "Searching WHO & health knowledge (RAG)…",
+    )
+    rag_health = await asyncio.to_thread(
+        retrieve_health_context,
+        rag_query,
+        k=5,
+        user_id=user_id,
+        user_doc_chunks=user_doc_chunks,
+        extra_queries=extra,
+    )
+    has_patient_docs = bool(user_doc_chunks) or "--- Your health documents ---" in rag_health
+
+    _emit(
+        publish_log,
+        HEALTH_AGENT,
+        "thinking",
+        "Personalizing advice for your health profile…",
+    )
+    health = format_health_advice(
+        rag_health,
+        aqi_val,
+        conditions_str,
+        season_id=season_id,
+        temp_c=temp_c,
+        source=area,
+        destination=destination or area,
+        age=profile.age,
+        sensitivity=sensitivity,
+        commute_mode=commute,
+        outdoor_time=outdoor,
+        profile_name=profile.name,
+        user_id=user_id,
+    )
+    health = strip_wrong_season_phrases(health, season_id)
+    symptom_prefix = _symptom_health_prefix(symptom_summary, symptom_score)
+    if symptom_prefix:
+        health = f"{health}\n• {symptom_prefix}"
+    agent_mode = "rag_rules"
+
+    settings = get_settings()
+    if settings.has_openai:
+        _emit(publish_log, HEALTH_AGENT, "thinking", "Enhancing advice with AI…")
+        profile_summary = (
+            f"{profile.name}, age {profile.age}, "
+            f"sensitivity {sensitivity}, commute {commute}, outdoor {outdoor}"
+        )
+        if symptom_summary and symptom_score is not None:
+            profile_summary = (
+                f"{profile_summary}. Today's symptom check-in: {symptom_summary} "
+                f"(score {symptom_score}/12)"
+            )
+        ai_health = await generate_health_advice_async(
+            aqi=aqi_val,
+            conditions=conditions_str,
+            rag_context=rag_health,
+            profile_summary=profile_summary,
+            season_id=season_id,
+            season_label=ctx.get("season_label", "Lahore"),
+            temp_c=temp_c,
+            source=area,
+            destination=destination or area,
+            has_patient_docs=has_patient_docs,
+        )
+        if ai_health:
+            health = strip_wrong_season_phrases(ai_health, season_id)
+            if symptom_prefix and symptom_prefix.lower() not in health.lower():
+                health = f"{health}\n• {symptom_prefix}"
+            agent_mode = "openai_rag"
+
+    pes = compute_personal_exposure_score(
+        aqi=aqi_val,
+        distance=None,
+        commute_mode=commute,
+        conditions=conditions,
+        sensitivity=sensitivity,
+    )
+    explainability = build_health_explainability(
+        profile=profile,
+        aqi=aqi_val,
+        pes=pes,
+        rag_context=rag_health,
+        health_advice=health,
+        agent_mode=agent_mode,
+    )
+
+    return AgentHealthResponse(
+        area=area,
+        aqi=aqi_val,
+        aqi_label=aqi_label(aqi_val),
+        health_advice=health,
+        health_explainability=explainability,
+        rag_sources_used=count_rag_chunks(rag_health),
+        has_patient_docs=has_patient_docs,
+        agent_mode=agent_mode,
+        season=season_id,
+        season_label=ctx.get("season_label"),
+        temperature_c=temp_c,
+    )
+
+
+async def run_nutrition_agent_async(
+    profile: AnalyzeProfile,
+    area: str,
+    *,
+    user_id: str | None = None,
+    user_doc_chunks: list[str] | None = None,
+    aqi: int | None = None,
+    publish_log: PublishLog | None = None,
+) -> AgentNutritionResponse:
+    ctx = get_analysis_context()
+    season_id = ctx["season"]
+    temp_c = float(ctx.get("temperature_c") or 0)
+    _emit(publish_log, NUTRITION_AGENT, "thinking", f"Reading AQI context for {area}…")
+    aqi_val = aqi if aqi is not None else fetch_area_aqi(area)
+    conditions = list(profile.conditions or [])
+    sensitivity = getattr(profile, "sensitivity", "medium")
+    commute = getattr(profile, "commute_mode", "car")
+
+    rag_query = build_diet_rag_query(
+        aqi=aqi_val,
+        area=area,
+        season_id=season_id,
+        temp_c=temp_c,
+        conditions=conditions,
+        age=profile.age,
+        sensitivity=sensitivity,
+        commute_mode=commute,
+    )
+    _emit(
+        publish_log,
+        NUTRITION_AGENT,
+        "thinking",
+        "Searching anti-pollution nutrition knowledge (RAG)…",
+    )
+    from services.user_patient_rag import retrieve_patient_health_context
+
+    patient_context = ""
+    if user_id or user_doc_chunks:
+        patient_context = await asyncio.to_thread(
+            retrieve_patient_health_context,
+            user_id,
+            f"nutrition diet anti pollution {', '.join(conditions) or 'general'}",
+            k=3,
+            keyword_chunks=user_doc_chunks,
+        )
+    has_patient_docs = bool(user_doc_chunks) or bool(patient_context)
+
+    rag_diet = await asyncio.to_thread(
+        retrieve_diet_context,
+        rag_query,
+        k=5,
+        extra_queries=[f"vitamin C ginger turmeric Lahore smog season {season_id}"],
+    )
+    if patient_context:
+        rag_diet = f"{rag_diet}\n\n--- Your health documents ---\n{patient_context}"
+
+    _emit(
+        publish_log,
+        NUTRITION_AGENT,
+        "thinking",
+        "Matching food tips to your health profile and documents…",
+    )
+
+    diet = format_diet_plan(
+        rag_diet,
+        season_id=season_id,
+        aqi=aqi_val,
+        conditions=", ".join(conditions),
+        age=profile.age,
+        sensitivity=sensitivity,
+        source=area,
+        destination=area,
+        user_id=user_id,
+    )
+    agent_mode = "rag_rules"
+
+    settings = get_settings()
+    if settings.has_openai:
+        _emit(publish_log, NUTRITION_AGENT, "thinking", "Building personalized food guide…")
+        profile_summary = (
+            f"{profile.name}, age {profile.age}, conditions {', '.join(conditions) or 'none'}, "
+            f"sensitivity {sensitivity}, commute {commute}"
+        )
+        ai_diet = await generate_diet_plan_async(
+            aqi=aqi_val,
+            rag_context=rag_diet,
+            season_id=season_id,
+            season_label=ctx.get("season_label", "Lahore"),
+            conditions=", ".join(conditions),
+            age=profile.age,
+            sensitivity=sensitivity,
+            commute_mode=commute,
+            source=area,
+            destination=area,
+            has_patient_docs=has_patient_docs,
+            profile_summary=profile_summary,
+        )
+        if ai_diet:
+            diet = ai_diet
+            agent_mode = "openai_rag"
+
+    return AgentNutritionResponse(
+        area=area,
+        aqi=aqi_val,
+        diet_plan=diet,
+        rag_sources_used=count_rag_chunks(rag_diet),
+        agent_mode=agent_mode,
+        season=season_id,
+        season_label=ctx.get("season_label"),
+        has_patient_docs=has_patient_docs,
+    )
+
+
+async def run_route_agent_async(
+    profile: AnalyzeProfile,
+    query: RouteQuery,
+    *,
+    aqi: int | None = None,
+    publish_log: PublishLog | None = None,
+) -> AgentRouteResponse:
+    return await asyncio.to_thread(
+        run_route_agent,
+        profile,
+        query,
+        aqi=aqi,
+        publish_log=publish_log,
+    )
+

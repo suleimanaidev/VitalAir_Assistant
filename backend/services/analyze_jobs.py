@@ -8,6 +8,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any
 
+from config import get_settings
 from crew.vitalair_crew import run_vitalair_crew
 from db.repositories import get_user_document_chunks, save_query
 from services.user_patient_rag import sync_user_patient_index_from_mongo
@@ -82,13 +83,22 @@ async def run_analyze_job(job_id: str, body: AnalyzeRequest) -> None:
             except Exception:
                 user_doc_chunks = []
 
-        result = run_vitalair_crew(
-            user_profile=body.profile.model_dump(),
-            query=body.query.model_dump(),
-            publish_log=publish_log,
-            user_id=body.user_id,
-            user_doc_chunks=user_doc_chunks,
-        )
+        from crew.vitalair_crew import run_parallel_agents_pipeline_async, run_vitalair_crew
+
+        if get_settings().use_mock_agents:
+            result = run_vitalair_crew(
+                user_profile=body.profile.model_dump(),
+                query=body.query.model_dump(),
+                publish_log=publish_log,
+                user_id=body.user_id,
+                user_doc_chunks=user_doc_chunks,
+            )
+        else:
+            result = await run_parallel_agents_pipeline_async(
+                payload=body,
+                publish_log=publish_log,
+                user_doc_chunks=user_doc_chunks,
+            )
 
         try:
             query_id = await save_query(

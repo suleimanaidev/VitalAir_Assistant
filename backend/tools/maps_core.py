@@ -549,11 +549,17 @@ def _resolve_route_bundle(origin: str, destination: str) -> dict:
 
 
 def fetch_routes_sync(origin: str, destination: str) -> dict:
+    from services.cache import get_cached, set_cached
+    cache_key = f"route:{origin.strip().lower()}:{destination.strip().lower()}"
+    cached = get_cached(cache_key, ttl_seconds=600.0)
+    if cached is not None:
+        return cached
+
     bundle = _resolve_route_bundle(origin, destination)
     geo = fetch_geojson_routes_sync(origin, destination, bundle=bundle)
     route_options = build_three_route_options(origin, destination)
     best = route_options[0] if route_options else None
-    return {
+    result = {
         "origin": origin,
         "destination": destination,
         "distance": best["distance"] if best else bundle["distance"],
@@ -565,6 +571,8 @@ def fetch_routes_sync(origin: str, destination: str) -> dict:
         "geojson": geo,
         "route_options": route_options,
     }
+    set_cached(cache_key, result)
+    return result
 
 
 def fetch_geojson_routes_sync(

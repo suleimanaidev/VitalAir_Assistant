@@ -24,6 +24,7 @@ def _build_client() -> AsyncIOMotorClient:
         connectTimeoutMS=3000,
         socketTimeoutMS=5000,
         maxPoolSize=20,
+        minPoolSize=5,
         waitQueueTimeoutMS=3000,
     )
 

@@ -2,6 +2,7 @@
 
 from datetime import datetime, timezone
 import re
+from typing import TypedDict
 
 import httpx
 
@@ -18,7 +19,15 @@ INDIA_PATTERN = re.compile(
     r"india|amritsar|delhi|chandigarh|jalandhar|ludhiana|punjab,\s*india", re.I
 )
 
-LAHORE_WAQI_STATIONS = [
+
+class WAQIStation(TypedDict):
+    id: str
+    lat: float
+    lon: float
+    label: str
+
+
+LAHORE_WAQI_STATIONS: list[WAQIStation] = [
     {"id": "A471607", "lat": 31.5482, "lon": 74.344, "label": "Lahore (G.O.R.)"},
     {"id": "A540730", "lat": 31.5659, "lon": 74.2994, "label": "Civil Secretariat"},
     {"id": "@11765", "lat": 31.5601, "lon": 74.3359, "label": "Lahore US Embassy"},
@@ -107,11 +116,11 @@ def _resolve_waqi_aqi(data: dict) -> int:
     for key in ("pm25", "pm10"):
         entry = iaqi.get(key)
         if isinstance(entry, dict) and entry.get("v") is not None:
-            return int(round(float(entry["v"])))
+            return round(float(entry["v"]))
     return 0
 
 
-def _nearest_station(lat: float, lon: float) -> dict:
+def _nearest_station(lat: float, lon: float) -> WAQIStation:
     best = LAHORE_WAQI_STATIONS[0]
     best_dist = float("inf")
     for station in LAHORE_WAQI_STATIONS:
@@ -218,6 +227,12 @@ def fetch_aqi_at_coords(
 
 
 def fetch_aqi_for_area(area_query: str) -> dict:
+    from services.cache import get_cached, set_cached
+    cache_key = f"aqi:{area_query.strip().lower()}"
+    cached = get_cached(cache_key, ttl_seconds=300.0)
+    if cached is not None:
+        return cached
+
     mapped = resolve_area(area_query)
     if mapped:
         result = fetch_aqi_at_coords(
@@ -225,6 +240,7 @@ def fetch_aqi_for_area(area_query: str) -> dict:
         )
         if result:
             result["area_id"] = mapped.id
+            set_cached(cache_key, result)
             return result
 
     geocoded = geocode_lahore_area(area_query)
@@ -235,6 +251,7 @@ def fetch_aqi_for_area(area_query: str) -> dict:
         )
         if result:
             result["geocoded_name"] = display
+            set_cached(cache_key, result)
             return result
 
     raise ValueError(f"Could not resolve '{area_query}' in Lahore or fetch WAQI data.")
