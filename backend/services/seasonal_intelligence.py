@@ -152,6 +152,148 @@ def _time_window(hour: int) -> str:
     return "night"
 
 
+def build_time_recommendation(
+    *,
+    season_id: str,
+    aqi: int,
+    temp_c: float = 0.0,
+    conditions: list[str] | None = None,
+    sensitivity: str = "medium",
+) -> dict:
+    """Build a time-aware travel/outdoor recommendation dict.
+
+    Returns {hour, time_label, emoji, safe_to_go, title_ur, message_ur, message_en}.
+    Pure logic — zero API calls, zero cost.
+    """
+    now = lahore_now()
+    hour = now.hour
+    window = _time_window(hour)
+    canonical = normalize_season_id(season_id)
+    conds = _normalize_conditions(conditions)
+
+    time_label = now.strftime("%I:%M %p PKT")  # e.g. "04:50 PM PKT"
+    has_respiratory = any(c in conds for c in ("asthma", "copd"))
+    has_heart = "heart disease" in conds
+    is_sensitive = sensitivity == "high" or has_respiratory or has_heart
+
+    # Default: safe
+    safe_to_go = True
+    emoji = "✅"
+    title_ur = f"🕐 Abhi {time_label} — bahar jaana theek hai"
+    message_ur = "Ehtiyaat ke sath safar kar sakte hain."
+    message_en = f"Current time {time_label}. Outdoor activity is acceptable."
+
+    # ---- Hazardous AQI overrides everything ----
+    if aqi >= 200:
+        safe_to_go = False
+        emoji = "🚫"
+        title_ur = f"🕐 Abhi {time_label} — bilkul bahar na jayein"
+        message_ur = f"AQI {aqi} bohat kharab hai. Ghar mein rahein aur windows band rakhein."
+        message_en = f"AQI {aqi} is hazardous. Stay indoors regardless of time."
+
+    # ---- Summer heatwave ----
+    elif canonical == "summer_heatwave":
+        if window == "afternoon":
+            safe_to_go = False
+            emoji = "🔥"
+            title_ur = f"🕐 Abhi {time_label} — dopahar ki garmi, bahar na jayein"
+            if is_sensitive:
+                message_ur = (
+                    f"Abhi peak garmi ka waqt hai aur AQI {aqi} hai. "
+                    "Aap ki health condition ke liye yeh waqt risky hai — 6 PM ke baad jayein."
+                )
+            else:
+                message_ur = (
+                    f"Dopahar 12-4 PM garmi aur ozone peak hai. AQI {aqi}. "
+                    "Agar zaruri na ho to 6 PM ke baad jayein."
+                )
+            message_en = (
+                f"It's {time_label} — peak heat hours (12-4 PM). AQI {aqi}. "
+                "Delay travel until after 6 PM if possible."
+            )
+        elif window == "late_afternoon":
+            if aqi >= 150 or (is_sensitive and aqi >= 100):
+                safe_to_go = False
+                emoji = "⏳"
+                title_ur = f"🕐 Abhi {time_label} — thori der aur ruk jayein"
+                message_ur = (
+                    f"Garmi abhi bhi hai aur AQI {aqi} hai. "
+                    "1-2 ghantay baad (6 PM ke baad) jaana behtar hoga."
+                )
+            else:
+                emoji = "⏳"
+                title_ur = f"🕐 Abhi {time_label} — thori der mein behtar hoga"
+                message_ur = (
+                    "Garmi kam ho rahi hai. Agar zaruri ho to ja sakte hain, "
+                    "warna 6 PM ke baad ideal hai."
+                )
+            message_en = (
+                f"It's {time_label}. Heat is still high. "
+                "Wait 1-2 hours for the evening window if you can."
+            )
+        elif window in ("evening", "night"):
+            emoji = "✅"
+            title_ur = f"🕐 Abhi {time_label} — shaam ka acha waqt hai"
+            message_ur = "Garmi kam ho gayi hai. Safar ke liye yeh acha waqt hai, paani peete rahein."
+            message_en = f"It's {time_label}. Evening window — good time to travel. Stay hydrated."
+            if aqi >= 150:
+                emoji = "⚠️"
+                message_ur += f" Lekin AQI {aqi} abhi bhi zyada hai, mask lagayein."
+        elif window == "early_morning":
+            emoji = "✅"
+            title_ur = f"🕐 Abhi {time_label} — subah ka behtareen waqt"
+            message_ur = "11 AM se pehle safar kar lein, yeh din ka sabse acha window hai."
+            message_en = f"It's {time_label}. Best travel window before heat builds."
+        elif window == "late_morning":
+            emoji = "⚠️"
+            title_ur = f"🕐 Abhi {time_label} — jaldi nikal jayein"
+            message_ur = "Garmi barhne lagi hai. Agar jaana hai to abhi nikal jayein."
+            message_en = f"It's {time_label}. Heat building — leave soon or wait until evening."
+
+    # ---- Winter smog ----
+    elif canonical == "winter_smog":
+        if window in ("early_morning", "night") and aqi >= 150:
+            safe_to_go = False
+            emoji = "🌫️"
+            title_ur = f"🕐 Abhi {time_label} — subah smog peak hai"
+            message_ur = (
+                f"AQI {aqi} aur early morning inversion — smog zyada hai. "
+                "10 AM ke baad jaana behtar hai."
+            )
+            message_en = f"It's {time_label}. Morning smog inversion is peaking. Wait until mid-morning."
+        elif aqi >= 150:
+            safe_to_go = False
+            emoji = "🌫️"
+            title_ur = f"🕐 Abhi {time_label} — smog bohat zyada hai"
+            message_ur = f"AQI {aqi} unhealthy hai. N95 mask zaruri hai, trip short rakhein."
+            message_en = f"AQI {aqi} in smog season. N95 mandatory for any outdoor exposure."
+
+    # ---- Monsoon ----
+    elif canonical == "monsoon":
+        if window in ("evening", "night"):
+            emoji = "🌧️"
+            title_ur = f"🕐 Abhi {time_label} — baarish check karein"
+            message_ur = "Barsaat ke baad sadkein gili hoti hain. Underpasses avoid karein."
+            message_en = f"It's {time_label}. Check for post-rain flooding before traveling."
+
+    # ---- Sensitive profile override ----
+    if safe_to_go and is_sensitive and aqi >= 120:
+        emoji = "⚠️"
+        title_ur = f"🕐 Abhi {time_label} — ehtiyaat se jayein"
+        message_ur += f" AQI {aqi} aap ke liye moderate risk hai — mask use karein."
+        message_en += f" AQI {aqi} is borderline for your health profile."
+
+    return {
+        "hour": hour,
+        "time_label": time_label,
+        "emoji": emoji,
+        "safe_to_go": safe_to_go,
+        "title_ur": title_ur,
+        "message_ur": message_ur,
+        "message_en": message_en,
+    }
+
+
 def _normalize_conditions(conditions: list[str] | None) -> list[str]:
     if not conditions:
         return []

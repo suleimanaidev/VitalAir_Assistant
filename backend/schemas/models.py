@@ -230,6 +230,7 @@ class AgentHealthResponse(BaseModel):
     aqi_label: str
     health_advice: str
     health_explainability: HealthExplainability | None = None
+    time_recommendation: dict | None = None
     rag_sources_used: int = 0
     has_patient_docs: bool = False
     agent_mode: str = "rag_rules"

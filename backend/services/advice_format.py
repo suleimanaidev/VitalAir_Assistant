@@ -440,10 +440,11 @@ def format_health_advice(
     ):
         bullets.insert(0, "Drink water every 30 minutes — heat plus pollution is risky.")
 
-    summary_en = _season_summary_en(
-        season_id, aqi, temp_c, profile_name=profile_name, conditions_list=conditions_list
-    )
-    summary_ur = SUMMARY_UR.get(season_id, "Lahore hawa ke liye neeche guidance follow karein.")
+    if conditions_list:
+        cond_names = " aur ".join(c.title() for c in conditions_list)
+        summary_ur = f"⚠️ Kyunke aap ko {cond_names} hai, isliye AQI {aqi} aur {season_intel.label_ur} mein zaroori ehtiyat karein."
+    else:
+        summary_ur = SUMMARY_UR.get(season_id, "Lahore hawa ke liye neeche guidance follow karein.")
 
     body = "\n".join(f"• {b}" for b in bullets[:4])
     return f"{summary_en}\n{summary_ur}\n\n{body}"
@@ -452,7 +453,7 @@ def format_health_advice(
 def format_diet_plan(
     rag_text: str,
     *,
-    season_id: str = "winter_smog",
+    season_id: str | None = None,
     aqi: int = 100,
     conditions: str = "",
     age: int = 25,
@@ -461,7 +462,8 @@ def format_diet_plan(
     destination: str = "",
     user_id: str | None = None,
 ) -> list[str]:
-    season_id = normalize_season_id(season_id)
+    from tools.lahore_season import get_lahore_season
+    season_id = normalize_season_id(season_id or get_lahore_season().id)
     season_intel = get_season_profile(season_id)
     conditions_list = _parse_conditions(conditions)
     hour_bucket = lahore_now().strftime("%Y-%m-%d-%H")
@@ -480,8 +482,7 @@ def format_diet_plan(
     patient_bullets = build_patient_doc_bullets(rag_text, aqi=aqi)
     rag_bullets = bullets_from_text(rag_text, max_items=2)
 
-    # --- Priority order: patient docs → conditions → season pool → RAG ---
-    # This ensures personalized content is never pushed out by generic items.
+    # Priority order: patient docs → conditions → season pool → RAG
     picked: list[str] = []
     seen_lower: set[str] = set()
 
@@ -509,10 +510,11 @@ def format_diet_plan(
     if intel_item:
         _add(intel_item)
 
-    # 4. Season pool items to fill remaining slots
-    pool = list(SEASON_DIET_POOL.get(season_id, SEASON_DIET_POOL["winter_smog"]))
-    if season_id == "summer_heatwave":
-        pool = [p for p in pool if "ginger tea" not in p.lower()]
+    # 4. Season pool items to fill remaining slots (strictly filtered by season)
+    pool = list(SEASON_DIET_POOL.get(season_id, SEASON_DIET_POOL["summer_heatwave"]))
+    if season_id in ("summer_heatwave", "pre_monsoon_heat", "monsoon"):
+        forbidden = ("ginger tea", "haldi doodh", "kinnow", "malta", "gajar")
+        pool = [p for p in pool if not any(f in p.lower() for f in forbidden)]
     for item in _pick_varied(pool, seed, 4):
         _add(item)
 

@@ -110,7 +110,7 @@ async def generate_health_advice_async(
     conditions: str,
     rag_context: str,
     profile_summary: str,
-    season_id: str = "winter_smog",
+    season_id: str = "summer_heatwave",
     season_label: str = "Lahore",
     temp_c: float = 0.0,
     source: str = "",
@@ -121,7 +121,7 @@ async def generate_health_advice_async(
     no_smog = not is_smog_season(season_id)
     hour = lahore_now().hour
     season_rule = (
-        "Do NOT mention smog season or smog episodes — current season is hot/monsoon, focus on heat and hydration."
+        "Do NOT mention smog season or smog episodes — current season is hot summer/monsoon, focus on heat and hydration."
         if no_smog
         else "Smog season guidance is appropriate (N95, indoor, HEPA)."
     )
@@ -159,7 +159,8 @@ async def generate_health_advice_async(
             "Give exactly 4 bullet points (• prefix), no more. Each bullet one clear, "
             "actionable step tailored to age, conditions, sensitivity, and commute. "
             "Start with one English summary line, then one Roman Urdu summary line, then bullets. "
-            "CRITICAL: In the Roman Urdu summary line, you MUST explicitly mention the user's health condition if they have one (e.g., 'Kyunke aap ko asthma hai, isliye...'). "
+            "CRITICAL SUMMARY RULE: In the Roman Urdu summary line (2nd line), you MUST explicitly state the user's specific health conditions by name (e.g., 'Kyunke aap ko Asthma aur Heart Disease hai, isliye is mausam mein...'). "
+            "DO NOT write generic phrases like 'Given your current symptoms and health conditions' or 'Aap ki halat aur sehat ke madde nazar'. "
             "Be cautious and professional — never diagnose; recommend medical care when symptoms are severe. "
             f"{season_rule} {time_rule} {doc_rule}"
         ),
@@ -181,13 +182,25 @@ def generate_health_advice(
     conditions: str,
     rag_context: str,
     profile_summary: str,
-    season_id: str = "winter_smog",
+    season_id: str = "summer_heatwave",
     season_label: str = "Lahore",
     temp_c: float = 0.0,
     source: str = "",
     destination: str = "",
     has_patient_docs: bool = False,
 ) -> str | None:
+    no_smog = not is_smog_season(season_id)
+    hour = lahore_now().hour
+    season_rule = (
+        "Do NOT mention smog season or smog episodes — current season is hot summer/monsoon, focus on heat and hydration."
+        if no_smog
+        else "Smog season guidance is appropriate (N95, indoor, HEPA)."
+    )
+    doc_rule = (
+        "Patient uploaded health documents are included below."
+        if has_patient_docs
+        else "No patient documents uploaded."
+    )
     return _chat(
         system=(
             "You are a professional digital pulmonologist for VitalAir Lahore. "
@@ -196,11 +209,15 @@ def generate_health_advice(
             "Give exactly 4 bullet points (• prefix), no more. Each bullet one clear, "
             "actionable step tailored to age, conditions, sensitivity, and commute. "
             "Start with one English summary line, then one Roman Urdu summary line, then bullets. "
-            "CRITICAL: In the Roman Urdu summary line, you MUST explicitly mention the user's health condition if they have one (e.g., 'Kyunke aap ko asthma hai, isliye...'). "
-            "Be cautious and professional — never diagnose; recommend medical care when symptoms are severe."
+            "CRITICAL SUMMARY RULE: In the Roman Urdu summary line (2nd line), you MUST explicitly state the user's specific health conditions by name (e.g., 'Kyunke aap ko Asthma aur Heart Disease hai, isliye is mausam mein...'). "
+            "DO NOT write generic phrases like 'Given your current symptoms and health conditions' or 'Aap ki halat aur sehat ke madde nazar'. "
+            "Be cautious and professional — never diagnose; recommend medical care when symptoms are severe. "
+            f"{season_rule} {doc_rule}"
         ),
         user=(
             f"Season: {season_label} ({season_id})\n"
+            f"Local time: {hour:02d}:00 PKT\n"
+            f"Temperature: {temp_c}°C\n"
             f"Route: {source} → {destination}\n"
             f"AQI: {aqi}\nProfile: {profile_summary}\nConditions: {conditions}\n\n"
             f"Retrieved patient & WHO context:\n{rag_context[:4000]}"
@@ -212,7 +229,7 @@ async def generate_diet_plan_async(
     *,
     aqi: int,
     rag_context: str,
-    season_id: str = "winter_smog",
+    season_id: str = "summer_heatwave",
     season_label: str = "Lahore",
     conditions: str = "",
     age: int = 25,
@@ -225,12 +242,12 @@ async def generate_diet_plan_async(
 ) -> list[str] | None:
     logger.debug("generate_diet_plan_async aqi=%d season=%s src=%s", aqi, season_id, source)
     season_focus = {
-        "summer_heatwave": "cooling, hydrating foods; avoid heavy fried items",
-        "pre_monsoon_heat": "cooling drinks and light meals for rising heat",
-        "monsoon": "hydration, light meals, hygiene; avoid street food",
-        "winter_smog": "vitamin C, anti-inflammatory and warming foods for smog",
-        "post_monsoon": "immunity-building seasonal fruits and light meals",
-        "spring": "fresh seasonal fruits and balanced light meals",
+        "summer_heatwave": "cooling, hydrating summer foods (watermelon/tarbuz, lassi, sattu, cucumber/kheera, coconut water, falsa, lemon water). STRICTLY FORBIDDEN IN SUMMER: Do NOT suggest winter fruits like Kinnow or Malta, and do NOT suggest warming drinks like Haldi Doodh.",
+        "pre_monsoon_heat": "cooling drinks and light summer meals for rising heat. STRICTLY FORBIDDEN IN SUMMER: Do NOT suggest Kinnow, Malta, or Haldi Doodh.",
+        "monsoon": "hydration, light meals, hygiene, jamun; avoid street food. STRICTLY FORBIDDEN: Do NOT suggest Kinnow, Malta, or Haldi Doodh.",
+        "winter_smog": "vitamin C (kinnow, malta), anti-inflammatory and warming foods for smog (haldi doodh, ginger, saag, soup).",
+        "post_monsoon": "immunity-building seasonal fruits and light meals.",
+        "spring": "fresh seasonal fruits (amrood, ber) and balanced light meals.",
     }.get(season_id, "season-appropriate Punjab home foods")
 
     doc_rule = (
@@ -246,8 +263,11 @@ async def generate_diet_plan_async(
             "strings in natural, conversational ROMAN URDU (like how Pakistanis chat on WhatsApp, avoid overly formal or literal translations). "
             "Each string must be ONE clear actionable tip: "
             "food/drink + kab + kyun (for this user's conditions and AQI). "
-            "CRITICAL: You MUST tailor each tip to the user's specific health conditions, "
-            "age, sensitivity, and commute mode from the profile below. "
+            "CRITICAL MAUSAM (SEASON) RULE: Pay strict attention to the current season focus! "
+            "If season is summer_heatwave, monsoon, or pre_monsoon_heat, suggest ONLY summer-appropriate cooling foods (e.g. Tarbuz, Lassi, Sattu, Kheera, Nimbu Pani, Falsa, Jamun). "
+            "NEVER suggest winter items like Kinnow, Malta, Gajar juice, or Haldi Doodh during summer/monsoon. "
+            "CRITICAL HEALTH CONDITION RULE: You MUST tailor each tip to the user's specific health conditions "
+            "(e.g. if user has Asthma, Diabetes, or Heart Disease, name the condition or its dietary requirement explicitly). "
             "If the user has asthma, recommend anti-inflammatory foods. "
             "If diabetic, avoid sugary items and mention sugar-safe alternatives. "
             "If heart disease, recommend low-sodium heart-healthy options. "
@@ -292,7 +312,7 @@ def generate_diet_plan(
     *,
     aqi: int,
     rag_context: str,
-    season_id: str = "winter_smog",
+    season_id: str = "summer_heatwave",
     season_label: str = "Lahore",
     conditions: str = "",
     age: int = 25,
@@ -303,13 +323,46 @@ def generate_diet_plan(
     has_patient_docs: bool = False,
     profile_summary: str = "",
 ) -> list[str] | None:
+    season_focus = {
+        "summer_heatwave": "cooling, hydrating summer foods (watermelon/tarbuz, lassi, sattu, cucumber/kheera, coconut water, falsa, lemon water). STRICTLY FORBIDDEN IN SUMMER: Do NOT suggest winter fruits like Kinnow or Malta, and do NOT suggest warming drinks like Haldi Doodh.",
+        "pre_monsoon_heat": "cooling drinks and light summer meals for rising heat. STRICTLY FORBIDDEN IN SUMMER: Do NOT suggest Kinnow, Malta, or Haldi Doodh.",
+        "monsoon": "hydration, light meals, hygiene, jamun; avoid street food. STRICTLY FORBIDDEN: Do NOT suggest Kinnow, Malta, or Haldi Doodh.",
+        "winter_smog": "vitamin C (kinnow, malta), anti-inflammatory and warming foods for smog (haldi doodh, ginger, saag, soup).",
+        "post_monsoon": "immunity-building seasonal fruits and light meals.",
+        "spring": "fresh seasonal fruits (amrood, ber) and balanced light meals.",
+    }.get(season_id, "season-appropriate Punjab home foods")
+
+    doc_rule = (
+        "Patient uploaded health documents are included. Tailor food advice to medications/conditions."
+        if has_patient_docs
+        else "No patient documents — use profile conditions and general anti-pollution diet guidance."
+    )
+
     raw = _chat(
         system=(
-            "You are a Lahore/Punjab nutrition advisor. Return ONLY a JSON array of exactly 4 strings in ROMAN URDU."
+            "You are a Lahore/Punjab nutrition advisor. Return ONLY a JSON array of exactly 4 "
+            "strings in natural, conversational ROMAN URDU. "
+            "CRITICAL MAUSAM (SEASON) RULE: Pay strict attention to the current season focus! "
+            "If season is summer_heatwave, monsoon, or pre_monsoon_heat, suggest ONLY summer-appropriate cooling foods (e.g. Tarbuz, Lassi, Sattu, Kheera, Nimbu Pani, Falsa, Jamun). "
+            "NEVER suggest winter items like Kinnow, Malta, Gajar juice, or Haldi Doodh during summer/monsoon. "
+            "CRITICAL HEALTH CONDITION RULE: You MUST tailor each tip to the user's specific health conditions "
+            "(e.g. if user has Asthma, Diabetes, or Heart Disease, name the condition or its dietary requirement explicitly). "
+            "If the user has asthma, recommend anti-inflammatory foods. "
+            "If diabetic, avoid sugary items and mention sugar-safe alternatives. "
+            "If heart disease, recommend low-sodium heart-healthy options. "
+            "Use only common Lahore/Punjab foods. Avoid random exotic items. "
+            "Do NOT repeat the same food in multiple tips. "
+            "Keep each tip under 90 characters. "
+            f"{doc_rule}"
         ),
         user=(
             f"Health profile: {profile_summary or 'not provided'}\n"
-            f"Area: {source}\nAQI {aqi} in Lahore.\n"
+            f"Season: {season_label} ({season_id}) — focus on {season_focus}.\n"
+            f"Local time: {lahore_now().hour:02d}:00 PKT\n"
+            f"Area: {source}\n"
+            f"AQI {aqi} in Lahore.\n"
+            f"Age: {age}, Conditions: {conditions or 'none'}, "
+            f"Sensitivity: {sensitivity}, Commute: {commute_mode}\n"
             f"Retrieved context:\n{rag_context[:3500]}"
         ),
         max_tokens=320,

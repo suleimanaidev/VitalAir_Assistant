@@ -214,12 +214,22 @@ def run_health_agent(
         agent_mode=agent_mode,
     )
 
+    from services.seasonal_intelligence import build_time_recommendation
+    time_rec = build_time_recommendation(
+        season_id=season_id,
+        aqi=aqi_val,
+        temp_c=temp_c,
+        conditions=conditions,
+        sensitivity=sensitivity,
+    )
+
     return AgentHealthResponse(
         area=area,
         aqi=aqi_val,
         aqi_label=aqi_label(aqi_val),
         health_advice=health,
         health_explainability=explainability,
+        time_recommendation=time_rec,
         rag_sources_used=count_rag_chunks(rag_health),
         has_patient_docs=has_patient_docs,
         agent_mode=agent_mode,

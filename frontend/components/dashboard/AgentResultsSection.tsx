@@ -372,6 +372,27 @@ export default function AgentResultsSection({
       >
         {healthResult ? (
           <>
+            {healthResult.time_recommendation && (
+              <div
+                className={`mb-4 flex items-start gap-3 rounded-xl border-2 px-4 py-3.5 ${
+                  healthResult.time_recommendation.safe_to_go
+                    ? "border-emerald-500/40 bg-emerald-500/8"
+                    : "border-vital-danger/40 bg-vital-danger/8"
+                }`}
+              >
+                <span className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-vital-bg/60 text-xl shadow-inner">
+                  {healthResult.time_recommendation.emoji}
+                </span>
+                <div className="min-w-0">
+                  <p className="text-base font-bold leading-snug text-vital-text">
+                    {healthResult.time_recommendation.title_ur}
+                  </p>
+                  <p className="mt-1 text-sm leading-relaxed text-vital-muted">
+                    {healthResult.time_recommendation.message_ur}
+                  </p>
+                </div>
+              </div>
+            )}
             <HealthAlertCard
               title={healthTitleFromContext(healthResult.aqi, profile)}
               message={healthResult.health_advice}
@@ -422,7 +443,7 @@ export default function AgentResultsSection({
           />
         ) : (
           <p className="text-sm text-vital-muted">
-            Vitamin C, ginger, omega-3 — RAG diet knowledge se tips.
+            AQI aur season ke mutabiq personalized anti-pollution diet guide.
           </p>
         )}
       </AgentStepCard>

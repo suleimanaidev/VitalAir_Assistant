@@ -273,6 +273,15 @@ export interface AgentHealthResult {
   aqi_label: string;
   health_advice: string;
   health_explainability?: AnalyzeResult["health_explainability"];
+  time_recommendation?: {
+    hour: number;
+    time_label: string;
+    emoji: string;
+    safe_to_go: boolean;
+    title_ur: string;
+    message_ur: string;
+    message_en: string;
+  };
   rag_sources_used: number;
   has_patient_docs: boolean;
   agent_mode: string;
