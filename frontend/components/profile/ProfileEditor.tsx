@@ -132,26 +132,28 @@ export default function ProfileEditor({ onSaved }: ProfileEditorProps) {
     <form onSubmit={handleSubmit(onSubmit)} className="vital-card space-y-8 p-6 sm:p-8">
       <section className="space-y-4">
         <h2 className="text-lg font-semibold text-vital-text">About you</h2>
-        <div>
-          <label className="block text-sm font-medium text-vital-text">Full name</label>
-          <input
-            type="text"
-            className={inputClass}
-            disabled={saving}
-            {...register("name")}
-          />
-          {errors.name && <p className="mt-1 text-sm text-vital-danger">{errors.name.message}</p>}
-        </div>
-        
-        <div>
-          <label className="block text-sm font-medium text-vital-text">Age</label>
-          <input
-            type="number"
-            className={inputClass}
-            disabled={saving}
-            {...register("age", { valueAsNumber: true })}
-          />
-          {errors.age && <p className="mt-1 text-sm text-vital-danger">{errors.age.message}</p>}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-vital-text">Full name</label>
+            <input
+              type="text"
+              className={inputClass}
+              disabled={saving}
+              {...register("name")}
+            />
+            {errors.name && <p className="mt-1 text-sm text-vital-danger">{errors.name.message}</p>}
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-vital-text">Age</label>
+            <input
+              type="number"
+              className={inputClass}
+              disabled={saving}
+              {...register("age", { valueAsNumber: true })}
+            />
+            {errors.age && <p className="mt-1 text-sm text-vital-danger">{errors.age.message}</p>}
+          </div>
         </div>
         
         <p className="text-sm text-vital-muted">

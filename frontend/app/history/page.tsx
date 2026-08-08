@@ -191,7 +191,7 @@ export default function HistoryPage() {
                     Add today&apos;s check
                   </Link>
                 </div>
-                <div className="mt-4 grid gap-3 sm:grid-cols-4">
+                <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-3">
                   <Metric
                     label="Checks"
                     value={weeklySummary.checks}

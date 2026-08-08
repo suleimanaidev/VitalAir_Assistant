@@ -210,6 +210,7 @@ async def patient_rag_chat(
         season_id=season_id,
         season_label=season_label,
         temp_c=temp_c,
+        profile_summary=profile_summary,
     )
     mode = "openai_rag" if answer else "context_fallback"
     if not answer:

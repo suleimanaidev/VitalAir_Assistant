@@ -11,50 +11,45 @@ import {
   Bot,
   FileText,
   Gauge,
+  HeartPulse,
   MapPin,
   Microscope,
+  Navigation,
+  Sparkles,
+  Zap,
 } from "lucide-react";
 
 import { LandingHealthAnimations } from "@/components/animations/HealthMotionGraphics";
 import { authLink } from "@/lib/authLinks";
 
-const HERO_STATS = [
-  { icon: Bot, title: "4 AI assistants" },
-  { icon: Gauge, title: "Risk score 0–100" },
-  { icon: FileText, title: "Prescriptions" },
-] as const;
-
 const HERO_PILLS = [
-  { icon: MapPin, text: "Live air updates" },
-  { icon: BarChart3, text: "30-day history" },
-  { icon: Microscope, text: "Clear explanations" },
+  { icon: MapPin, text: "Live WAQI Lahore Feeds" },
+  { icon: Bot, text: "Personalized RAG Health AI" },
+  { icon: Navigation, text: "Low-AQI Safe Route Navigation" },
+  { icon: Microscope, text: "WHO & Doctor Guidelines" },
 ] as const;
 
-/** Static demo AQI shown on the landing hero (no API call). */
+/** Static demo AQI shown on the landing hero. */
 const DEMO_AQI = {
   city: "Lahore",
-  station: "Lahore",
-  value: 142,
+  station: "Civil Secretariat",
+  value: 126,
   label: "Unhealthy for Sensitive Groups",
-  pm25Index: 142,
-  pollutant: "PM25",
-  updatedLabel: "Live snapshot",
-  adviceEn:
-    "Sensitive individuals should reduce prolonged outdoor exertion and keep a mask handy.",
-  adviceUr:
-    "Sensitive log lambi outdoor activity kam karein aur mask saath rakhein.",
+  pm25Index: 126,
+  pollutant: "PM2.5",
+  adviceUr: "Sensitive groups (Asthma/Heart) outdoor exertion kam karein aur N95 mask istemal karein.",
 } as const;
 
 const container = {
   hidden: { opacity: 0 },
   show: {
     opacity: 1,
-    transition: { staggerChildren: 0.12 },
+    transition: { staggerChildren: 0.1 },
   },
 };
 
 const item = {
-  hidden: { opacity: 0, y: 20 },
+  hidden: { opacity: 0, y: 18 },
   show: { opacity: 1, y: 0, transition: { duration: 0.5 } },
 };
 
@@ -69,179 +64,151 @@ export default function HeroSection() {
     router.prefetch("/onboarding");
   }, [router]);
 
-  const isHazardous = DEMO_AQI.value >= 150;
-
   return (
-    <section className="relative pt-24 pb-16 sm:pt-28 sm:pb-24 lg:pb-32">
+    <section className="relative overflow-hidden pt-24 pb-16 sm:pt-28 sm:pb-24 lg:pt-32 lg:pb-32">
       <LandingHealthAnimations />
-      <motion.div
-        className="pointer-events-none absolute inset-0 bg-grid-pattern opacity-30"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 0.3 }}
-        transition={{ duration: 1 }}
-      />
-      <motion.div className="pointer-events-none absolute left-1/2 top-0 h-[480px] w-[480px] -translate-x-1/2 rounded-full bg-vital-primary/10 blur-3xl" />
+      
+      {/* Ambient Radial Background Glows */}
+      <div className="pointer-events-none absolute left-1/2 top-10 h-[500px] w-[500px] -translate-x-1/2 rounded-full bg-vital-primary/12 blur-[120px]" />
+      <div className="pointer-events-none absolute left-1/2 top-40 h-[350px] w-[350px] -translate-x-1/2 rounded-full bg-[#FFD700]/8 blur-[100px]" />
 
-      <motion.div className="relative mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
+      <motion.div className="relative mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 text-center">
         <motion.div
-          className="grid gap-12 lg:grid-cols-2 lg:items-center lg:gap-16"
           variants={container}
           initial="hidden"
           animate="show"
+          className="flex flex-col items-center"
         >
+          {/* Top Pill Badge */}
           <motion.div variants={item}>
-            <motion.div
-              className="mb-4 inline-flex items-center gap-2 rounded-full border border-vital-border bg-vital-card px-3 py-1 text-sm text-vital-muted transition-colors duration-300 hover:border-vital-primary/50 hover:bg-vital-primary/10"
-              whileHover={{ scale: 1.03 }}
-            >
-              <MapPin className="h-4 w-4 text-vital-primary" aria-hidden />
-              <span>Environmental Health Intelligence · Lahore</span>
-            </motion.div>
-
-            <h1 className="text-4xl font-bold leading-tight tracking-tight sm:text-5xl lg:text-6xl">
-              Smarter decisions for{" "}
-              <span className="text-gradient-primary">air quality</span>{" "}
-              and personal health
-            </h1>
-
-            <p className="section-subtitle mt-6 max-w-xl leading-relaxed">
-              VitalAir tells you how clean the air is in Lahore, what it means
-              for your health, what to eat, and which road is safer to take. It
-              remembers your medical history, tracks your exposure over time, and
-              explains every suggestion in plain language.
-            </p>
-
-            <ul className="mt-5 flex flex-wrap gap-2">
-              {HERO_PILLS.map(({ icon: Icon, text }) => (
-                <li
-                  key={text}
-                  className="inline-flex items-center gap-1.5 rounded-full border border-vital-border bg-vital-card/60 px-3 py-1 text-xs text-vital-muted"
-                >
-                  <Icon className="h-3.5 w-3.5 text-vital-primary" aria-hidden />
-                  {text}
-                </li>
-              ))}
-            </ul>
-
-            <motion.div className="mt-8 flex flex-wrap gap-4">
-              <motion.div
-                className="group"
-                whileHover={{ scale: 1.03 }}
-                whileTap={{ scale: 0.98 }}
-              >
-                <Link
-                  href={authLink("/onboarding", isAuthenticated, "register")}
-                  prefetch
-                  className="btn-primary"
-                >
-                  Get started
-                  <ArrowRight
-                    className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1"
-                    aria-hidden
-                  />
-                </Link>
-              </motion.div>
-              <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.98 }}>
-                <Link
-                  href={authLink("/dashboard", isAuthenticated)}
-                  prefetch
-                  className="btn-secondary"
-                >
-                  Open dashboard
-                </Link>
-              </motion.div>
-            </motion.div>
-
-            <ul className="mt-10 grid gap-2 sm:grid-cols-3">
-              {HERO_STATS.map(({ icon: Icon, title }) => (
-                <motion.li
-                  key={title}
-                  className="group vital-card-hover flex cursor-default items-center gap-2 rounded-xl border border-vital-border bg-vital-card/50 px-3 py-2.5 sm:px-3.5"
-                  whileHover={{ scale: 1.02 }}
-                >
-                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-vital-primary/10 transition-colors duration-300 group-hover:bg-vital-primary/25">
-                    <Icon className="h-4 w-4 text-vital-primary" aria-hidden />
-                  </span>
-                  <p className="text-xs font-semibold leading-snug text-vital-text sm:text-sm">
-                    {title}
-                  </p>
-                </motion.li>
-              ))}
-            </ul>
+            <span className="inline-flex items-center gap-2 rounded-full border border-vital-primary/30 bg-vital-primary/10 px-4 py-1.5 text-xs font-semibold uppercase tracking-wider text-vital-primary shadow-sm backdrop-blur-md">
+              <Sparkles className="h-3.5 w-3.5 text-vital-primary animate-pulse" aria-hidden />
+              AI-Powered Environmental Health &amp; Clean Route Intelligence
+            </span>
           </motion.div>
 
-          <motion.div variants={item} className="w-full lg:justify-self-end z-20">
-            <motion.div
-              className={`vital-card relative w-full max-w-md overflow-hidden p-6 sm:p-8 backdrop-blur-xl bg-vital-card/80 border-white/10 shadow-2xl ${
-                isHazardous ? "shadow-glow-danger" : "shadow-glow-primary"
-              }`}
-              whileHover={{
-                y: -6,
-                boxShadow:
-                  "0 16px 48px rgba(0, 0, 0, 0.4), 0 0 32px rgba(0, 200, 150, 0.18)",
-              }}
-              transition={{ type: "spring", stiffness: 320, damping: 22 }}
+          {/* Powerful & Minimalist Main Headline */}
+          <motion.h1
+            variants={item}
+            className="mt-6 text-4xl font-extrabold tracking-tight text-vital-text sm:text-6xl lg:text-7xl leading-[1.1]"
+          >
+            Breathe Safer. Live Smarter. <br />
+            <span className="text-gradient-primary">
+              AI Health Guidance
+            </span>{" "}
+            for Lahore.
+          </motion.h1>
+
+          {/* Clean, Crisp Minimalist Subtitle */}
+          <motion.p
+            variants={item}
+            className="mt-6 max-w-2xl text-base text-vital-muted sm:text-lg leading-relaxed font-normal"
+          >
+            Real-time air quality tracking, doctor-aware health precautions, anti-pollution nutrition, and clean low-exposure route navigation — tailored for your profile.
+          </motion.p>
+
+          {/* Action CTAs */}
+          <motion.div
+            variants={item}
+            className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4 w-full sm:w-auto"
+          >
+            <Link
+              href={authLink("/onboarding", isAuthenticated, "register")}
+              prefetch
+              className="btn-primary w-full sm:w-auto px-8 py-3.5 text-base font-semibold shadow-lg shadow-vital-primary/25 hover:shadow-vital-primary/40 transition-all"
             >
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-sm text-vital-muted">Live Lahore AQI</p>
-                  <p className="mt-1 text-2xl font-semibold text-vital-text">
-                    {DEMO_AQI.city}
-                  </p>
-                  <p className="text-xs text-vital-muted">
-                    WAQI · {DEMO_AQI.station}
-                  </p>
-                </div>
-                <span
-                  className={`rounded-full px-3 py-1 text-xs font-medium ${
-                    isHazardous
-                      ? "bg-vital-danger/15 text-vital-danger"
-                      : "bg-vital-primary/15 text-vital-primary"
-                  }`}
-                >
-                  {DEMO_AQI.label}
+              Get Started Free
+              <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" aria-hidden />
+            </Link>
+            <Link
+              href={authLink("/dashboard", isAuthenticated)}
+              prefetch
+              className="btn-secondary w-full sm:w-auto px-8 py-3.5 text-base font-semibold border-vital-border hover:border-vital-primary/40"
+            >
+              Open Dashboard
+            </Link>
+          </motion.div>
+
+          {/* Feature Pills */}
+          <motion.ul
+            variants={item}
+            className="mt-8 flex flex-wrap items-center justify-center gap-2.5"
+          >
+            {HERO_PILLS.map(({ icon: Icon, text }) => (
+              <li
+                key={text}
+                className="inline-flex items-center gap-1.5 rounded-full border border-vital-border/80 bg-vital-card/70 px-3.5 py-1.5 text-xs font-medium text-vital-muted shadow-sm backdrop-blur-md"
+              >
+                <Icon className="h-3.5 w-3.5 text-vital-primary" aria-hidden />
+                {text}
+              </li>
+            ))}
+          </motion.ul>
+
+          {/* Hero Visual Showcase Cards (Centered 3-Column Preview Grid) */}
+          <motion.div
+            variants={item}
+            className="mt-14 w-full grid grid-cols-1 md:grid-cols-3 gap-5 text-left"
+          >
+            {/* Showcase Card 1: AQI Live Monitor */}
+            <div className="vital-card relative overflow-hidden p-5 border-vital-primary/25 bg-vital-card/80 backdrop-blur-xl shadow-xl hover:border-vital-primary/40 transition-all">
+              <div className="flex items-center justify-between">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/15 px-2.5 py-0.5 text-[11px] font-bold text-emerald-400">
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-ping" />
+                  Live AQI Monitor
+                </span>
+                <span className="text-xs font-semibold text-amber-400">PM2.5</span>
+              </div>
+              <div className="mt-4 flex items-baseline gap-2">
+                <span className="text-4xl font-black text-amber-400 tracking-tight">
+                  {DEMO_AQI.value}
+                </span>
+                <span className="text-xs font-semibold text-vital-muted">
+                  Unhealthy for Sensitive
                 </span>
               </div>
+              <div className="mt-3 flex items-center gap-1.5 text-xs text-vital-text">
+                <MapPin className="h-3.5 w-3.5 text-vital-primary shrink-0" />
+                <span className="font-semibold truncate">📍 Source: {DEMO_AQI.station}</span>
+              </div>
+            </div>
 
-              <p
-                className={`mt-6 text-7xl font-bold tabular-nums tracking-tight ${
-                  isHazardous ? "text-gradient-danger" : "text-gradient-primary"
-                }`}
-              >
-                {DEMO_AQI.value}
+            {/* Showcase Card 2: AI Health Agent */}
+            <div className="vital-card relative overflow-hidden p-5 border-vital-primary/25 bg-vital-card/80 backdrop-blur-xl shadow-xl hover:border-vital-primary/40 transition-all">
+              <div className="flex items-center justify-between">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-vital-primary/15 px-2.5 py-0.5 text-[11px] font-bold text-vital-primary">
+                  <HeartPulse className="h-3.5 w-3.5" />
+                  VitalAir Assistant
+                </span>
+                <span className="text-[10px] font-medium text-vital-muted">WHO RAG</span>
+              </div>
+              <p className="mt-3 text-xs leading-relaxed text-vital-text line-clamp-3">
+                &ldquo;{DEMO_AQI.adviceUr}&rdquo;
               </p>
+              <p className="mt-2 text-[10px] text-vital-primary font-medium">
+                ✓ Personalized for Asthma &amp; Heart profile
+              </p>
+            </div>
 
-              <p className="mt-2 text-sm text-vital-muted">
-                PM2.5 index {DEMO_AQI.pm25Index} · Main pollutant:{" "}
-                {DEMO_AQI.pollutant}
+            {/* Showcase Card 3: Smart Route Navigator */}
+            <div className="vital-card relative overflow-hidden p-5 border-vital-primary/25 bg-vital-card/80 backdrop-blur-xl shadow-xl hover:border-vital-primary/40 transition-all">
+              <div className="flex items-center justify-between">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-cyan-500/15 px-2.5 py-0.5 text-[11px] font-bold text-cyan-400">
+                  <Navigation className="h-3.5 w-3.5" />
+                  Clean Route AI
+                </span>
+                <span className="text-[10px] font-medium text-emerald-400">Cleanest Path</span>
+              </div>
+              <p className="mt-3 text-xs font-semibold text-vital-text">
+                Gulberg III → Civil Secretariat
               </p>
               <p className="mt-1 text-xs text-vital-muted">
-                {DEMO_AQI.updatedLabel}
+                Via Jail Road Corridor · Avg AQI 114 (-22% Exposure)
               </p>
-
-              <motion.div
-                className="mt-6 h-2 overflow-hidden rounded-full bg-vital-border"
-                initial={{ scaleX: 0 }}
-                animate={{ scaleX: 1 }}
-                transition={{ delay: 0.3, duration: 0.5 }}
-                style={{ originX: 0 }}
-              >
-                <div
-                  className="h-full rounded-full bg-gradient-to-r from-vital-primary via-[#f0c040] to-vital-danger"
-                  style={{ width: `${Math.min(DEMO_AQI.value / 3, 100)}%` }}
-                />
-              </motion.div>
-
-              <p className="mt-4 text-sm text-vital-muted">{DEMO_AQI.adviceEn}</p>
-              <p className="mt-1 text-xs text-vital-muted/80">
-                {DEMO_AQI.adviceUr}
+              <p className="mt-2 text-[10px] text-cyan-400 font-medium">
+                ✓ Lowest pollution exposure option
               </p>
-
-              <p className="mt-5 border-t border-white/10 pt-4 text-xs leading-relaxed text-vital-muted">
-                Enter your route on the dashboard to get health tips and safer
-                road options for today.
-              </p>
-            </motion.div>
+            </div>
           </motion.div>
         </motion.div>
       </motion.div>

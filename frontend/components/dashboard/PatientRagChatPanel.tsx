@@ -55,7 +55,7 @@ export default function PatientRagChatPanel({
         onClick={onClose}
       />
       <section
-        className="relative z-10 w-full max-w-lg rounded-2xl border border-vital-primary/30 bg-vital-card p-5 shadow-2xl"
+        className="relative z-10 w-full max-w-lg rounded-2xl border border-vital-primary/30 bg-vital-card p-4 sm:p-5 shadow-2xl max-h-[90vh] overflow-y-auto"
         role="dialog"
         aria-labelledby="health-chat-title"
       >

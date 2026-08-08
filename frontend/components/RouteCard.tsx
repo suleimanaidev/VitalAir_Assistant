@@ -107,7 +107,7 @@ export default function RouteCard({
               )}
 
               {opt.waypoints.length > 0 && (
-                <p className="mt-2 text-xs text-vital-muted">
+                <p className="mt-2 text-xs text-vital-muted break-words">
                   {opt.waypoints.join(" → ")}
                 </p>
               )}

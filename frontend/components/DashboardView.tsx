@@ -187,18 +187,12 @@ export default function DashboardView() {
   const { weather } = useLahoreWeather();
   const liveSeason = useMemo(() => getLahoreSeason(), []);
 
-  const [inputArea, setInputArea] = useState(readStoredDashboardArea);
-  const [area, setAreaInternal] = useState(readStoredDashboardArea);
+  const [inputArea, setInputArea] = useState("");
+  const [area, setAreaInternal] = useState("");
 
   const handleSearch = () => {
-    setAreaInternal(inputArea);
-    try {
-      if (inputArea.trim()) {
-        sessionStorage.setItem(DASHBOARD_AREA_KEY, inputArea);
-      }
-    } catch {
-      /* ignore storage errors */
-    }
+    if (!inputArea.trim()) return;
+    setAreaInternal(inputArea.trim());
   };
   const [todaySymptoms, setTodaySymptoms] = usePersistedState<SymptomCheckinResult | null>("vitalair-dash-today-symptoms", null);
   const [symptomLoading, setSymptomLoading] = useState(false);
@@ -320,8 +314,8 @@ export default function DashboardView() {
         </header>
 
         <div className="vital-card mb-6 p-5">
-          <div className="flex items-end gap-3">
-            <div className="flex-1">
+          <div className="flex flex-col sm:flex-row sm:items-end gap-3">
+            <div className="flex-1 w-full">
               <LocationSearchInput
                 label="Your area"
                 placeholder="Koi bhi Lahore area — e.g. Dubai Town"
@@ -331,7 +325,7 @@ export default function DashboardView() {
             </div>
             <button
               onClick={handleSearch}
-              className="flex h-11 items-center justify-center rounded-lg bg-vital-primary px-6 font-semibold text-white shadow-sm hover:bg-vital-primary/90 focus:outline-none focus:ring-2 focus:ring-vital-primary focus:ring-offset-2 focus:ring-offset-vital-bg"
+              className="flex h-11 w-full sm:w-auto items-center justify-center rounded-lg bg-vital-primary px-6 font-semibold text-white shadow-sm hover:bg-vital-primary/90 focus:outline-none focus:ring-2 focus:ring-vital-primary focus:ring-offset-2 focus:ring-offset-vital-bg shrink-0"
             >
               Search
             </button>

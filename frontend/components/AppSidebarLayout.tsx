@@ -188,7 +188,7 @@ export default function AppSidebarLayout({
         </div>
       )}
 
-      <div className="lg:pl-72">{children}</div>
+      <div className="w-full min-w-0 overflow-x-hidden lg:pl-72">{children}</div>
     </div>
   );
 }
