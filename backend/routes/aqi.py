@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, HTTPException, Query
 
@@ -36,7 +36,7 @@ async def get_aqi(city: str = Query(default="Lahore", min_length=1)) -> AQIRespo
         label=data["label"],
         pm25=data.get("pm25"),
         breakdown=data.get("breakdown", {}),
-        updated_at=updated if updated is not None else datetime.utcnow(),
+        updated_at=updated if updated is not None else datetime.now(timezone.utc),
         station_reported_at=station_reported,
         station=data.get("station"),
         forecast=[ForecastDay(**f) for f in forecast_raw],

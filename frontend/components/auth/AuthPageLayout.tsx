@@ -85,44 +85,29 @@ export default function AuthPageLayout({
             {panelSubtitle}
           </p>
 
-          {/* Compact Visual Preview Card */}
-          <div className="group relative overflow-hidden rounded-xl border border-white/10 shadow-lg">
-            <Image
-              src={image === "nutrition" ? "/images/auth_foods.png" : "/images/auth_health.png"}
-              alt="VitalAir preview panel"
-              width={600}
-              height={300}
-              priority
-              className="h-32 w-full object-cover transition-transform duration-700 group-hover:scale-105"
-            />
-            <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#021712]/90 via-transparent to-transparent" />
-            <div className="absolute bottom-2.5 left-3.5">
-              <p className="text-xs font-semibold text-white drop-shadow-md">
-                {image === "nutrition" ? "Seasonal anti-pollution nutrition advice" : "Real-time air quality & health alerts"}
-              </p>
+          {/* Clean Bullet Points List */}
+          <div className="space-y-3 pt-2">
+            <div className="flex items-start gap-2.5 text-xs text-white/90">
+              <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-vital-primary" />
+              <span><strong className="text-white">Real-time Lahore AQI</strong> — Har ilaqay ki live air quality updates</span>
+            </div>
+            <div className="flex items-start gap-2.5 text-xs text-white/90">
+              <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-vital-primary" />
+              <span><strong className="text-white">Personal Health Advisory</strong> — Asthma aur respiratory safety guidance</span>
+            </div>
+            <div className="flex items-start gap-2.5 text-xs text-white/90">
+              <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-vital-primary" />
+              <span><strong className="text-white">Anti-Smog Diet</strong> — Seasonal immunity booster food tips</span>
+            </div>
+            <div className="flex items-start gap-2.5 text-xs text-white/90">
+              <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-vital-primary" />
+              <span><strong className="text-white">Low-Pollution Routes</strong> — Commute ke liye kam exposure wale raste</span>
+            </div>
+            <div className="flex items-start gap-2.5 text-xs text-white/90">
+              <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-vital-primary" />
+              <span><strong className="text-white">Medical Report OCR</strong> — Prescriptions aur lab reports ka RAG analysis</span>
             </div>
           </div>
-
-          {/* Features compact 2x2 grid */}
-          <div className="grid grid-cols-2 gap-3 pt-1">
-            {features.map((f) => (
-              <div key={f.title} className="flex items-start gap-2">
-                <CheckCircle2
-                  className="mt-0.5 h-4 w-4 shrink-0 text-vital-primary"
-                  aria-hidden
-                />
-                <div>
-                  <p className="text-xs font-semibold text-white">{f.title}</p>
-                  <p className="text-[11px] leading-tight text-white/70">{f.text}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Divider and Footer */}
-          <p className="border-t border-white/10 pt-3 text-[11px] text-white/50 text-center">
-            Free OSRM routing · WHO-based guidance · Your data stays private.
-          </p>
         </div>
       </aside>
 

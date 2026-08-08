@@ -85,10 +85,9 @@ export default function Navbar() {
 
   const closeMobile = () => setMobileOpen(false);
 
-  const handleSignOut = async () => {
+  const handleSignOut = () => {
     useVitalAirStore.getState().clearHealthProfile();
-    await signOut({ redirect: false });
-    router.push("/login");
+    void signOut({ callbackUrl: "/login" });
   };
 
   const logoHref = isAuthenticated ? "/dashboard" : "/";

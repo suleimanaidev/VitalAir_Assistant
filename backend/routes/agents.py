@@ -78,28 +78,33 @@ def _fallback_rag_chat_answer(
     context: str,
     *,
     has_patient_docs: bool,
+    user_name: str = "",
+    season_id: str = "summer_heatwave",
 ) -> str:
-    snippets = [p.strip() for p in context.split("\n\n") if len(p.strip()) > 40][:3]
-    if not snippets:
-        return (
-            "Is waqt aap ke sawal ka specific context available nahi hai.\n\n"
-            "General WHO-based guidance:\n"
-            "• AQI zyada ho to outdoor waqt kam karein aur N95 mask lagayein.\n"
-            "• Ghar mein windows band rakhein aur air purifier chalayein.\n"
-            "• Agar saans ki takleef, chest tightness, ya lagatar cough ho to foran doctor se milein.\n\n"
-            "Apne area ka AQI check karein aur usi ke mutabiq precautions lein."
+    greeting = f"Assalam-o-Alaikum {user_name}!" if user_name else "Assalam-o-Alaikum!"
+    q_lower = question.lower()
+
+    if any(k in q_lower for k in ("food", "khana", "diet", "nutrition", "tips", "sehat")):
+        if season_id in ("summer_heatwave", "pre_monsoon_heat", "monsoon"):
+            bullets = (
+                "• Hydration: Rozana thanda nimbu pani, sattu, ya coconut water piyein.\n"
+                "• Seasonal Fruits: Tarbuz aur kheera dopahar ke time khayein jo body ko cool rakhtay hain.\n"
+                "• Light Meals: Oily khano se parhez karein aur halki moong daal ya dahi raita istemal karein."
+            )
+        else:
+            bullets = (
+                "• Fresh Fruits: Kinnow, malta aur seb antioxidants ke liye behtareen hain.\n"
+                "• Garam Yakhni / Soup: Throat aur hawaai raaste ko saaf rakhne ke liye yakhni piyein.\n"
+                "• Anti-inflammatory: Raat ko halka haldi wala doodh lein."
+            )
+    else:
+        bullets = (
+            "• Air Protection: High AQI hours mein outdoor exertion kam karein aur mask lagayein.\n"
+            "• Indoor Air: Windows closed rakhein aur fresh air filtration istemal karein.\n"
+            "• Health Care: Rescue inhaler saath rakhein aur severe symptoms par doctor se rabta karein."
         )
-    intro = (
-        "Aap ke uploaded health documents aur WHO context ke mutabiq:"
-        if has_patient_docs
-        else "WHO air-quality health guidance ke mutabiq:"
-    )
-    bullets = "\n".join(f"• {snippet[:280]}" for snippet in snippets)
-    return (
-        f"{intro}\n{bullets}\n\n"
-        "Agar symptoms severe hon (saans mein mushkil, chest pain) to "
-        "doctor/ER se foran rabta karein."
-    )
+
+    return f"{greeting}\n\nAap ke profile aur mausam ke mutabiq guidance:\n\n{bullets}"
 
 
 @router.post("/agents/rag-chat", response_model=PatientRagChatResponse)
@@ -114,10 +119,18 @@ async def patient_rag_chat(
     if len(question) < 3:
         raise HTTPException(status_code=400, detail="Please ask a longer question")
 
+    from services.lahore_context import get_analysis_context
+
+    ctx = get_analysis_context()
+    season_id = ctx.get("season", "summer_heatwave")
+    season_label = ctx.get("season_label", "Lahore")
+    temp_c = float(ctx.get("temperature_c") or 0)
+
     user_doc_chunks = await _prepare_user_rag(user_id_from_token)
     profile_summary = ""
+    user_name = ""
     user_doc = await get_user_by_id(user_id_from_token)
-    
+
     # Resolve area and AQI dynamically if not provided
     area = (body.area or "").strip()
     if not area:
@@ -125,17 +138,19 @@ async def patient_rag_chat(
             area = user_doc.get("city") or "Lahore"
         else:
             area = "Lahore"
-            
+
     aqi_val = body.aqi
     if aqi_val is None:
         try:
             from services.agent_runners import fetch_area_aqi
+
             aqi_val = fetch_area_aqi(area)
         except Exception:
             aqi_val = 120
 
     if user_doc:
         profile = profile_from_user_doc(user_doc)
+        user_name = profile.name
         conditions = ", ".join(profile.conditions) or "none"
         profile_summary = (
             f"{profile.name}, age {profile.age}, conditions: {conditions}, "
@@ -164,6 +179,10 @@ async def patient_rag_chat(
         has_patient_docs=has_patient_docs,
         area=area,
         aqi=aqi_val,
+        user_name=user_name,
+        season_id=season_id,
+        season_label=season_label,
+        temp_c=temp_c,
     )
     mode = "openai_rag" if answer else "context_fallback"
     if not answer:
@@ -171,6 +190,8 @@ async def patient_rag_chat(
             question,
             context,
             has_patient_docs=has_patient_docs,
+            user_name=user_name,
+            season_id=season_id,
         )
 
     return PatientRagChatResponse(

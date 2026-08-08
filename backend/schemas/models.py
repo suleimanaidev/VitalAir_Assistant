@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -58,7 +58,7 @@ class AQIResponse(BaseModel):
     label: str
     pm25: float | None = None
     breakdown: dict[str, Any] = Field(default_factory=dict)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     station_reported_at: datetime | None = None
     station: str | None = None
     forecast: list[ForecastDay] = Field(default_factory=list)

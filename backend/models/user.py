@@ -1,6 +1,6 @@
 """MongoDB users collection schema (plan §2.4)."""
 
-from datetime import datetime
+from datetime import datetime, timezone
 
 from pydantic import BaseModel, Field
 
@@ -16,6 +16,6 @@ class UserDocument(BaseModel):
     city: str = "Lahore"
     role: str = "user"
     is_active: bool = True
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
     model_config = {"extra": "ignore"}

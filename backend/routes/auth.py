@@ -1,7 +1,7 @@
 import asyncio
 import logging
 import time
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, EmailStr, Field, model_validator
@@ -223,7 +223,7 @@ async def forgot_password(body: ForgotPasswordBody) -> ForgotPasswordResponse:
 
     try:
         db = await get_db_async()
-        one_hour_ago = datetime.utcnow() - timedelta(hours=1)
+        one_hour_ago = datetime.now(timezone.utc) - timedelta(hours=1)
         request_count = await db.password_reset_requests.count_documents({
             "email": email,
             "timestamp": {"$gte": one_hour_ago}
@@ -248,7 +248,7 @@ async def forgot_password(body: ForgotPasswordBody) -> ForgotPasswordResponse:
 
         await db.password_reset_requests.insert_one({
             "email": email,
-            "timestamp": datetime.utcnow()
+            "timestamp": datetime.now(timezone.utc)
         })
 
         token = await create_password_reset_token(email, expires_minutes=15)

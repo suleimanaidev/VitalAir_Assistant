@@ -1,6 +1,6 @@
 import asyncio
 import secrets
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
 from typing import Any, Literal
 
 from bson import ObjectId
@@ -86,6 +86,32 @@ async def get_user_and_collection_by_email(email: str) -> tuple[dict | None, str
     return None, None
 
 
+async def get_user_by_email(email: str) -> dict | None:
+    """Retrieve user document by email from users or accounts collection."""
+    user, _ = await get_user_and_collection_by_email(email)
+    return user
+
+
+async def get_auth_user_by_email(email: str) -> dict | None:
+    """Retrieve user document for auth by email."""
+    user, _ = await get_user_and_collection_by_email(email)
+    return user
+
+
+async def update_user_password(email: str, password_hash: str) -> bool:
+    """Update password hash for user with given email."""
+    user, collection = await get_user_and_collection_by_email(email)
+    if not user or not collection:
+        return False
+    db = await get_db_async()
+    field = "hashed_password" if collection == "users" else "password_hash"
+    result = await db[collection].update_one(
+        {"_id": user["_id"]},
+        {"$set": {field: password_hash}}
+    )
+    return result.modified_count > 0 or result.matched_count > 0
+
+
 async def create_auth_user(
     email: str,
     password_hash: str,
@@ -147,7 +173,7 @@ async def create_auth_user(
         "city": "Lahore",
         "role": role,
         "is_active": True,
-        "created_at": datetime.utcnow(),
+        "created_at": datetime.now(timezone.utc),
     }
     result = await db.users.insert_one(doc)
     return str(result.inserted_id), role
@@ -245,7 +271,7 @@ async def save_symptom_checkin(
     db = await get_db_async()
     today = checkin_date or date.today().isoformat()
     score = _symptom_score(body)
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     payload = {
         "user_id": ObjectId(user_id),
         "date": today,
@@ -336,7 +362,7 @@ async def ensure_user_for_token(user_id: str, email: str | None = None) -> dict:
         "commute_mode": "car",
         "outdoor_time": "30_60",
         "profile_completed": False,
-        "created_at": datetime.utcnow(),
+        "created_at": datetime.now(timezone.utc),
     }
     try:
         await db.users.insert_one(new_doc)
@@ -405,7 +431,7 @@ async def list_queries_full(
     query: dict = {"source": {"$exists": True}}
     if user_id and ObjectId.is_valid(user_id):
         query["user_id"] = ObjectId(user_id)
-    since = datetime.utcnow() - timedelta(days=days)
+    since = datetime.now(timezone.utc) - timedelta(days=days)
     query["timestamp"] = {"$gte": since}
 
     cursor = db.queries.find(query).sort("timestamp", -1).limit(limit)
@@ -468,7 +494,7 @@ async def create_user(profile: UserProfile) -> str:
         "commute_mode": profile.commute_mode,
         "outdoor_time": profile.outdoor_time,
         "profile_completed": True,
-        "created_at": datetime.utcnow(),
+        "created_at": datetime.now(timezone.utc),
     }
     result = await db.users.insert_one(doc)
     return str(result.inserted_id)
@@ -546,7 +572,7 @@ async def save_query(
         "diet_plan": result.get("diet_plan"),
         "safe_route": safe_route,
         "status": status,
-        "timestamp": datetime.utcnow(),
+        "timestamp": datetime.now(timezone.utc),
         **exposure,
     }
     inserted = await db.queries.insert_one(doc)
@@ -567,7 +593,7 @@ async def create_password_reset_token(
     db = await get_db_async()
     normalized = email.lower().strip()
     token = secrets.token_urlsafe(32)
-    expires_at = datetime.utcnow() + timedelta(minutes=expires_minutes)
+    expires_at = datetime.now(timezone.utc) + timedelta(minutes=expires_minutes)
 
     await db.password_resets.delete_many({"email": normalized})
     await db.password_resets.insert_one(
@@ -575,7 +601,7 @@ async def create_password_reset_token(
             "email": normalized,
             "token": token,
             "expires_at": expires_at,
-            "created_at": datetime.utcnow(),
+            "created_at": datetime.now(timezone.utc),
         }
     )
     return token
@@ -591,7 +617,7 @@ async def get_email_for_reset_token(token: str) -> str | None:
         return None
 
     expires_at = doc.get("expires_at")
-    if expires_at and expires_at < datetime.utcnow():
+    if expires_at and expires_at < datetime.now(timezone.utc):
         await db.password_resets.delete_one({"_id": doc["_id"]})
         return None
 
@@ -651,7 +677,7 @@ async def save_user_document(
         "text_content": text_content[:50_000],
         "size_bytes": size_bytes,
         "extraction_method": extraction_method[:40],
-        "created_at": datetime.utcnow(),
+        "created_at": datetime.now(timezone.utc),
     }
     result = await db.user_documents.insert_one(doc)
     return str(result.inserted_id)
@@ -735,7 +761,7 @@ async def promote_admin_emails() -> int:
 
 async def admin_stats() -> dict:
     db = await get_db_async()
-    today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+    today_start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
 
     users_count = await db.users.count_documents({})
     accounts_count = await db.accounts.count_documents({})

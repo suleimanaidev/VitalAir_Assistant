@@ -393,34 +393,65 @@ def generate_patient_rag_chat_answer(
     has_patient_docs: bool,
     area: str = "",
     aqi: int | None = None,
+    user_name: str = "",
+    season_id: str = "summer_heatwave",
+    season_label: str = "Lahore",
+    temp_c: float = 0.0,
 ) -> str | None:
     """Answer a user question using retrieved WHO + personal health document context."""
-    logger.debug("generate_patient_rag_chat_answer q=%s… area=%s aqi=%s", question[:60], area, aqi)
-    
+    logger.debug(
+        "generate_patient_rag_chat_answer q=%s… area=%s aqi=%s name=%s season=%s",
+        question[:60],
+        area,
+        aqi,
+        user_name,
+        season_id,
+    )
+
     doc_rule = (
-        "Search and utilize the user's uploaded health documents (available in the context below) to answer the user's questions specifically and personally. Do not invent medicines, diagnoses, or lab values."
+        "Patient health documents are present in context below. Use them for specific personal advice. Do not invent prescriptions."
         if has_patient_docs
-        else "No uploaded patient documents were found. Clearly state that no documents were found, and answer based on general WHO-based air-quality guidance."
+        else "No patient health documents uploaded. Provide guidance using their profile parameters and WHO recommendations."
     )
-    
+
+    season_focus = {
+        "summer_heatwave": "cooling, hydrating summer items (tarbuz/watermelon, lassi, sattu, kheera, nimbu pani, coconut water). FORBIDDEN IN SUMMER: Do NOT suggest winter items like Kinnow, Malta, Gajar juice, or Haldi Doodh.",
+        "pre_monsoon_heat": "cooling drinks and light summer meals for rising heat.",
+        "monsoon": "clean water, light meals, hygiene, jamun; avoid street food.",
+        "winter_smog": "vitamin C (kinnow, malta), anti-inflammatory and warming items for smog (haldi doodh, ginger, saag, soup).",
+        "post_monsoon": "immunity-building seasonal fruits and light meals.",
+        "spring": "fresh seasonal fruits (amrood, ber) and light meals.",
+    }.get(season_id, "season-appropriate home advice")
+
+    name_rule = (
+        f"The user's name is '{user_name}'. Greet them warmly by first name (e.g. 'Assalam-o-Alaikum {user_name}!' or '{user_name}, ...'). "
+        "NEVER write 'Mujhe aapka naam nahi pata' or 'I don't know your name'. You already know their identity!"
+        if user_name
+        else "If name is available in context, use it. Never say 'Mujhe aapka naam nahi pata'."
+    )
+
     system_prompt = (
-        "You are VitalAir's doctor-aware health assistant for Lahore.\n"
-        "Instructions:\n"
-        "- Reference and prioritize the user's health profile parameters (age, sensitivity, conditions, commute) and the current AQI to customize your advice.\n"
-        f"- {doc_rule}\n"
-        "- Respond strictly in Roman Urdu (Urdu in Latin script) but use short English medical terms where appropriate (e.g. 'asthma flare-up', 'inhaler', 'bronchodilator', 'nebulizer', 'AQI exposure'). Keep the language natural, helpful, and empathetic.\n"
-        "- Be concise: one direct answer plus 3 bullet points. Never diagnose; recommend a doctor/ER for severe symptoms."
+        "You are VitalAir's personal doctor-aware AI health assistant for Lahore.\n"
+        "STRICT INSTRUCTIONS FOR THE RESPONSE:\n"
+        f"1. GREETING & NAME: {name_rule}\n"
+        "2. CONCISE & TOKEN SAVING: Keep your response short, crisp, and direct. Avoid repeating long intro paragraphs or disclaimers. Format response as 3 to 4 concise bullet points (• prefix).\n"
+        f"3. SEASON & MAUSAM: Current season is {season_label} ({season_id}). Focus: {season_focus}\n"
+        "4. INTENT SPECIFICITY: If the user asks for food/nutrition tips ('food tips', 'khana', 'diet', etc.), provide ONLY dietary recommendations. Do NOT repeat outdoor commute or car advice.\n"
+        "5. LANGUAGE: Respond in natural, conversational Roman Urdu with common medical terms. Tailor advice to the user's specific health conditions (Asthma, Diabetes, Heart Disease, etc.).\n"
+        f"6. DOCUMENTS: {doc_rule}"
     )
-    
+
     return _chat(
         system=system_prompt,
         user=(
-            f"User question: {question}\n"
-            f"Area: {area or 'not provided'}\n"
-            f"AQI: {aqi if aqi is not None else 'not provided'}\n\n"
+            f"User Question: {question}\n"
+            f"User Name: {user_name or 'Friend'}\n"
+            f"Area: {area or 'Lahore'}\n"
+            f"AQI: {aqi if aqi is not None else 'not provided'}\n"
+            f"Season: {season_label} ({season_id}), Temp: {temp_c}°C\n\n"
             f"Retrieved context:\n{rag_context[:4500]}"
         ),
-        max_tokens=420,
+        max_tokens=350,
         temperature=0.35,
     )
 
