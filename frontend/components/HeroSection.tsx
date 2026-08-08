@@ -21,6 +21,7 @@ import {
 
 import { LandingHealthAnimations } from "@/components/animations/HealthMotionGraphics";
 import { authLink } from "@/lib/authLinks";
+import { useAreaAqi } from "@/hooks/useAreaAqi";
 
 const HERO_PILLS = [
   { icon: MapPin, text: "Live WAQI Lahore Feeds" },
@@ -29,7 +30,7 @@ const HERO_PILLS = [
   { icon: Microscope, text: "WHO & Doctor Guidelines" },
 ] as const;
 
-/** Static demo AQI shown on the landing hero. */
+/** Fallback snapshot if API is offline. */
 const DEMO_AQI = {
   city: "Lahore",
   station: "Civil Secretariat",
@@ -58,6 +59,12 @@ export default function HeroSection() {
   const { status } = useSession();
   const isAuthenticated = status === "authenticated";
 
+  const { reading: liveReading } = useAreaAqi("Civil Secretariat");
+
+  const liveAqiVal = liveReading?.aqi ?? DEMO_AQI.value;
+  const liveStation = liveReading?.station ? liveReading.station.replace(/^Estimated for [^·]+· nearest monitor:\s*/i, "").trim() : DEMO_AQI.station;
+  const liveLabel = liveReading?.label ?? DEMO_AQI.label;
+
   useEffect(() => {
     router.prefetch("/login");
     router.prefetch("/dashboard");
@@ -72,6 +79,16 @@ export default function HeroSection() {
       <div className="pointer-events-none absolute left-1/2 top-10 h-[500px] w-[500px] -translate-x-1/2 rounded-full bg-vital-primary/12 blur-[120px]" />
       <div className="pointer-events-none absolute left-1/2 top-40 h-[350px] w-[350px] -translate-x-1/2 rounded-full bg-[#FFD700]/8 blur-[100px]" />
 
+      {/* Lahore Mosque, Smog & Route Visual Graphic Background */}
+      <div 
+        className="pointer-events-none absolute inset-0 bg-cover bg-center bg-no-repeat opacity-35 sm:opacity-45 mix-blend-screen"
+        style={{
+          backgroundImage: "url('/images/lahore_hero_bg.png')",
+          maskImage: "radial-gradient(circle at center, black 50%, transparent 95%)",
+          WebkitMaskImage: "radial-gradient(circle at center, black 50%, transparent 95%)",
+        }}
+      />
+
       <motion.div className="relative mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 text-center">
         <motion.div
           variants={container}
@@ -79,18 +96,12 @@ export default function HeroSection() {
           animate="show"
           className="flex flex-col items-center"
         >
-          {/* Top Pill Badge */}
-          <motion.div variants={item}>
-            <span className="inline-flex items-center gap-2 rounded-full border border-vital-primary/30 bg-vital-primary/10 px-4 py-1.5 text-xs font-semibold uppercase tracking-wider text-vital-primary shadow-sm backdrop-blur-md">
-              <Sparkles className="h-3.5 w-3.5 text-vital-primary animate-pulse" aria-hidden />
-              AI-Powered Environmental Health &amp; Clean Route Intelligence
-            </span>
-          </motion.div>
+
 
           {/* Powerful & Minimalist Main Headline */}
           <motion.h1
             variants={item}
-            className="mt-6 text-4xl font-extrabold tracking-tight text-vital-text sm:text-6xl lg:text-7xl leading-[1.1]"
+            className="mt-6 max-w-3xl text-3xl font-extrabold tracking-tight text-vital-text sm:text-4xl lg:text-5xl leading-tight"
           >
             Breathe Safer. Live Smarter. <br />
             <span className="text-gradient-primary">
@@ -102,7 +113,7 @@ export default function HeroSection() {
           {/* Clean, Crisp Minimalist Subtitle */}
           <motion.p
             variants={item}
-            className="mt-6 max-w-2xl text-base text-vital-muted sm:text-lg leading-relaxed font-normal"
+            className="mt-5 max-w-xl text-sm text-vital-muted sm:text-base leading-relaxed font-normal"
           >
             Real-time air quality tracking, doctor-aware health precautions, anti-pollution nutrition, and clean low-exposure route navigation — tailored for your profile.
           </motion.p>
@@ -110,12 +121,12 @@ export default function HeroSection() {
           {/* Action CTAs */}
           <motion.div
             variants={item}
-            className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4 w-full sm:w-auto"
+            className="mt-6 flex flex-col sm:flex-row items-center justify-center gap-3 w-full sm:w-auto"
           >
             <Link
               href={authLink("/onboarding", isAuthenticated, "register")}
               prefetch
-              className="btn-primary w-full sm:w-auto px-8 py-3.5 text-base font-semibold shadow-lg shadow-vital-primary/25 hover:shadow-vital-primary/40 transition-all"
+              className="btn-primary w-full sm:w-auto px-5 py-2.5 text-sm font-semibold shadow-md shadow-vital-primary/20 hover:shadow-vital-primary/35 transition-all"
             >
               Get Started Free
               <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" aria-hidden />
@@ -123,7 +134,7 @@ export default function HeroSection() {
             <Link
               href={authLink("/dashboard", isAuthenticated)}
               prefetch
-              className="btn-secondary w-full sm:w-auto px-8 py-3.5 text-base font-semibold border-vital-border hover:border-vital-primary/40"
+              className="btn-secondary w-full sm:w-auto px-5 py-2.5 text-sm font-semibold border-vital-border hover:border-vital-primary/40"
             >
               Open Dashboard
             </Link>
@@ -155,21 +166,21 @@ export default function HeroSection() {
               <div className="flex items-center justify-between">
                 <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/15 px-2.5 py-0.5 text-[11px] font-bold text-emerald-400">
                   <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-ping" />
-                  Live AQI Monitor
+                  Live WAQI Feed
                 </span>
                 <span className="text-xs font-semibold text-amber-400">PM2.5</span>
               </div>
               <div className="mt-4 flex items-baseline gap-2">
                 <span className="text-4xl font-black text-amber-400 tracking-tight">
-                  {DEMO_AQI.value}
+                  {liveAqiVal}
                 </span>
-                <span className="text-xs font-semibold text-vital-muted">
-                  Unhealthy for Sensitive
+                <span className="text-xs font-semibold text-vital-muted truncate">
+                  {liveLabel}
                 </span>
               </div>
               <div className="mt-3 flex items-center gap-1.5 text-xs text-vital-text">
                 <MapPin className="h-3.5 w-3.5 text-vital-primary shrink-0" />
-                <span className="font-semibold truncate">📍 Source: {DEMO_AQI.station}</span>
+                <span className="font-semibold truncate">📍 Source: {liveStation}</span>
               </div>
             </div>
 

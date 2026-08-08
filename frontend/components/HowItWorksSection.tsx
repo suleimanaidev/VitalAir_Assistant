@@ -98,25 +98,6 @@ export default function HowItWorksSection() {
           ))}
         </ol>
 
-        <motion.div
-          initial={{ opacity: 0 }}
-          whileInView={{ opacity: 1 }}
-          viewport={{ once: true }}
-          className="mt-12 flex flex-wrap items-center justify-center gap-4"
-        >
-          <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.98 }}>
-            <Link href="/onboarding" className="btn-primary inline-flex">
-              Start free
-              <ArrowRight className="h-4 w-4" aria-hidden />
-            </Link>
-          </motion.div>
-          <Link
-            href="/login"
-            className="text-sm text-vital-muted underline-offset-4 hover:text-vital-primary hover:underline"
-          >
-            Already have an account? Sign in
-          </Link>
-        </motion.div>
       </div>
     </section>
   );

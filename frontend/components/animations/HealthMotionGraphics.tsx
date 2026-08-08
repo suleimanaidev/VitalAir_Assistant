@@ -3,8 +3,8 @@
 import { motion, useReducedMotion } from "framer-motion";
 
 const FLOATERS = [
-  { text: "Diet Planner", icon: "🥗", left: "78%", top: "10%", delay: 0.4 },
-  { text: "Safe Routes", icon: "🗺️", left: "82%", top: "68%", delay: 0.8 },
+  { text: "Diet Planner", icon: "🥗", left: "84%", top: "24%", delay: 0.4 },
+  { text: "Safe Routes", icon: "🗺️", left: "82%", top: "72%", delay: 0.8 },
 ] as const;
 
 export function BreathingLungs({
@@ -93,35 +93,7 @@ export function HeartbeatLine({ className = "" }: { className?: string }) {
 }
 
 export function FloatingHealthIcons() {
-  const reduce = useReducedMotion();
-  if (reduce) return null;
-
-  return (
-    <>
-      {FLOATERS.map(({ text, icon, left, top, delay }) => (
-        <motion.div
-          key={`${text}-${left}`}
-          className="pointer-events-none absolute hidden select-none items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-4 py-2 shadow-xl backdrop-blur-md md:flex z-10"
-          style={{ left, top }}
-          initial={{ opacity: 0, y: 15 }}
-          animate={{
-            opacity: [0.6, 1, 0.6],
-            y: [0, -15, 0],
-          }}
-          transition={{
-            duration: 5 + delay,
-            repeat: Infinity,
-            delay,
-            ease: "easeInOut",
-          }}
-          aria-hidden
-        >
-          <span className="text-xl">{icon}</span>
-          <span className="text-sm font-medium text-white/90 drop-shadow-sm">{text}</span>
-        </motion.div>
-      ))}
-    </>
-  );
+  return null;
 }
 
 /** Landing hero — floating health icons + breathing lungs */
