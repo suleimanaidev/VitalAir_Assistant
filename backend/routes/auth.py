@@ -223,7 +223,8 @@ async def forgot_password(body: ForgotPasswordBody) -> ForgotPasswordResponse:
 
     try:
         db = await get_db_async()
-        one_hour_ago = datetime.now(timezone.utc) - timedelta(hours=1)
+        now = datetime.now(timezone.utc).replace(tzinfo=None)
+        one_hour_ago = now - timedelta(hours=1)
         request_count = await db.password_reset_requests.count_documents({
             "email": email,
             "timestamp": {"$gte": one_hour_ago}
@@ -248,7 +249,7 @@ async def forgot_password(body: ForgotPasswordBody) -> ForgotPasswordResponse:
 
         await db.password_reset_requests.insert_one({
             "email": email,
-            "timestamp": datetime.now(timezone.utc)
+            "timestamp": now
         })
 
         token = await create_password_reset_token(email, expires_minutes=15)
@@ -264,6 +265,8 @@ async def forgot_password(body: ForgotPasswordBody) -> ForgotPasswordResponse:
             ),
             reset_url=reset_url,
         )
+    except HTTPException:
+        raise
     except (ServerSelectionTimeoutError, PyMongoError, MongoUnavailableError) as exc:
         logger.exception("MongoDB error during forgot-password for %s", email)
         _raise_db_unavailable(exc)

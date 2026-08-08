@@ -528,14 +528,6 @@ export default function AgentResultsSection({
               to={cleanAreaName(destination)}
               routeOptions={routeResult.safe_route?.route_options}
             />
-            <p className="text-center text-sm text-vital-muted">
-              <Link
-                href="/route"
-                className="text-vital-primary underline-offset-2 hover:underline"
-              >
-                View route lines on Lahore map →
-              </Link>
-            </p>
           </div>
         )}
 

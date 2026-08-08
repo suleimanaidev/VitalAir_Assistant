@@ -2,6 +2,7 @@ import type { CommuteMode, OutdoorTime, Sensitivity } from "@/store/useVitalAirS
 
 export const HEALTH_CONDITIONS = [
   { id: "asthma", label: "Asthma" },
+  { id: "rescue inhaler", label: "Rescue Inhaler" },
   { id: "heart disease", label: "Heart Disease" },
   { id: "diabetes", label: "Diabetes" },
   { id: "none", label: "None" },

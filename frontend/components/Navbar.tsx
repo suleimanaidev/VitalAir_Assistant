@@ -32,7 +32,6 @@ const APP_LINKS = [
   { href: "/chat", label: "Health AI Chat", icon: MessageCircle },
   { href: "/history", label: "History", icon: History },
   { href: "/profile", label: "Health profile", icon: UserCircle },
-  { href: "/route", label: "Map", icon: Map },
 ] as const;
 
 function sectionHref(pathname: string, id: string) {

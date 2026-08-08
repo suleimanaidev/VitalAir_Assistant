@@ -579,6 +579,11 @@ async def save_query(
     return str(inserted.inserted_id)
 
 
+def _now_utc() -> datetime:
+    """Naive UTC datetime for MongoDB BSON compatibility and safe comparisons."""
+    return datetime.now(timezone.utc).replace(tzinfo=None)
+
+
 def get_stored_password_hash(user: dict) -> str | None:
     return _password_field(user)
 
@@ -593,7 +598,8 @@ async def create_password_reset_token(
     db = await get_db_async()
     normalized = email.lower().strip()
     token = secrets.token_urlsafe(32)
-    expires_at = datetime.now(timezone.utc) + timedelta(minutes=expires_minutes)
+    now = _now_utc()
+    expires_at = now + timedelta(minutes=expires_minutes)
 
     await db.password_resets.delete_many({"email": normalized})
     await db.password_resets.insert_one(
@@ -601,7 +607,7 @@ async def create_password_reset_token(
             "email": normalized,
             "token": token,
             "expires_at": expires_at,
-            "created_at": datetime.now(timezone.utc),
+            "created_at": now,
         }
     )
     return token
@@ -617,9 +623,16 @@ async def get_email_for_reset_token(token: str) -> str | None:
         return None
 
     expires_at = doc.get("expires_at")
-    if expires_at and expires_at < datetime.now(timezone.utc):
-        await db.password_resets.delete_one({"_id": doc["_id"]})
-        return None
+    now = _now_utc()
+    if expires_at:
+        exp = (
+            expires_at.replace(tzinfo=None)
+            if hasattr(expires_at, "tzinfo") and expires_at.tzinfo
+            else expires_at
+        )
+        if exp < now:
+            await db.password_resets.delete_one({"_id": doc["_id"]})
+            return None
 
     return doc.get("email")
 

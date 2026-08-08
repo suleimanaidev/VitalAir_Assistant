@@ -81,8 +81,29 @@ def _fallback_rag_chat_answer(
     user_name: str = "",
     season_id: str = "summer_heatwave",
 ) -> str:
-    greeting = f"Assalam-o-Alaikum {user_name}!" if user_name else "Assalam-o-Alaikum!"
-    q_lower = question.lower()
+    q_lower = question.lower().strip()
+    name_str = f" {user_name}" if user_name else ""
+
+    CASUAL_GREETINGS = (
+        "hello", "hi", "hey", "hlo", "how are you", "kaise ho", "kya haal", "kese ho",
+        "assalam", "salam", "aao", "who are you", "kon ho", "kaun ho", "good morning",
+        "good evening", "good afternoon"
+    )
+
+    is_greeting = any(k in q_lower for k in CASUAL_GREETINGS)
+    has_specific_intent = any(k in q_lower for k in ("food", "khana", "diet", "nutrition", "asthma", "aqi", "route", "doctor", "cough", "saans"))
+
+    if is_greeting and not has_specific_intent:
+        return (
+            f"Assalam-o-Alaikum{name_str}! Main VitalAir Assistant hoon, aap ka personal health aur air quality guide. "
+            "Main bilkul theek hoon, aap bataayein aap kaise hain?\n\n"
+            "Main aap ki in 2 zaroori cheezon mein madad kar sakta hoon:\n"
+            "• Aap ki health profile, AQI, aur mausam ke mutabiq personal health guidance dena.\n"
+            "• Lahore mein safar ke liye kam-pollution wale safe routes recommend karna.\n\n"
+            "Aaj main aap ki kya madad kar sakta hoon?"
+        )
+
+    greeting = f"Assalam-o-Alaikum{name_str}!"
 
     if any(k in q_lower for k in ("food", "khana", "diet", "nutrition", "tips", "sehat")):
         if season_id in ("summer_heatwave", "pre_monsoon_heat", "monsoon"):
@@ -98,13 +119,19 @@ def _fallback_rag_chat_answer(
                 "• Anti-inflammatory: Raat ko halka haldi wala doodh lein."
             )
     else:
+        has_inhaler = "inhaler" in context.lower() or "rescue inhaler" in context.lower()
+        third_bullet = (
+            "• Health Care: Prescribed rescue inhaler saath rakhein aur severe symptoms par doctor se rabta karein."
+            if has_inhaler
+            else "• Health Care: Outdoor exertion par mask istemal karein aur severe symptoms par doctor se rabta karein."
+        )
         bullets = (
-            "• Air Protection: High AQI hours mein outdoor exertion kam karein aur mask lagayein.\n"
+            "• Air Protection: High AQI hours mein outdoor exertion kam karein aur N95 mask lagayein.\n"
             "• Indoor Air: Windows closed rakhein aur fresh air filtration istemal karein.\n"
-            "• Health Care: Rescue inhaler saath rakhein aur severe symptoms par doctor se rabta karein."
+            f"{third_bullet}"
         )
 
-    return f"{greeting}\n\nAap ke profile aur mausam ke mutabiq guidance:\n\n{bullets}"
+    return f"{greeting}\n\nAap ke sawal aur mausam ke mutabiq guidance:\n\n{bullets}"
 
 
 @router.post("/agents/rag-chat", response_model=PatientRagChatResponse)

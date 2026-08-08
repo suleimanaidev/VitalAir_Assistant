@@ -27,13 +27,6 @@ export default function TopWorstAreas({
             Top {limit} worst zones in Lahore right now
           </p>
         </div>
-        <Link
-          href="/route"
-          className="inline-flex items-center gap-1 text-xs font-medium text-vital-primary hover:underline"
-        >
-          Full map
-          <ArrowRight className="h-3.5 w-3.5" />
-        </Link>
       </header>
 
       {loading ? (

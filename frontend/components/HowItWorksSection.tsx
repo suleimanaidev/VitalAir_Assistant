@@ -33,7 +33,7 @@ const STEPS = [
     title: "Explore map & routes",
     description:
       "Open the Lahore map for 18 live area AQIs. View cleanest path on OpenStreetMap with checkpoints after each analysis.",
-    href: "/route",
+    href: "/dashboard",
   },
   {
     icon: BarChart3,
