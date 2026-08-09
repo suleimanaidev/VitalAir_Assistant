@@ -48,66 +48,129 @@ SEASON_HEALTH_FALLBACK: dict[str, list[str]] = {
     ],
 }
 
+SEASON_MEALS: dict[str, dict[str, list[str]]] = {
+    "monsoon": {
+        "breakfast": [
+            "[Nashta (Breakfast) • Monsoon] Fresh Nimbu Paani aur Taza Seb — Monsoon humidity aur airway immunity ke liye.",
+            "[Nashta (Breakfast) • Monsoon] Subah Dalia, Badam aur Filtered Paani — Subah ki digestive energy aur heart protection.",
+            "[Nashta (Breakfast) • Monsoon] Sprouted Moong Chat aur Boiled Anda — Airway clearing & protein for asthma in monsoon.",
+        ],
+        "lunch": [
+            "[☀️ Dopahar Ka Khana (Lunch) • Monsoon] Ghar ki Moong Daal, Naram Roti aur Kheera Raita — Dopahar mein halka hazma.",
+            "[☀️ Dopahar Ka Khana (Lunch) • Monsoon] Jamun, Mixed Sabzi aur Chappati — Low sugar, dil aur asthma protection.",
+            "[☀️ Dopahar Ka Khana (Lunch) • Monsoon] Steamed Chukandar Salad aur Bhindi — Heavy monsoon stomach relief.",
+        ],
+        "snack": [
+            "[🌆 Shaam Ka Snack (Evening) • Monsoon] Falsa Juice ya Papita — Shaam ke waqt high antioxidant & lung defense.",
+            "[🌆 Shaam Ka Snack (Evening) • Monsoon] Bhuni Chana aur Nimbu Paani — High energy, low-moisture healthy snack.",
+            "[🌆 Shaam Ka Snack (Evening) • Monsoon] Fresh Anar ke Daane — Shaam ke waqt blood circulation boost.",
+        ],
+        "dinner": [
+            "[🌙 Raat Ka Khana (Dinner) • Monsoon] Ubla Filtered Paani aur Chicken Yakhni Soup — Raat ko chest clearance.",
+            "[🌙 Raat Ka Khana (Dinner) • Monsoon] Halki Moong Khichdi aur Dahi — Raat ko mold spore infection se bachao.",
+            "[🌙 Raat Ka Khana (Dinner) • Monsoon] Garam Haldi Doodh aur Naram Roti — Night-time airway & joint relief.",
+        ],
+    },
+    "summer_heatwave": {
+        "breakfast": [
+            "[🌅 Nashta (Breakfast) • Heatwave] Nariyal Paani aur Taza Seb — Early hydration aur electrolyte balance.",
+            "[🌅 Nashta (Breakfast) • Heatwave] Oatmeal aur Thanda Doodh — Low sodium breakfast for heat.",
+            "[🌅 Nashta (Breakfast) • Heatwave] Kacha Aam Panna aur Toast — Heatstroke resistance & stamina.",
+        ],
+        "lunch": [
+            "[☀️ Dopahar Ka Khana (Lunch) • Heatwave] Thanda Kheera Raita, Lauki Sabzi aur Roti — Dopahar ki garmi aur ozone se bachao.",
+            "[☀️ Dopahar Ka Khana (Lunch) • Heatwave] Tarbuz Ke Tukray aur Meethi/Namkeen Lassi — Dopahar mein maximum cooling.",
+            "[☀️ Dopahar Ka Khana (Lunch) • Heatwave] Sattu Sharbat aur Sprouted Moong Chat — Light digestive protein.",
+        ],
+        "snack": [
+            "[🌆 Shaam Ka Snack (Evening) • Heatwave] Falsa Crush / Kharbooza — Body heat control & anti-inflammatory.",
+            "[🌆 Shaam Ka Snack (Evening) • Heatwave] Thanda Nimbu Paani Podina Ke Sath — Afternoon hydration recharge.",
+            "[🌆 Shaam Ka Snack (Evening) • Heatwave] Sabza Seeds Rooh Afza / Bel Sharbat — Cooling gut health.",
+        ],
+        "dinner": [
+            "[🌙 Raat Ka Khana (Dinner) • Heatwave] Halki Moong Khichdi aur Dahi — Raat ko light digestion before sleep.",
+            "[🌙 Raat Ka Khana (Dinner) • Heatwave] Steamed Sabzi aur Naram Roti — Restful sleep without heavy heat.",
+            "[🌙 Raat Ka Khana (Dinner) • Heatwave] Thanda Plain Doodh — Sone se pehle acidity & heat relief.",
+        ],
+    },
+    "winter_smog": {
+        "breakfast": [
+            "[🌅 Nashta (Breakfast) • Smog Season] Garam Yakhni Soup, Taza Seb aur Badam — Subah smog particles se immunity.",
+            "[🌅 Nashta (Breakfast) • Smog Season] Garam Anda & Oats — Respiratory strength for cold morning.",
+            "[🌅 Nashta (Breakfast) • Smog Season] Local Shahad aur Garam Paani — Morning airway lining coating.",
+        ],
+        "lunch": [
+            "[☀️ Dopahar Ka Khana (Lunch) • Smog Season] Palak Saag, Whole Wheat Roti aur Lehsan — Iron & anti-inflammatory.",
+            "[☀️ Dopahar Ka Khana (Lunch) • Smog Season] Garam Moong Daal Soup aur Steamed Sabzi — Clear lungs at lunchtime.",
+            "[☀️ Dopahar Ka Khana (Lunch) • Smog Season] Rohu Machli / Fish Curry — Omega-3 cardiovascular & lung protection.",
+        ],
+        "snack": [
+            "[🌆 Shaam Ka Snack (Evening) • Smog Season] Gajar aur Chukandar Fresh Juice — Oxygen delivery & antioxidants.",
+            "[🌆 Shaam Ka Snack (Evening) • Smog Season] Anar ke Daane aur Akhrot — Smog oxidative stress defense.",
+            "[🌆 Shaam Ka Snack (Evening) • Smog Season] Amrood (Guava) — Vitamin C lung tissue repair.",
+        ],
+        "dinner": [
+            "[🌙 Raat Ka Khana (Dinner) • Smog Season] Garam Haldi Doodh aur Naram Roti — Raat ko lungs restoration.",
+            "[🌙 Raat Ka Khana (Dinner) • Smog Season] Garam Chicken Yakhni Soup — Night-time throat & airway clearing.",
+            "[🌙 Raat Ka Khana (Dinner) • Smog Season] Moong Khichdi aur Pakaye Khane Mein Lehsan — Respiratory recovery.",
+        ],
+    },
+    "spring_dust": {
+        "breakfast": [
+            "[🌅 Nashta (Breakfast) • Spring Dust] Dalia, Local Shahad aur Seb — Pollen allergy & airway support.",
+            "[🌅 Nashta (Breakfast) • Spring Dust] Gajar-Apple Fresh Juice — Airway lining refreshment.",
+        ],
+        "lunch": [
+            "[☀️ Dopahar Ka Khana (Lunch) • Spring Dust] Steamed Mixed Sabzi aur Podina Chutney — Dusty days mein halki digestion.",
+            "[☀️ Dopahar Ka Khana (Lunch) • Spring Dust] Sprouted Moong Chat & Chappati — Protein & immunity boost.",
+        ],
+        "snack": [
+            "[🌆 Shaam Ka Snack (Evening) • Spring Dust] Falsa / Aloo Bukhara — Dust particle stress defense.",
+            "[🌆 Shaam Ka Snack (Evening) • Spring Dust] Amrood & Ber — Seasonal fruit boost.",
+        ],
+        "dinner": [
+            "[🌙 Raat Ka Khana (Dinner) • Spring Dust] Chukandar Raita & Naram Roti — Dust detox & hydration.",
+            "[🌙 Raat Ka Khana (Dinner) • Spring Dust] Moong Daal & Normal Temperature Water — Light night digestive care.",
+        ],
+    },
+}
+
 SEASON_DIET_POOL: dict[str, list[str]] = {
     "winter_smog": [
-        "Subah taza seb (apple) — fiber aur vitamins ke liye",
-        "Garam yakhni ya soup — throat clear rakhne ke liye",
-        "Thori si badam ya akhrot — subah ke nashte ke sath",
-        "Raat ko haldi wala doodh (haldi doodh)",
-        "Ghar ka palak saag ya aloo palak",
-        "Taza pani aur nimbu — din mein ek cup",
-        "Rohu machli ya anda — hafte mein do dafa protein",
-        "Gajar aur chukandar ka fresh juice",
-        "Moong ki daal ka halka soup",
-        "Anar ke daane — antioxidants ke liye",
-        "Pakaye hue khane mein thora lehsan",
-        "Amrood ke tukray — sardi mein milta hai",
+        "[Subah 🌅 • Winter Smog] Taza seb aur badam — lung immunity aur smog resistance ke liye.",
+        "[Dophar ☀️ • Winter Smog] Garam moong daal soup — throat clear karne aur inflammation kam karne ke liye.",
+        "[Shaam 🌆 • Winter Smog] Gajar aur chukandar fresh juice — oxygen delivery aur antioxidants ke liye.",
+        "[Raat 🌙 • Winter Smog] Garam haldi wala doodh — raat ko lungs restoration aur throat relief ke liye.",
+        "[Subah 🌅 • Winter Smog] Garam yakhni soup — subah airway clear rakhne ke liye.",
+        "[Dophar ☀️ • Winter Smog] Ghar ka palak saag — iron aur vitamins ke liye.",
+        "[Shaam 🌆 • Winter Smog] Anar ke daane — smog particles se antioxidant defense.",
+        "[Raat 🌙 • Winter Smog] Pakaye khane mein lehsan — respiratory protection.",
     ],
     "spring_dust": [
-        "Amrood aur ber — seasonal phal",
-        "Falsa ya aloo bukhara",
-        "Local shahad — pollen season (agar sugar theek ho)",
-        "Halka khana — zyada oily na ho",
-        "Sprouted moong ki chat — ghar pe",
-        "Gajar-apple ka fresh juice",
-        "Steamed mixed sabzi — ghar ka",
-        "Podina ki chutney — khane ke sath",
-        "Chukandar ka raita",
-        "Normal temperature pani zyada peena",
-        "Dalia ya oats — subah",
+        "[Subah 🌅 • Spring Dust] Subah local shahad aur dalia — pollen allergy aur airway support ke liye.",
+        "[Dophar ☀️ • Spring Dust] Steamed sabzi aur podina chutney — dusty days mein halki digestion ke liye.",
+        "[Shaam 🌆 • Spring Dust] Falsa ya aloo bukhara — dust particle stress defense ke liye.",
+        "[Raat 🌙 • Spring Dust] Chukandar raita aur normal pani — dust detox aur hydration ke liye.",
+        "[Subah 🌅 • Spring Dust] Gajar-apple fresh juice — airway lining refresh karne ke liye.",
+        "[Dophar ☀️ • Spring Dust] Sprouted moong chat — protein aur immunity boost.",
     ],
     "summer_heatwave": [
-        "Thanda nimbu pani — podina aur kala namak ke sath",
-        "Meethi ya namkeen lassi — bina zyada shakkar",
-        "Tarbuz ke thande tukray — roz dopahar ko",
-        "Kharbooza — thanda, iftar ya shaam ko",
-        "Nariyal pani — garmi mein behtareen",
-        "Kheera ka raita — khane ke sath",
-        "Sattu sharbat — thanda, namkeen",
-        "Aam panna — kacha aam ka sharbat",
-        "Falsa ka crush — jab season ho",
-        "Thanda plain doodh — sone se pehle",
-        "Sabza seeds wala rooh afza — thora sa",
-        "Halki moong ki khichdi — raat ka khana",
-        "Dahi ke sath kela — snack",
-        "Lauki ka juice — ghar pe nikala hua",
-        "Anar ka thanda juice",
-        "Thanda chaas (lassi jaisa)",
-        "Bel sharbat — agar maujood ho",
+        "[Subah 🌅 • Summer Heat] Thanda nariyal pani aur seb — early hydration aur electrolytes ke liye.",
+        "[Dophar ☀️ • Summer Heat] Thanda nimbu pani aur tarbuz — dopahar ki garmi aur ozone dehydration se bachao.",
+        "[Shaam 🌆 • Summer Heat] Sattu sharbat aur falsa crush — body heat control aur anti-inflammatory support.",
+        "[Raat 🌙 • Summer Heat] Thanda kheera raita aur halki khichdi — cooling digestion before sleep.",
+        "[Subah 🌅 • Summer Heat] Kacha aam panna — heat stroke resistance ke liye.",
+        "[Dophar ☀️ • Summer Heat] Meethi ya namkeen lassi — dopahar ki garmi mein hydration.",
     ],
     "monsoon": [
-        "Ubalta hua ya filter pani hi peena",
-        "Halka khana — moong daal, sabzi, dahi",
-        "Ghar ka pakaya khana — street food skip karein",
-        "Jamun — immunity ke liye",
-        "Garam sabzi soup agar zukam ho",
-        "Adrak wali khichdi",
-        "Garam roti — naram, taza",
-        "Tulsi aur adrak ka pani",
-        "Papita — hazma theek rehne ke liye",
-        "Ghar ka chicken yakhni soup",
-        "Thori si bhuni chana — snack",
-        "Halki haldi wali doodh",
+        "[Subah 🌅 • Monsoon] Garam nimbu & adrak paani — humidity aur throat immunity ke liye.",
+        "[Dophar ☀️ • Monsoon] Jamun & kheera raita — dopahar ki garmi mein digestion, sugar control aur dil ke liye.",
+        "[Shaam 🌆 • Monsoon] Falsa juice ya papita — high antioxidants aur airway protection ke liye.",
+        "[Raat 🌙 • Monsoon] Ubla filtered paani & moong soup — monsoon mold spores aur infection se bachao.",
+        "[Subah 🌅 • Monsoon] Tulsi aur adrak ka paani — immunity aur asthma protection.",
+        "[Dophar ☀️ • Monsoon] Garam naram roti aur moong daal — light monsoonal digestion.",
+        "[Shaam 🌆 • Monsoon] Bhuni chana snack — energy aur low moisture snack.",
+        "[Raat 🌙 • Monsoon] Garam chicken yakhni soup — rainy evening chest clearance.",
     ],
 }
 
@@ -137,19 +200,19 @@ CONDITION_HEALTH: dict[str, list[str]] = {
 
 CONDITION_DIET: dict[str, list[str]] = {
     "asthma": [
-        "Garam pani aur adrak — thanda drink kam karein",
-        "Rohu machli — hafte mein do dafa (omega-3)",
-        "Anda ya doodh — vitamin D ke liye",
+        "[Subah 🌅 • Asthma Care] Garam pani aur adrak — airway constriction kam karne ke liye.",
+        "[Dophar ☀️ • Asthma Care] Nimbu paani & Vitamin C — airway inflammation protection ke liye.",
+        "[Raat 🌙 • Asthma Care] Haldi doodh & garam soup — night-time wheezing control ke liye.",
     ],
     "heart disease": [
-        "Kam namak wala khana — fruit chaat par extra namak na dalein",
-        "Dalia ya jau ka kanji — subah",
-        "Kela — moderation mein (doctor se pooch kar)",
+        "[Subah 🌅 • Heart Care] Dalia ya jau ka kanji — cholesterol aur blood pressure balance ke liye.",
+        "[Dophar ☀️ • Heart Care] Jamun & kam namak salad — dil aur vascular protection ke liye.",
+        "[Shaam 🌆 • Heart Care] Garlic & anti-inflammatory soup — blood circulation smooth rakhne ke liye.",
     ],
     "diabetes": [
-        "Bina shakkar lassi ya chaas",
-        "Whole wheat roti — naan kam",
-        "Kheera-tamatar salad — halka snack",
+        "[Subah 🌅 • Diabetes Care] Sprouted moong & oats — stable sugar balance ke liye.",
+        "[Dophar ☀️ • Diabetes Care] Bina shakkar lassi ya chaas — low glycemic cooling drink.",
+        "[Shaam 🌆 • Diabetes Care] Kheera-tamatar salad — halka healthy snack.",
     ],
 }
 
@@ -446,6 +509,14 @@ def format_health_advice(
     else:
         summary_ur = SUMMARY_UR.get(season_id, "Lahore hawa ke liye neeche guidance follow karein.")
 
+    summary_en = _season_summary_en(
+        season_id,
+        aqi,
+        temp_c,
+        profile_name=profile_name,
+        conditions_list=conditions_list,
+    )
+
     body = "\n".join(f"• {b}" for b in bullets[:4])
     return f"{summary_en}\n{summary_ur}\n\n{body}"
 
@@ -464,70 +535,27 @@ def format_diet_plan(
 ) -> list[str]:
     from tools.lahore_season import get_lahore_season
     season_id = normalize_season_id(season_id or get_lahore_season().id)
-    season_intel = get_season_profile(season_id)
-    conditions_list = _parse_conditions(conditions)
-    hour_bucket = lahore_now().strftime("%Y-%m-%d-%H")
-    seed = _variation_seed(
-        user_id or "",
-        conditions,
-        sensitivity,
-        str(age),
-        source,
-        destination,
-        str(aqi),
-        season_id,
-        hour_bucket,
-    )
+    meals = SEASON_MEALS.get(season_id, SEASON_MEALS["monsoon"])
+    hour = lahore_now().hour
+    if 5 <= hour < 12:
+        primary_key = "breakfast"
+    elif 12 <= hour < 17:
+        primary_key = "lunch"
+    elif 17 <= hour < 21:
+        primary_key = "snack"
+    else:
+        primary_key = "dinner"
 
-    patient_bullets = build_patient_doc_bullets(rag_text, aqi=aqi)
-    rag_bullets = bullets_from_text(rag_text, max_items=2)
+    import random
+    import time
+    rng = random.Random(time.time_ns() + hash(conditions + source + str(aqi)))
 
-    # Priority order: patient docs → conditions → season pool → RAG
-    picked: list[str] = []
-    seen_lower: set[str] = set()
+    items = list(meals[primary_key])
+    rng.shuffle(items)
+    picked = items[:3]
 
-    def _add(item: str) -> bool:
-        """Add item if unique and under limit; return True if added."""
-        key = item.strip().lower()[:80]
-        if key in seen_lower or len(picked) >= 4:
-            return False
-        picked.append(item)
-        seen_lower.add(key)
-        return True
+    next_keys = {"breakfast": "lunch", "lunch": "snack", "snack": "dinner", "dinner": "breakfast"}
+    comp_items = list(meals[next_keys[primary_key]])
+    picked.append(rng.choice(comp_items))
 
-    # 1. Patient-uploaded document bullets (highest priority)
-    for item in patient_bullets[:2]:
-        _add(item[:90])
-
-    # 2. Condition-specific diet items (asthma, diabetes, heart disease)
-    for cond in conditions_list:
-        cond_items = _pick_varied(CONDITION_DIET.get(cond, []), seed + ord(cond[0]), 1)
-        for item in cond_items:
-            _add(item)
-
-    # 3. Season intelligence focus item
-    intel_item = season_intel.nutrition_agent_focus.split(";")[0].strip()
-    if intel_item:
-        _add(intel_item)
-
-    # 4. Season pool items to fill remaining slots (strictly filtered by season)
-    pool = list(SEASON_DIET_POOL.get(season_id, SEASON_DIET_POOL["summer_heatwave"]))
-    if season_id in ("summer_heatwave", "pre_monsoon_heat", "monsoon"):
-        forbidden = ("ginger tea", "haldi doodh", "kinnow", "malta", "gajar")
-        pool = [p for p in pool if not any(f in p.lower() for f in forbidden)]
-    for item in _pick_varied(pool, seed, 4):
-        _add(item)
-
-    # 5. RAG-sourced bullets
-    for item in rag_bullets:
-        if len(item) < 90:
-            _add(item)
-
-    # 6. High-sensitivity AQI boost
-    if sensitivity == "high" and aqi >= 120:
-        _add("Aaj extra vitamins — subah taza seb.")
-
-    if not picked:
-        picked = list(SEASON_DIET_POOL.get(season_id, SEASON_DIET_POOL["winter_smog"])[:4])
-
-    return picked[:4]
+    return picked

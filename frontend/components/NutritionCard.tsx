@@ -19,41 +19,68 @@ export default function NutritionCard({
 }: NutritionCardProps) {
   const localized = localizeDietPlan(items);
 
-    return (
-      <div className="mt-4">
-        {hasPatientDocs && (
-          <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-vital-primary/30 bg-vital-primary/10 px-3 py-1.5 text-xs font-medium text-vital-primary shadow-sm">
-            <span>🛡️</span> Personalized using your health profile and documents
-          </div>
-        )}
-        <div className="grid gap-3 sm:grid-cols-2">
-          {localized.map((item, i) => {
-            const emoji = emojiForDietItem(item);
-            // bold the first few words for emphasis
-            const parts = item.split(" ");
-            const boldPart = parts.slice(0, 2).join(" ");
-            const rest = parts.slice(2).join(" ");
+  return (
+    <div className="mt-4">
+      {hasPatientDocs && (
+        <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-vital-primary/30 bg-vital-primary/10 px-3 py-1.5 text-xs font-medium text-vital-primary shadow-sm">
+          <span>🛡️</span> Personalized using your health profile and documents
+        </div>
+      )}
+      <div className="grid gap-3 sm:grid-cols-2">
+        {localized.map((rawItem, i) => {
+          // Extract bracketed tag [Nashta (Breakfast) • Monsoon] if present
+          let tag: string | null = null;
+          let content = rawItem;
 
-            return (
-              <div
-                key={i}
-                className="group flex flex-col gap-2 rounded-xl border border-vital-border bg-vital-card/60 p-4 transition-all duration-300 hover:-translate-y-1 hover:border-vital-primary/40 hover:bg-vital-card hover:shadow-glow-primary"
-              >
-                <div className="flex items-center gap-3">
-                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-vital-bg text-xl shadow-inner transition-transform duration-300 group-hover:scale-110">
-                    {emoji}
+          const tagMatch = rawItem.match(/^\[(.*?)\]\s*(.*)$/);
+          if (tagMatch) {
+            tag = tagMatch[1].replace(/[\u{1F300}-\u{1F9FF}]/gu, "").trim();
+            content = tagMatch[2];
+          }
+
+          // Strip any remaining emojis from content
+          content = content.replace(/[\u{1F300}-\u{1F9FF}]/gu, "").trim();
+
+          // Split by dash "—" if available
+          let title = content;
+          let description = "";
+
+          if (content.includes("—")) {
+            const dashParts = content.split("—");
+            title = dashParts[0].trim();
+            description = dashParts.slice(1).join("—").trim();
+          } else {
+            const parts = content.split(" ");
+            title = parts.slice(0, 2).join(" ");
+            description = parts.slice(2).join(" ");
+          }
+
+          return (
+            <div
+              key={i}
+              className="group flex flex-col gap-2 rounded-xl border border-vital-border bg-vital-card/60 p-4 transition-all duration-300 hover:-translate-y-1 hover:border-vital-primary/40 hover:bg-vital-card hover:shadow-glow-primary"
+            >
+              {tag && (
+                <div className="flex items-center gap-1.5">
+                  <span className="rounded-md border border-vital-primary/30 bg-vital-primary/15 px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wider text-vital-primary">
+                    {tag}
                   </span>
-                  <p className="text-sm font-semibold text-vital-primary">
-                    {boldPart}
-                  </p>
                 </div>
-                <p className="text-[13px] leading-relaxed text-vital-muted group-hover:text-vital-text">
-                  {rest}
+              )}
+              <div className="flex items-center gap-2">
+                <p className="text-base font-bold text-vital-text">
+                  {title}
                 </p>
               </div>
-            );
-          })}
-        </div>
+              {description && (
+                <p className="text-[13.5px] leading-relaxed text-vital-muted group-hover:text-vital-text">
+                  {description}
+                </p>
+              )}
+            </div>
+          );
+        })}
       </div>
-    );
+    </div>
+  );
 }

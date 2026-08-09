@@ -7,16 +7,29 @@ from config import get_settings
 # Lahore area lookup for mock GeoJSON routes (lat, lon)
 _LAHORE_COORDS: dict[str, tuple[float, float]] = {
     "gulberg": (31.5204, 74.3437),
+    "gulberg ii": (31.518, 74.34),
     "johar town": (31.4697, 74.2728),
     "lake city": (31.3927, 74.2552),
+    "dha phase 1": (31.492, 74.385),
+    "dha phase 2": (31.488, 74.398),
+    "dha phase 3": (31.478, 74.38),
+    "dha phase 4": (31.47, 74.405),
     "dha phase 5": (31.4734, 74.4586),
+    "dha phase 6": (31.48, 74.47),
+    "dha phase 7": (31.465, 74.492),
+    "dha phase 8": (31.448, 74.455),
+    "dha phase 9": (31.425, 74.482),
+    "dha rahbar": (31.392, 74.268),
+    "defence raya": (31.455, 74.445),
     "dha": (31.4734, 74.4586),
     "model town": (31.4834, 74.325),
     "liberty market": (31.511, 74.344),
     "mm alam road": (31.515, 74.348),
+    "cavalry ground": (31.508, 74.368),
     "punjab assembly": (31.568, 74.302),
     "bhobtian chowk": (31.4486, 74.4094),
     "bahria town": (31.3704, 74.1845),
+    "bahria orchard": (31.325, 74.195),
     "mall road": (31.568, 74.31),
     "faisal town": (31.4906, 74.3018),
     "lahore cantt": (31.52, 74.39),
@@ -29,6 +42,31 @@ _LAHORE_COORDS: dict[str, tuple[float, float]] = {
     "anarkali": (31.5686, 74.312),
     "kot lakhpat": (31.464, 74.335),
     "mughalpura": (31.575, 74.365),
+    "askari 10": (31.498, 74.412),
+    "askari 11": (31.468, 74.418),
+    "askari 1": (31.535, 74.372),
+    "askari 5": (31.512, 74.385),
+    "shalamar gardens": (31.585, 74.382),
+    "tajpura": (31.572, 74.398),
+    "daroghawala": (31.595, 74.415),
+    "batapur": (31.602, 74.468),
+    "jallo park": (31.562, 74.498),
+    "barki road": (31.512, 74.442),
+    "bedian road": (31.465, 74.415),
+    "raiwind road": (31.398, 74.225),
+    "ferozepur road": (31.478, 74.332),
+    "multan road": (31.485, 74.262),
+    "walton road": (31.495, 74.368),
+    "jail road": (31.54, 74.335),
+    "canal bank road": (31.505, 74.325),
+    "paragon city": (31.535, 74.468),
+    "state life society": (31.458, 74.432),
+    "central park": (31.348, 74.358),
+    "sui gas society": (31.442, 74.448),
+    "park view city": (31.435, 74.195),
+    "pak arab": (31.448, 74.388),
+    "thokar niaz baig": (31.458, 74.248),
+    "walled city": (31.588, 74.315),
 }
 
 _AREA_DISPLAY: dict[str, str] = {
@@ -199,6 +237,8 @@ def _corridor_candidates(origin: str, destination: str) -> list[dict]:
     o_lat, o_lng = _lookup_coord(origin)
     d_lat, d_lng = _lookup_coord(destination)
     mid_lat, mid_lng = (o_lat + d_lat) / 2, (o_lng + d_lng) / 2
+    direct_km = _haversine_km(o_lat, o_lng, d_lat, d_lng)
+
     o_key = _normalize_area_key(origin)
     d_key = _normalize_area_key(destination)
     base_aqi = _area_aqi_estimate(origin, live=True) + _area_aqi_estimate(
@@ -206,13 +246,24 @@ def _corridor_candidates(origin: str, destination: str) -> list[dict]:
     )
     base_aqi = max(80, base_aqi // 2)
 
+    # Allow reasonable detour up to 35% extra or +4km
+    max_allowed = max(direct_km * 1.35, direct_km + 4.0)
+
     candidates: list[dict] = []
     for area_key, (lat, lng) in _LAHORE_COORDS.items():
         if area_key == o_key or area_key == d_key:
             continue
         if area_key in o_key or area_key in d_key:
             continue
-        dist = math.hypot(lat - mid_lat, lng - mid_lng)
+
+        d_from_o = _haversine_km(o_lat, o_lng, lat, lng)
+        d_to_d = _haversine_km(lat, lng, d_lat, d_lng)
+        detour = d_from_o + d_to_d
+
+        if detour > max_allowed:
+            continue
+
+        dist_from_mid = math.hypot(lat - mid_lat, lng - mid_lng)
         name = _area_display_name(area_key)
         raw_aqi = _area_aqi_estimate(name, base_aqi)
         candidates.append(
@@ -222,7 +273,8 @@ def _corridor_candidates(origin: str, destination: str) -> list[dict]:
                 "lat": lat,
                 "lng": lng,
                 "aqi": _season_aqi_adjustment(name, raw_aqi),
-                "dist": dist,
+                "dist": dist_from_mid,
+                "detour_km": detour,
             }
         )
     return candidates
@@ -254,7 +306,7 @@ def _make_route_option(
     waypoints.append(dest_label)
     coords.append([d_lng, d_lat])
     total_km += _haversine_km(prev_lat, prev_lng, d_lat, d_lng)
-    road_km = max(1.2, total_km * 1.25)
+    road_km = max(1.2, total_km * 1.22)
 
     aqi_values = [a["aqi"] for a in via_areas] + [
         _area_aqi_estimate(origin_label),
@@ -282,7 +334,7 @@ def _make_route_option(
         "rank": rank,
         "label": label,
         "distance": _format_distance(road_km),
-        "duration": f"{max(8, int(road_km * 3.2))} mins",
+        "duration": f"{max(8, int(road_km * 3.0))} mins",
         "avg_aqi": avg_aqi,
         "exposure": _exposure_label(road_km),
         "waypoints": waypoints,
@@ -293,34 +345,30 @@ def _make_route_option(
 
 
 def build_three_route_options(origin: str, destination: str) -> list[dict]:
-    """Three distinct paths ranked by minimum AQI along the corridor."""
+    """Three distinct realistic paths ranked by minimum AQI along the corridor."""
     candidates = _corridor_candidates(origin, destination)
     if not candidates:
         direct = _make_route_option(origin, destination, [], "Direct route", 1)
         return [direct, {**direct, "rank": 2, "label": "Direct route B"}, {**direct, "rank": 3, "label": "Direct route C"}]
 
-    low_aqi = sorted(candidates, key=lambda x: (x["aqi"], x["dist"]))
-    near_mid = sorted(candidates, key=lambda x: x["dist"])
+    low_aqi = sorted(candidates, key=lambda x: (x["aqi"], x["detour_km"]))
+    near_mid = sorted(candidates, key=lambda x: x["detour_km"])
 
-    route1_via = low_aqi[:2]
+    # Route 1: Best low-AQI corridor via 1 optimal waypoint
+    route1_via = [low_aqi[0]]
 
-    route2_via: list[dict] = []
-    if low_aqi:
-        route2_via.append(low_aqi[0])
-    for n in near_mid:
-        if n["key"] not in {v["key"] for v in route2_via}:
-            route2_via.append(n)
-            break
-    route2_via = route2_via[:2]
+    # Route 2: Balanced corridor via 1 mid-distance waypoint
+    route2_via = [c for c in near_mid if c["key"] != low_aqi[0]["key"]]
+    if not route2_via:
+        route2_via = [low_aqi[0]]
+    route2_via = [route2_via[0]]
 
-    used_keys = {v["key"] for v in route1_via}
-    route3_via = [a for a in low_aqi if a["key"] not in used_keys][:2]
-    if len(route3_via) < 2:
-        for n in near_mid:
-            if n["key"] not in used_keys and n["key"] not in {v["key"] for v in route3_via}:
-                route3_via.append(n)
-            if len(route3_via) >= 2:
-                break
+    # Route 3: Alternative corridor via a distinct clean waypoint
+    used_keys = {route1_via[0]["key"], route2_via[0]["key"]}
+    route3_via = [c for c in low_aqi if c["key"] not in used_keys]
+    if not route3_via:
+        route3_via = [near_mid[-1]]
+    route3_via = [route3_via[0]]
 
     options = [
         _make_route_option(origin, destination, route1_via, "Lowest AQI corridor", 1),

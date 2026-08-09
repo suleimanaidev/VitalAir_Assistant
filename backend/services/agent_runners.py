@@ -169,7 +169,7 @@ def run_health_agent(
     agent_mode = "rag_rules"
 
     settings = get_settings()
-    if settings.has_openai:
+    if settings.has_live_llm:
         _emit(publish_log, HEALTH_AGENT, "thinking", "Enhancing advice with AI…")
         profile_summary = (
             f"{profile.name}, age {profile.age}, "
@@ -314,7 +314,7 @@ def run_nutrition_agent(
     agent_mode = "rag_rules"
 
     settings = get_settings()
-    if settings.has_openai:
+    if settings.has_live_llm:
         _emit(publish_log, NUTRITION_AGENT, "thinking", "Building personalized food guide…")
         profile_summary = (
             f"{profile.name}, age {profile.age}, conditions {', '.join(conditions) or 'none'}, "

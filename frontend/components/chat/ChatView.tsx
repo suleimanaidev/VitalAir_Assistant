@@ -123,9 +123,25 @@ export default function ChatView() {
                       : "border border-vital-border bg-vital-bg/70 text-vital-text"
                   }`}
                 >
-                  <p className="whitespace-pre-line text-sm leading-relaxed">
-                    {turn.text}
-                  </p>
+                  <div className="text-sm leading-relaxed space-y-1">
+                    {turn.text.split("\n").map((line, idx) => {
+                      const parts = line.split(/(\*\*.*?\*\*)/g);
+                      return (
+                        <p key={idx} className="min-h-[1.25rem]">
+                          {parts.map((part, pIdx) => {
+                            if (part.startsWith("**") && part.endsWith("**")) {
+                              return (
+                                <strong key={pIdx} className="font-semibold text-vital-primary">
+                                  {part.slice(2, -2)}
+                                </strong>
+                              );
+                            }
+                            return part;
+                          })}
+                        </p>
+                      );
+                    })}
+                  </div>
                   {turn.meta && (
                     <p className="mt-2 text-xs text-vital-muted">{turn.meta}</p>
                   )}

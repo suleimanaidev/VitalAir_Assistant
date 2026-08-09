@@ -33,9 +33,34 @@ async def _async_chat(
     timeout_seconds: float = 12.0,
 ) -> str | None:
     settings = get_settings()
-    if not settings.has_openai:
-        logger.debug("OpenAI key not configured — skipping _async_chat")
+    if not settings.has_live_llm:
+        logger.debug("No live LLM key configured — skipping _async_chat")
         return None
+
+    if settings.has_gemini and (not settings.has_openai or settings.llm_provider == "gemini"):
+        try:
+            import httpx
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={settings.gemini_api_key.strip()}"
+            payload = {
+                "system_instruction": {"parts": [{"text": system}]},
+                "contents": [{"role": "user", "parts": [{"text": user}]}],
+                "generationConfig": {"maxOutputTokens": max_tokens, "temperature": temperature},
+            }
+            async with httpx.AsyncClient(timeout=timeout_seconds) as client:
+                res = await client.post(url, json=payload)
+                if res.status_code == 200:
+                    data = res.json()
+                    candidates = data.get("candidates", [])
+                    if candidates:
+                        parts = candidates[0].get("content", {}).get("parts", [])
+                        if parts and parts[0].get("text"):
+                            return parts[0].get("text").strip()
+        except Exception as exc:
+            logger.warning("Gemini REST API call failed: %s — trying OpenAI if available", exc)
+
+    if not settings.has_openai:
+        return None
+
     logger.debug("_async_chat → model=%s timeout=%.1fs", get_settings().openai_model or "gpt-4o-mini", timeout_seconds)
     
     from openai import AsyncOpenAI, RateLimitError, APITimeoutError, APIConnectionError, APIError
@@ -119,7 +144,9 @@ async def generate_health_advice_async(
 ) -> str | None:
     logger.debug("generate_health_advice_async aqi=%d season=%s src=%s dst=%s", aqi, season_id, source, destination)
     no_smog = not is_smog_season(season_id)
-    hour = lahore_now().hour
+    now = lahore_now()
+    hour = now.hour
+    today_str = now.strftime("%d %B %Y")
     season_rule = (
         "Do NOT mention smog season or smog episodes — current season is hot summer/monsoon, focus on heat and hydration."
         if no_smog
@@ -165,6 +192,7 @@ async def generate_health_advice_async(
             f"{season_rule} {time_rule} {doc_rule}"
         ),
         user=(
+            f"Today's date: {today_str}\n"
             f"Season: {season_label} ({season_id})\n"
             f"Local time: {hour:02d}:00 PKT\n"
             f"Temperature: {temp_c}°C\n"
@@ -175,7 +203,6 @@ async def generate_health_advice_async(
     )
 
 
-@lru_cache(maxsize=128)
 def generate_health_advice(
     *,
     aqi: int,
@@ -190,7 +217,9 @@ def generate_health_advice(
     has_patient_docs: bool = False,
 ) -> str | None:
     no_smog = not is_smog_season(season_id)
-    hour = lahore_now().hour
+    now = lahore_now()
+    hour = now.hour
+    today_str = now.strftime("%d %B %Y")
     season_rule = (
         "Do NOT mention smog season or smog episodes — current season is hot summer/monsoon, focus on heat and hydration."
         if no_smog
@@ -215,6 +244,7 @@ def generate_health_advice(
             f"{season_rule} {doc_rule}"
         ),
         user=(
+            f"Today's date: {today_str}\n"
             f"Season: {season_label} ({season_id})\n"
             f"Local time: {hour:02d}:00 PKT\n"
             f"Temperature: {temp_c}°C\n"
@@ -257,29 +287,38 @@ async def generate_diet_plan_async(
         else "No patient documents — use profile conditions and general anti-pollution diet guidance."
     )
 
+    now = lahore_now()
+    hour = now.hour
+    if 5 <= hour < 12:
+        meal_name = "Nashta (Breakfast)"
+    elif 12 <= hour < 17:
+        meal_name = "Dopahar Ka Khana (Lunch)"
+    elif 17 <= hour < 21:
+        meal_name = "Shaam Ka Snack (Evening)"
+    else:
+        meal_name = "Raat Ka Khana (Dinner)"
+
     raw = await _async_chat(
         system=(
             "You are a Lahore/Punjab nutrition advisor. Return ONLY a JSON array of exactly 4 "
-            "strings in natural, conversational ROMAN URDU (like how Pakistanis chat on WhatsApp, avoid overly formal or literal translations). "
-            "Each string must be ONE clear actionable tip: "
-            "food/drink + kab + kyun (for this user's conditions and AQI). "
+            "strings in natural, conversational ROMAN URDU. "
+            f"IMPORTANT CURRENT TIME RULE: Local time is {hour:02d}:00 PKT. "
+            f"Focus 100% on recommending foods, drinks, and meals for CURRENT MEAL: '{meal_name}'! "
+            f"Each of the 4 strings MUST start with '[{meal_name} • Season] ...'. "
             "CRITICAL MAUSAM (SEASON) RULE: Pay strict attention to the current season focus! "
             "If season is summer_heatwave, monsoon, or pre_monsoon_heat, suggest ONLY summer-appropriate cooling foods (e.g. Tarbuz, Lassi, Sattu, Kheera, Nimbu Pani, Falsa, Jamun). "
             "NEVER suggest winter items like Kinnow, Malta, Gajar juice, or Haldi Doodh during summer/monsoon. "
             "CRITICAL HEALTH CONDITION RULE: You MUST tailor each tip to the user's specific health conditions "
             "(e.g. if user has Asthma, Diabetes, or Heart Disease, name the condition or its dietary requirement explicitly). "
-            "If the user has asthma, recommend anti-inflammatory foods. "
-            "If diabetic, avoid sugary items and mention sugar-safe alternatives. "
-            "If heart disease, recommend low-sodium heart-healthy options. "
             "Use only common Lahore/Punjab foods. Avoid random exotic items. "
             "Do NOT repeat the same food in multiple tips. "
-            "Keep each tip under 90 characters. "
             f"{doc_rule}"
         ),
         user=(
+            f"Today's date: {now.strftime('%d %B %Y')}\n"
+            f"Current time: {hour:02d}:00 PKT ({meal_name})\n"
             f"Health profile: {profile_summary or 'not provided'}\n"
             f"Season: {season_label} ({season_id}) — focus on {season_focus}.\n"
-            f"Local time: {lahore_now().hour:02d}:00 PKT\n"
             f"Area: {source}\n"
             f"AQI {aqi} in Lahore.\n"
             f"Age: {age}, Conditions: {conditions or 'none'}, "
@@ -307,7 +346,6 @@ async def generate_diet_plan_async(
     return None
 
 
-@lru_cache(maxsize=128)
 def generate_diet_plan(
     *,
     aqi: int,
@@ -356,6 +394,7 @@ def generate_diet_plan(
             f"{doc_rule}"
         ),
         user=(
+            f"Today's date: {lahore_now().strftime('%d %B %Y')}\n"
             f"Health profile: {profile_summary or 'not provided'}\n"
             f"Season: {season_label} ({season_id}) — focus on {season_focus}.\n"
             f"Local time: {lahore_now().hour:02d}:00 PKT\n"
@@ -431,7 +470,9 @@ def generate_patient_rag_chat_answer(
         else "If name is available in context, use it. Never say 'Mujhe aapka naam nahi pata'."
     )
 
-    hour = lahore_now().hour
+    now = lahore_now()
+    hour = now.hour
+    today_str = now.strftime("%d %B %Y")
     if 5 <= hour < 12:
         time_focus = f"Current local time is {hour:02d}:00 PKT (Morning). Tailor suggestions for morning schedule, breakfast nutrition, and early commute precautions before heat/smog builds up."
     elif 12 <= hour < 17:
@@ -443,39 +484,33 @@ def generate_patient_rag_chat_answer(
 
     system_prompt = (
         "You are VitalAir Assistant, a doctor-aware AI health and air quality assistant for Lahore.\n"
-        "STRICT MANDATORY RULES FOR ALL RESPONSES:\n"
-        "1. DYNAMIC & DIVERSE RESPONSES: NEVER copy-paste identical hardcoded sentences. Generate natural, fluid, conversational responses in warm Roman Urdu tailored to the exact situation.\n"
-        "2. STRICT INHALER RULE: Do NOT recommend, suggest, or mention an inhaler or rescue inhaler UNLESS 'rescue inhaler' or 'inhaler' is explicitly listed in the user's conditions or uploaded health documents. If the user does not have an inhaler ticked/listed, NEVER suggest using or carrying an inhaler!\n"
-        f"3. GREET BY NAME & SELF INTRODUCTION: Every greeting response MUST state the user's name '{user_name or ''}' and introduce yourself as VitalAir Assistant.\n"
-        "4. CASUAL GREETINGS / SMALL TALK (e.g. 'hello', 'hi', 'how are you?', 'kaise ho', 'assalam-o-alaikum'):\n"
-        f"   - Greet warmly by name '{user_name or ''}' and self-introduce as VitalAir Assistant.\n"
-        "   - Give EXACTLY TWO bullet points (• prefix) stating how you assist:\n"
-        "     • Aap ki health profile, AQI, aur mausam ke mutabiq personal health guidance dena.\n"
-        "     • Lahore mein safar ke liye kam-pollution wale safe routes recommend karna.\n"
-        "   - Ask how you can help today. DO NOT dump unasked health tips or diet advice when user only said hello!\n"
-        "5. GRATITUDE & THANKS (e.g. 'thank you', 'thanks', 'shukriya', 'jazakallah'):\n"
-        f"   - Respond with a warm, polite closing: 'Khush rahein {user_name or ''}! Aap ka bohat shukriya. Agar aap ko kisi aur cheez mein madad zaroori ho to zaroor bataayein. Apni sehat ka khayal rakhein! 💚'\n"
-        "   - DO NOT repeat greeting introductions or dump unasked health tips.\n"
-        "6. SPECIFIC QUESTIONS (e.g. food, asthma, AQI, symptoms):\n"
-        f"   - Greet warmly by name '{user_name or ''}', then answer ONLY and STRICTLY what the user asked in 3 to 4 concise bullet points (• prefix).\n"
-        f"7. SEASON & MAUSAM: Current season is {season_label} ({season_id}). Focus: {season_focus}\n"
-        f"8. TIME OF DAY SCHEDULE: {time_focus}\n"
-        "9. LANGUAGE: Natural, friendly Roman Urdu. Mention user's specific health conditions (Asthma, Heart Disease, etc.) when answering health queries.\n"
+        f"TODAY'S DATE: {today_str}\n"
+        "STRICT MANDATORY RULES:\n"
+        "1. NO REPETITIVE INTRO HEADERS ON QUESTIONS: Do NOT output the self-introduction ('Main VitalAir Assistant hoon...') or the 2 capability bullet points when the user asks a specific question (e.g. food, diet, symptoms, AQI, routes). Those are ONLY for initial hello/greeting messages!\n"
+        "2. INITIAL CASUAL GREETING ONLY (e.g. 'hello', 'hi', 'assalam o alaikum'): Greet warmly by name, state you are VitalAir Assistant, list the 2 main capabilities with clean markdown bullets ('- **Title:** Details'), and ask how you can help.\n"
+        "3. SPECIFIC QUESTIONS (e.g. food, diet, health tips, AQI, symptoms): Greet warmly by name once (e.g. 'Assalam-o-Alaikum {user_name}!'), give a 1-line opening tailored to their health conditions and AQI, then provide 3 to 4 concise, high-value bullet points using clean markdown ('- **Heading:** Description'). Keep it brief, actionable, and token-efficient.\n"
+        "4. BULLET FORMATTING: ALWAYS use standard clean markdown dash bullets '- **Heading:** Details'. NEVER use literal dot unicode '•'.\n"
+        "5. STRICT INHALER RULE: Do NOT recommend an inhaler UNLESS explicitly listed in the user's conditions or uploaded health documents.\n"
+        "6. SEASON & MAUSAM: Current season is {season_label} ({season_id}). Focus: {season_focus}\n"
+        "7. TIME OF DAY SCHEDULE: {time_focus}\n"
+        "8. GRATITUDE: If user says thanks/shukriya, respond warmly in 1-2 short sentences without bullet points.\n"
+        "9. LANGUAGE: Natural, conversational Roman Urdu.\n"
         f"10. DOCUMENTS: {doc_rule}"
     )
 
     return _chat(
         system=system_prompt,
         user=(
+            f"Today's date: {today_str}\n"
             f"User Question: {question}\n"
             f"User Name: {user_name or 'Friend'}\n"
             f"User Health Profile: {profile_summary or 'Not provided'}\n"
             f"Area: {area or 'Lahore'}\n"
             f"AQI: {aqi if aqi is not None else 'not provided'}\n"
             f"Season: {season_label} ({season_id}), Temp: {temp_c}°C\n\n"
-            f"Retrieved context:\n{rag_context[:4500]}"
+            f"Retrieved context:\n{rag_context[:1800]}"
         ),
-        max_tokens=350,
+        max_tokens=260,
         temperature=0.35,
     )
 

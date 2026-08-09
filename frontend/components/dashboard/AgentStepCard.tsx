@@ -7,7 +7,7 @@ export type AgentStepStatus = "idle" | "loading" | "done" | "error" | "locked";
 
 export interface AgentStepCardProps {
   step: number;
-  icon: string;
+  icon?: string;
   title: string;
   subtitle?: string;
   status: AgentStepStatus;
@@ -50,9 +50,11 @@ export default function AgentStepCard({
       className={`vital-card overflow-hidden border-2 transition-colors ${statusRing[status]}`}
     >
       <header className="flex items-start gap-4 border-b border-vital-border/40 bg-vital-bg/40 p-4 sm:p-5">
-        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-vital-primary/15 text-xl">
-          {icon}
-        </div>
+        {icon ? (
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-vital-primary/15 text-xl">
+            {icon}
+          </div>
+        ) : null}
         <div className="min-w-0 flex-1">
           <p className="text-xs font-semibold uppercase tracking-wide text-vital-muted">
             Step {step}

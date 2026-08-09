@@ -95,12 +95,11 @@ def _fallback_rag_chat_answer(
 
     if is_greeting and not has_specific_intent:
         return (
-            f"Assalam-o-Alaikum{name_str}! Main VitalAir Assistant hoon, aap ka personal health aur air quality guide. "
-            "Main bilkul theek hoon, aap bataayein aap kaise hain?\n\n"
+            f"Assalam-o-Alaikum{name_str}! Main VitalAir Assistant hoon, aap ka personal health aur air quality guide.\n\n"
             "Main aap ki in 2 zaroori cheezon mein madad kar sakta hoon:\n"
-            "• Aap ki health profile, AQI, aur mausam ke mutabiq personal health guidance dena.\n"
-            "• Lahore mein safar ke liye kam-pollution wale safe routes recommend karna.\n\n"
-            "Aaj main aap ki kya madad kar sakta hoon?"
+            "- **Personalized Guidance:** Aap ki health profile, AQI, aur mausam ke mutabiq personal health guidance dena.\n"
+            "- **Safe Travel Routes:** Lahore mein safar ke liye kam-pollution wale safe routes recommend karna.\n\n"
+            "Aaj main aap ki kis tarah madad kar sakta hoon?"
         )
 
     greeting = f"Assalam-o-Alaikum{name_str}!"
@@ -108,26 +107,26 @@ def _fallback_rag_chat_answer(
     if any(k in q_lower for k in ("food", "khana", "diet", "nutrition", "tips", "sehat")):
         if season_id in ("summer_heatwave", "pre_monsoon_heat", "monsoon"):
             bullets = (
-                "• Hydration: Rozana thanda nimbu pani, sattu, ya coconut water piyein.\n"
-                "• Seasonal Fruits: Tarbuz aur kheera dopahar ke time khayein jo body ko cool rakhtay hain.\n"
-                "• Light Meals: Oily khano se parhez karein aur halki moong daal ya dahi raita istemal karein."
+                "- **Hydration:** Thanda nimbu pani, sattu, ya coconut water piyein taake garmi se bach sakein.\n"
+                "- **Seasonal Fruits:** Tarbuz, kheera, aur jamun dopahar ke time khayein.\n"
+                "- **Halka Khana:** Oily aur heavy fried khano se parhez karein, moong daal aur dahi raita istemal karein."
             )
         else:
             bullets = (
-                "• Fresh Fruits: Kinnow, malta aur seb antioxidants ke liye behtareen hain.\n"
-                "• Garam Yakhni / Soup: Throat aur hawaai raaste ko saaf rakhne ke liye yakhni piyein.\n"
-                "• Anti-inflammatory: Raat ko halka haldi wala doodh lein."
+                "- **Fresh Fruits:** Kinnow, malta aur seb antioxidants ke liye behtareen hain.\n"
+                "- **Garam Yakhni / Soup:** Throat aur hawaai raaste ko saaf rakhne ke liye yakhni piyein.\n"
+                "- **Anti-inflammatory:** Raat ko halka haldi wala doodh lein."
             )
     else:
         has_inhaler = "inhaler" in context.lower() or "rescue inhaler" in context.lower()
         third_bullet = (
-            "• Health Care: Prescribed rescue inhaler saath rakhein aur severe symptoms par doctor se rabta karein."
+            "- **Health Care:** Prescribed rescue inhaler saath rakhein aur severe symptoms par doctor se rabta karein."
             if has_inhaler
-            else "• Health Care: Outdoor exertion par mask istemal karein aur severe symptoms par doctor se rabta karein."
+            else "- **Health Care:** Outdoor exertion par mask istemal karein aur severe symptoms par doctor se rabta karein."
         )
         bullets = (
-            "• Air Protection: High AQI hours mein outdoor exertion kam karein aur N95 mask lagayein.\n"
-            "• Indoor Air: Windows closed rakhein aur fresh air filtration istemal karein.\n"
+            "- **Air Protection:** High AQI hours mein outdoor exertion kam karein aur N95 mask lagayein.\n"
+            "- **Indoor Air:** Windows closed rakhein aur fresh air filtration istemal karein.\n"
             f"{third_bullet}"
         )
 
@@ -188,7 +187,7 @@ async def patient_rag_chat(
     context = await asyncio.to_thread(
         retrieve_health_context,
         question,
-        5,
+        3,
         user_id=user_id_from_token,
         user_doc_chunks=user_doc_chunks,
         extra_queries=[area or "Lahore air quality patient health"],

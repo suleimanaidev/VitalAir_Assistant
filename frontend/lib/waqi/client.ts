@@ -20,18 +20,32 @@ export interface LahoreStationReading {
   data: WaqiRaw;
 }
 
+const waqiMemoryCache = new Map<string, { data: WaqiRaw; timestamp: number }>();
+const WAQI_CACHE_TTL_MS = 3 * 60 * 1000; // 3 minutes
+
 async function waqiGet(path: string, token: string): Promise<WaqiRaw | null> {
+  const cacheKey = `${path}:${token}`;
+  const cached = waqiMemoryCache.get(cacheKey);
+  if (cached && Date.now() - cached.timestamp < WAQI_CACHE_TTL_MS) {
+    return cached.data;
+  }
+
   const url = new URL(`${WAQI_BASE}/${path}/`);
   url.searchParams.set("token", token);
-  const res = await fetch(url.toString(), {
-    cache: "no-store",
-    headers: { Accept: "application/json" },
-    signal: AbortSignal.timeout(WAQI_TIMEOUT_MS),
-  });
-  if (!res.ok) return null;
-  const payload = (await res.json()) as { status?: string; data?: WaqiRaw };
-  if (payload.status !== "ok" || !payload.data) return null;
-  return payload.data;
+  try {
+    const res = await fetch(url.toString(), {
+      cache: "no-store",
+      headers: { Accept: "application/json" },
+      signal: AbortSignal.timeout(WAQI_TIMEOUT_MS),
+    });
+    if (!res.ok) return cached?.data ?? null;
+    const payload = (await res.json()) as { status?: string; data?: WaqiRaw };
+    if (payload.status !== "ok" || !payload.data) return cached?.data ?? null;
+    waqiMemoryCache.set(cacheKey, { data: payload.data, timestamp: Date.now() });
+    return payload.data;
+  } catch (_err) {
+    return cached?.data ?? null;
+  }
 }
 
 export function nearestStation(lat: number, lon: number): WaqiStation {

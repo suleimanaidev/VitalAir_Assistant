@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { motion } from "framer-motion";
@@ -123,6 +123,53 @@ export default function AgentResultsSection({
   const [nutritionLive, setNutritionLive] = useState<string | null>(null);
   const [routeLive, setRouteLive] = useState<string | null>(null);
 
+  const prevAreaRef = useRef(area);
+
+  // Automatically reset previous agent results when user selects/searches a new area
+  useEffect(() => {
+    const cleaned = cleanAreaName(area);
+    const prevCleaned = cleanAreaName(prevAreaRef.current);
+
+    if (cleaned.toLowerCase() !== prevCleaned.toLowerCase()) {
+      setHealthResult(null);
+      setNutritionResult(null);
+      setRouteResult(null);
+
+      setHealthStatus("idle");
+      setNutritionStatus("idle");
+      setRouteStatus("idle");
+
+      setHealthError(null);
+      setNutritionError(null);
+      setRouteError(null);
+    }
+    prevAreaRef.current = area;
+  }, [
+    area,
+    setHealthResult,
+    setNutritionResult,
+    setRouteResult,
+    setHealthStatus,
+    setNutritionStatus,
+    setRouteStatus,
+    setHealthError,
+    setNutritionError,
+    setRouteError,
+  ]);
+
+  // Ensure displayed results belong strictly to the current active area
+  const activeCleanedArea = cleanAreaName(area).toLowerCase();
+  const validHealthResult =
+    healthResult &&
+    cleanAreaName(healthResult.area).toLowerCase() === activeCleanedArea
+      ? healthResult
+      : null;
+  const validNutritionResult =
+    nutritionResult &&
+    cleanAreaName(nutritionResult.area).toLowerCase() === activeCleanedArea
+      ? nutritionResult
+      : null;
+
   const profilePayload = (p: HealthProfile): UserProfilePayload => ({
     name: p.name || "User",
     age: p.age,
@@ -161,6 +208,7 @@ export default function AgentResultsSection({
           season: activeSeason.id,
           has_patient_docs: false,
           rag_sources_used: 1,
+          agent_mode: "fallback",
           aqi: heroAqi ?? 100,
           status: "done",
           agent: "digital_pulmonologist",
@@ -325,7 +373,6 @@ export default function AgentResultsSection({
 
       <AgentStepCard
         step={1}
-        icon="🌫️"
         title="Air Quality Monitor"
         status={aqiStepStatus}
       >
@@ -356,7 +403,6 @@ export default function AgentResultsSection({
 
       <AgentStepCard
         step={2}
-        icon="🫁"
         title="Digital Pulmonologist"
         subtitle="WHO knowledge + aap ki health profile + uploaded documents (RAG)"
         status={!aqiReady ? "locked" : healthStatus}
@@ -370,46 +416,49 @@ export default function AgentResultsSection({
         error={healthError}
         liveMessage={healthLive}
       >
-        {healthResult ? (
+        {validHealthResult ? (
           <>
-            {healthResult.time_recommendation && (
+            {validHealthResult.time_recommendation && (
               <div
-                className={`mb-4 flex items-start gap-3 rounded-xl border-2 px-4 py-3.5 ${
-                  healthResult.time_recommendation.safe_to_go
-                    ? "border-emerald-500/40 bg-emerald-500/8"
-                    : "border-vital-danger/40 bg-vital-danger/8"
+                className={`mb-4 flex flex-col gap-2 rounded-2xl border-2 p-4 shadow-sm ${
+                  !validHealthResult.time_recommendation.safe_to_go || validHealthResult.aqi >= 150
+                    ? "border-red-500/50 bg-red-500/10"
+                    : validHealthResult.aqi >= 101 || (profile.conditions && profile.conditions.length > 0)
+                      ? "border-amber-500/50 bg-amber-500/10"
+                      : "border-emerald-500/50 bg-emerald-500/10"
                 }`}
               >
-                <span className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-vital-bg/60 text-xl shadow-inner">
-                  {healthResult.time_recommendation.emoji}
-                </span>
-                <div className="min-w-0">
-                  <p className="text-base font-bold leading-snug text-vital-text">
-                    {healthResult.time_recommendation.title_ur}
-                  </p>
+                <div className="flex items-center justify-between gap-2 border-b border-vital-border/40 pb-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold uppercase tracking-wider text-vital-primary">
+                      Outdoor Travel Verdict (Is waqt bahar jana behtar hai ya nahi?)
+                    </span>
+                  </div>
+                  <span className="text-xs font-semibold text-vital-muted">
+                    {validHealthResult.time_recommendation.time_label}
+                  </span>
+                </div>
+                <div className="pt-1">
+                  <h4 className="text-base font-extrabold text-vital-text sm:text-lg">
+                    {validHealthResult.time_recommendation.title_ur.replace(/[\u{1F300}-\u{1F9FF}]/gu, "").trim()}
+                  </h4>
                   <p className="mt-1 text-sm leading-relaxed text-vital-muted">
-                    {healthResult.time_recommendation.message_ur}
+                    {validHealthResult.time_recommendation.message_ur.replace(/[\u{1F300}-\u{1F9FF}]/gu, "").trim()}
                   </p>
                 </div>
               </div>
             )}
             <HealthAlertCard
-              title={healthTitleFromContext(healthResult.aqi, profile)}
-              message={healthResult.health_advice}
+              title={healthTitleFromContext(validHealthResult.aqi, profile)}
+              message={validHealthResult.health_advice}
               severity={healthSeverity}
               sourceHint={
-                healthResult.has_patient_docs
-                  ? `WHO RAG + ${healthResult.rag_sources_used} sources + your uploaded health files.`
-                  : `WHO RAG · ${healthResult.rag_sources_used} knowledge sources · ${healthResult.agent_mode}.`
+                validHealthResult.has_patient_docs
+                  ? "Verified medical guidance · Tailored using WHO standards & your uploaded health documents."
+                  : "Verified medical guidance · Tailored using WHO air quality standards & your personal health profile."
               }
             />
-            {healthResult.health_explainability && (
-              <div className="mt-4">
-                <HealthExplainabilityPanel
-                  data={healthResult.health_explainability}
-                />
-              </div>
-            )}
+
           </>
         ) : (
           <p className="text-sm text-vital-muted">
@@ -421,7 +470,6 @@ export default function AgentResultsSection({
 
       <AgentStepCard
         step={3}
-        icon="🥦"
         title="Environmental Nutritionist"
         subtitle="Anti-pollution food guide — season & AQI aware"
         status={!aqiReady ? "locked" : nutritionStatus}
@@ -435,11 +483,11 @@ export default function AgentResultsSection({
         error={nutritionError}
         liveMessage={nutritionLive}
       >
-        {nutritionResult ? (
+        {validNutritionResult ? (
           <NutritionCard
             embedded
-            items={nutritionResult.diet_plan}
-            hasPatientDocs={nutritionResult.has_patient_docs}
+            items={validNutritionResult.diet_plan}
+            hasPatientDocs={validNutritionResult.has_patient_docs}
           />
         ) : (
           <p className="text-sm text-vital-muted">
@@ -450,7 +498,6 @@ export default function AgentResultsSection({
 
       <AgentStepCard
         step={4}
-        icon="🗺️"
         title="Smart Route Navigator"
         subtitle="Sirf jab travel karna ho — 3 low-AQI routes (free OSRM)"
         status={!aqiReady ? "locked" : routeStatus}
