@@ -102,9 +102,10 @@ _API_META = {
     "aqi": "/api/aqi?city=Lahore",
 }
 
-_LANDING_HTML = (_ROOT / "backend" / "static" / "api_landing.html").read_text(
-    encoding="utf-8"
-)
+_landing_html = _ROOT / "backend" / "static" / "api_landing.html"
+if not _landing_html.exists():
+    _landing_html = Path(__file__).resolve().parent / "static" / "api_landing.html"
+_LANDING_HTML = _landing_html.read_text(encoding="utf-8")
 
 
 @app.get("/")
