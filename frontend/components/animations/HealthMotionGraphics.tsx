@@ -37,19 +37,19 @@ export function BreathingLungs({
         <path
           d="M38 28 Q22 38 24 58 Q26 72 38 68 Q44 52 44 38 Q44 28 38 28 Z"
           fill="rgba(0,200,150,0.25)"
-          stroke="#00c896"
+          stroke="var(--brand)"
           strokeWidth="2"
         />
         <path
           d="M82 28 Q98 38 96 58 Q94 72 82 68 Q76 52 76 38 Q76 28 82 28 Z"
           fill="rgba(0,200,150,0.25)"
-          stroke="#00c896"
+          stroke="var(--brand)"
           strokeWidth="2"
         />
-        <rect x="54" y="26" width="12" height="42" rx="4" fill="#484f58" />
+        <rect x="54" y="26" width="12" height="42" rx="4" fill="var(--text-muted)" />
         <path
           d="M8 40 H24 M96 40 H112"
-          stroke="#00c896"
+          stroke="var(--brand)"
           strokeWidth="2"
           strokeLinecap="round"
           opacity="0.5"
@@ -72,7 +72,7 @@ export function HeartbeatLine({ className = "" }: { className?: string }) {
     >
       <motion.path
         d="M0 20 H40 L48 20 L54 8 L62 32 L70 20 H200"
-        stroke="#00c896"
+        stroke="var(--brand)"
         strokeWidth="2"
         strokeLinecap="round"
         strokeLinejoin="round"

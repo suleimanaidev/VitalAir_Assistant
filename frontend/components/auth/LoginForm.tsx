@@ -215,10 +215,10 @@ export default function LoginForm() {
       <div className="mb-5 flex rounded-xl border border-vital-border bg-vital-card p-1">
         <button
           type="button"
-          className={`flex flex-1 items-center justify-center gap-2 rounded-lg py-2.5 text-sm font-medium transition-all ${
+          className={`flex flex-1 items-center justify-center gap-2 rounded-lg py-2.5 text-sm transition-all ${
             mode === "login"
-              ? "bg-vital-primary text-vital-bg shadow-[0_4px_18px_rgba(0,200,150,0.35)]"
-              : "text-vital-muted hover:text-vital-text"
+              ? "bg-vital-primary text-white font-semibold shadow-[0_4px_18px_rgba(0,198,167,0.35)]"
+              : "font-medium text-vital-muted hover:text-vital-text"
           }`}
           onClick={() => {
             setMode("login");
@@ -233,10 +233,10 @@ export default function LoginForm() {
         </button>
         <button
           type="button"
-          className={`flex flex-1 items-center justify-center gap-2 rounded-lg py-2.5 text-sm font-medium transition-all ${
+          className={`flex flex-1 items-center justify-center gap-2 rounded-lg py-2.5 text-sm transition-all ${
             mode === "register"
-              ? "bg-vital-primary text-vital-bg shadow-[0_4px_18px_rgba(0,200,150,0.35)]"
-              : "text-vital-muted hover:text-vital-text"
+              ? "bg-vital-primary text-white font-semibold shadow-[0_4px_18px_rgba(0,198,167,0.35)]"
+              : "font-medium text-vital-muted hover:text-vital-text"
           }`}
           onClick={() => {
             setMode("register");

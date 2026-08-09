@@ -4,28 +4,74 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ─── VitalAir Design System ───────────────────────────────────────────── */
+/* ─── VitalAir Design System — Light / Dark ────────────────────────────── */
 
 :root {
-  /* Plan §1.9 aliases */
-  --primary: #00c896;
+  /* ── Brand (same both modes) ── */
+  --brand: #00C6A7;
+  --brand-dark: #00A088;
+  --brand-light: #E8FAF6;
+  --brand-border: #B0EDE3;
+  --brand-rgb: 0 198 167;
+  --brand-dark-rgb: 0 160 136;
+
+  /* ── Light-mode surfaces (hex) ── */
+  --bg-page: #F5F5EE;
+  --bg-card: #FFFFFF;
+  --bg-card-hover: #F8F8F2;
+  --bg-input: #FFFFFF;
+  --bg-sidebar: #EEEEE6;
+  --bg-navbar: #F5F5EE;
+  --bg-overlay: rgba(245, 245, 238, 0.92);
+  --border: #D8D8D0;
+  --border-strong: #B8B8B0;
+  --border-brand: #B0EDE3;
+  --text-primary: #1A2E2A;
+  --text-secondary: #4A6B64;
+  --text-muted: #7A9B94;
+  --text-placeholder: #A0BCB6;
+  --text-on-brand: #FFFFFF;
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
+  --shadow-md: 0 4px 12px rgba(0, 198, 167, 0.15);
+  --shadow-lg: 0 8px 24px rgba(0, 198, 167, 0.2);
+  --scrollbar-track: #EEEEE6;
+  --scrollbar-thumb: #C8C8C0;
+  --scrollbar-hover: #00C6A7;
+
+  /* ── Light-mode surfaces (rgb triplets for Tailwind alpha) ── */
+  --bg-page-rgb: 245 245 238;
+  --bg-card-rgb: 255 255 255;
+  --bg-card-hover-rgb: 248 248 242;
+  --bg-input-rgb: 255 255 255;
+  --bg-sidebar-rgb: 238 238 230;
+  --bg-navbar-rgb: 245 245 238;
+  --border-rgb: 216 216 208;
+  --border-strong-rgb: 184 184 176;
+  --border-brand-rgb: 176 237 227;
+  --text-primary-rgb: 26 46 42;
+  --text-secondary-rgb: 74 107 100;
+  --text-muted-rgb: 122 155 148;
+  --text-placeholder-rgb: 160 188 182;
+
+  /* ── Remap existing aliases → whole app flips automatically ── */
+  --primary: var(--brand);
+  --bg: var(--bg-page);
+  --card: var(--bg-card);
+  --text: var(--text-primary);
+  --muted: var(--text-secondary);
+
+  --vital-bg: var(--bg-page);
+  --vital-card: var(--bg-card);
+  --vital-border: var(--border);
+  --vital-text: var(--text-primary);
+  --vital-muted: var(--text-secondary);
+  --vital-primary: var(--brand);
+  --vital-primary-dim: var(--brand-light);
+
+  /* ── Status colours (same both modes) ── */
   --danger: #ff4545;
   --warning: #ffa500;
   --safe: #00c896;
-  --bg: #0d1117;
-  --card: #161b22;
-  --text: #e6edf3;
-  --muted: #a0aab5;
-  --border: #30363d;
-
-  /* Core palette */
-  --vital-bg: var(--bg);
-  --vital-card: var(--card);
-  --vital-border: var(--border);
-  --vital-text: var(--text);
-  --vital-muted: var(--muted);
-  --vital-primary: var(--primary);
-  --vital-primary-dim: rgba(0, 200, 150, 0.12);
   --vital-danger: #ff4545;
   --vital-danger-dim: rgba(255, 69, 69, 0.12);
 
@@ -34,6 +80,11 @@
   --aqi-moderate: #f0c040;
   --aqi-unhealthy: #ff8c42;
   --aqi-hazardous: #ff4545;
+
+  /* Auth brand-panel gradient (light mode soft mint/cream) */
+  --auth-gradient-from: #E2F7F2;
+  --auth-gradient-via: #EBF7F4;
+  --auth-gradient-to: #F5F5EE;
 
   /* Typography */
   --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue",
@@ -50,6 +101,54 @@
   --transition-base: 250ms ease;
 }
 
+/* ─── Dark mode ────────────────────────────────────────────────────────── */
+
+[data-theme="dark"] {
+  --bg-page: #0D1117;
+  --bg-card: #161B22;
+  --bg-card-hover: #1F242C;
+  --bg-input: #161B22;
+  --bg-sidebar: #0D1117;
+  --bg-navbar: #0D1117;
+  --bg-overlay: rgba(13, 17, 23, 0.92);
+  --border: #30363D;
+  --border-strong: #444C56;
+  --border-brand: rgba(0, 198, 167, 0.35);
+  --text-primary: #F0F6FC;
+  --text-secondary: #8B949E;
+  --text-muted: #6E7681;
+  --text-placeholder: #484F58;
+  --text-on-brand: #FFFFFF;
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.4);
+  --scrollbar-track: #0D1117;
+  --scrollbar-thumb: #30363D;
+  --scrollbar-hover: #00C6A7;
+
+  --bg-page-rgb: 13 17 23;
+  --bg-card-rgb: 22 27 34;
+  --bg-card-hover-rgb: 31 36 44;
+  --bg-input-rgb: 22 27 34;
+  --bg-sidebar-rgb: 13 17 23;
+  --bg-navbar-rgb: 13 17 23;
+  --border-rgb: 48 54 61;
+  --border-strong-rgb: 68 76 86;
+  --border-brand-rgb: 0 198 167;
+  --text-primary-rgb: 240 246 252;
+  --text-secondary-rgb: 139 148 158;
+  --text-muted-rgb: 110 118 129;
+  --text-placeholder-rgb: 72 79 88;
+
+  --vital-primary-dim: rgba(0, 198, 167, 0.12);
+
+  --auth-gradient-from: #060E0C;
+  --auth-gradient-via: #0C1916;
+  --auth-gradient-to: #081210;
+}
+
+/* ─── Base layer ───────────────────────────────────────────────────────── */
+
 @layer base {
   html {
     scroll-behavior: smooth;
@@ -60,9 +159,10 @@
 
   body {
     @apply antialiased;
-    background-color: var(--vital-bg);
-    color: var(--vital-text);
+    background-color: var(--bg-page);
+    color: var(--text-primary);
     font-family: var(--font-sans);
+    transition: background-color 0.3s ease, color 0.3s ease;
     /* Kill accidental horizontal scroll on small screens */
     overflow-x: hidden;
   }
@@ -89,6 +189,8 @@
   }
 }
 
+/* ─── Component layer ──────────────────────────────────────────────────── */
+
 @layer components {
   /* Reusable card surface */
   .vital-card {
@@ -103,25 +205,31 @@
   }
 
   .vital-card-hover:hover {
-    border-color: rgba(0, 200, 150, 0.45);
+    border-color: rgba(0, 198, 167, 0.45);
+    box-shadow:
+      0 12px 40px rgba(0, 0, 0, 0.15),
+      0 0 28px rgba(0, 198, 167, 0.12);
+    transform: translateY(-4px);
+  }
+
+  [data-theme="dark"] .vital-card-hover:hover {
     box-shadow:
       0 12px 40px rgba(0, 0, 0, 0.35),
-      0 0 28px rgba(0, 200, 150, 0.12);
-    transform: translateY(-4px);
+      0 0 28px rgba(0, 198, 167, 0.12);
   }
 
   /* Primary CTA button */
   .btn-primary {
     @apply inline-flex items-center justify-center gap-2 font-medium transition-all;
     background-color: var(--vital-primary);
-    color: var(--vital-bg);
+    color: var(--text-on-brand);
     border-radius: var(--radius-md);
     padding: 0.625rem 1.25rem;
   }
 
   .btn-primary:hover {
     filter: brightness(1.12);
-    box-shadow: 0 0 28px rgba(0, 200, 150, 0.45);
+    box-shadow: 0 0 28px rgba(0, 198, 167, 0.45);
     transform: translateY(-1px);
   }
 
@@ -131,9 +239,9 @@
 
   .btn-secondary {
     @apply inline-flex items-center justify-center gap-2 font-medium transition-all duration-300;
-    color: var(--vital-text);
-    border: 1px solid var(--vital-border);
-    background-color: var(--vital-card);
+    color: var(--text-primary);
+    border: 1px solid var(--border);
+    background-color: var(--bg-card);
     border-radius: var(--radius-md);
     padding: 0.625rem 1.25rem;
   }
@@ -142,15 +250,15 @@
     border-color: var(--vital-primary);
     color: var(--vital-primary);
     background-color: var(--vital-primary-dim);
-    box-shadow: 0 0 20px rgba(0, 200, 150, 0.15);
+    box-shadow: 0 0 20px rgba(0, 198, 167, 0.15);
     transform: translateY(-1px);
   }
 
   /* Ghost / outline button */
   .btn-ghost {
     @apply inline-flex items-center justify-center gap-2 font-medium transition-all;
-    color: var(--vital-text);
-    border: 1px solid var(--vital-border);
+    color: var(--text-primary);
+    border: 1px solid var(--border);
     border-radius: var(--radius-md);
     padding: 0.625rem 1.25rem;
   }
@@ -176,19 +284,19 @@
   /* Section heading with accent line */
   .section-title {
     @apply text-2xl font-bold tracking-tight sm:text-3xl md:text-4xl;
-    color: var(--vital-text);
+    color: var(--text-primary);
   }
 
   .section-subtitle {
     @apply mt-3 max-w-2xl text-base sm:text-lg;
-    color: var(--vital-muted);
+    color: var(--text-secondary);
   }
 
   /* Gradient text for hero headlines */
   .text-gradient-primary {
     background: linear-gradient(
       135deg,
-      var(--vital-text) 0%,
+      var(--text-primary) 0%,
       var(--vital-primary) 100%
     );
     -webkit-background-clip: text;
@@ -199,7 +307,7 @@
   .text-gradient-danger {
     background: linear-gradient(
       135deg,
-      var(--vital-text) 0%,
+      var(--text-primary) 0%,
       var(--vital-danger) 100%
     );
     -webkit-background-clip: text;
@@ -207,32 +315,68 @@
     background-clip: text;
   }
 
-  /* Subtle grid background for hero */
+  /* Subtle grid background for hero — light mode */
   .bg-grid-pattern {
+    background-image: linear-gradient(
+        rgba(0, 0, 0, 0.06) 1px,
+        transparent 1px
+      ),
+      linear-gradient(90deg, rgba(0, 0, 0, 0.06) 1px, transparent 1px);
+    background-size: 48px 48px;
+  }
+
+  /* Grid pattern — dark mode */
+  [data-theme="dark"] .bg-grid-pattern {
     background-image: linear-gradient(
         rgba(48, 54, 61, 0.4) 1px,
         transparent 1px
       ),
       linear-gradient(90deg, rgba(48, 54, 61, 0.4) 1px, transparent 1px);
-    background-size: 48px 48px;
   }
 }
 
 @layer utilities {
   .text-muted {
-    color: var(--vital-muted);
+    color: var(--text-secondary);
   }
 
   .border-vital {
-    border-color: var(--vital-border);
+    border-color: var(--border);
   }
 
   .glow-primary {
-    box-shadow: 0 0 40px rgba(0, 200, 150, 0.15);
+    box-shadow: 0 0 40px rgba(0, 198, 167, 0.15);
   }
 }
 
-/* Lahore map — zoom controls + tooltips */
+/* ─── Scrollbar theming ────────────────────────────────────────────────── */
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--scrollbar-track);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-hover);
+}
+
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+}
+
+/* ─── Lahore map — zoom controls + tooltips ────────────────────────────── */
+
 .lahore-map-wrap .leaflet-control-zoom {
   border: 1px solid var(--vital-border) !important;
   border-radius: var(--radius-md) !important;
@@ -251,8 +395,8 @@
 }
 
 .lahore-map-wrap .leaflet-control-zoom a:hover {
-  background: var(--vital-bg) !important;
-  color: var(--vital-text) !important;
+  background: var(--bg-page) !important;
+  color: var(--text-primary) !important;
 }
 
 .lahore-map-wrap .leaflet-control-zoom-in {
@@ -266,7 +410,7 @@
 
 .lahore-map-wrap .leaflet-tooltip {
   background: var(--vital-card);
-  color: var(--vital-text);
+  color: var(--text-primary);
   border: 1px solid var(--vital-primary);
   border-radius: var(--radius-sm);
   font-size: 12px;
@@ -334,6 +478,7 @@
   box-shadow: 0 0 0 3px rgba(0, 200, 150, 0.35), 0 4px 16px rgba(0, 0, 0, 0.5);
 }
 
+/* Pin value — dark text on coloured circle (always readable) */
 .lahore-aqi-pin-value {
   font-size: 11px;
   font-weight: 800;
@@ -342,6 +487,7 @@
   letter-spacing: -0.02em;
 }
 
+/* Pin label — white text sits on map tiles, text-shadow ensures legibility */
 .lahore-aqi-pin-label {
   margin-top: 2px;
   font-size: 8px;
@@ -397,7 +543,7 @@
 
 .lahore-map-wrap .leaflet-popup-content-wrapper {
   background: var(--vital-card);
-  color: var(--vital-text);
+  color: var(--text-primary);
   border-radius: var(--radius-md);
   border: 1px solid var(--vital-border);
 }

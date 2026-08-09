@@ -19,6 +19,7 @@ import {
   X,
 } from "lucide-react";
 import { useVitalAirStore } from "@/store/useVitalAirStore";
+import ThemeToggle from "@/components/ThemeToggle";
 import { authLink } from "@/lib/authLinks";
 
 const LANDING_SECTIONS = [
@@ -176,6 +177,7 @@ export default function Navbar() {
 
         {/* Desktop actions */}
         <div className="hidden shrink-0 items-center gap-3 md:flex">
+          <ThemeToggle />
           {showLandingNav && (
             <>
               <Link href="/login?callbackUrl=%2Fdashboard" className="btn-ghost text-sm py-2 px-4">
@@ -306,6 +308,10 @@ export default function Navbar() {
               )}
 
               <li className="mt-3 flex flex-col gap-2 border-t border-vital-border pt-4">
+                <div className="flex items-center justify-between px-3 py-1">
+                  <span className="text-sm text-vital-muted">Theme</span>
+                  <ThemeToggle />
+                </div>
                 {showLandingNav && (
                   <>
                     <Link

@@ -81,12 +81,13 @@ export default function HeroSection() {
 
       {/* Lahore Mosque, Smog & Route Visual Graphic Background */}
       <div 
-        className="pointer-events-none absolute inset-0 bg-cover bg-center bg-no-repeat opacity-35 sm:opacity-45 mix-blend-screen"
+        className="pointer-events-none absolute inset-0 bg-cover bg-center bg-no-repeat opacity-15 mix-blend-darken filter contrast-125 dark:opacity-45 dark:mix-blend-screen dark:filter-none transition-all duration-300"
         style={{
           backgroundImage: "url('/images/lahore_hero_bg.png')",
-          maskImage: "radial-gradient(circle at center, black 50%, transparent 95%)",
-          WebkitMaskImage: "radial-gradient(circle at center, black 50%, transparent 95%)",
+          maskImage: "radial-gradient(circle at center, black 45%, transparent 92%)",
+          WebkitMaskImage: "radial-gradient(circle at center, black 45%, transparent 92%)",
         }}
+        aria-hidden
       />
 
       <motion.div className="relative mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 text-center">
@@ -96,7 +97,6 @@ export default function HeroSection() {
           animate="show"
           className="flex flex-col items-center"
         >
-
 
           {/* Powerful & Minimalist Main Headline */}
           <motion.h1

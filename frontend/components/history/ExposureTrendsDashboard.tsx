@@ -133,7 +133,7 @@ export default function ExposureTrendsDashboard({ userId, token }: Props) {
           ) : (
             <ResponsiveContainer width="100%" height={220}>
               <LineChart data={daily_pes}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#1e2a38" />
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
                 <XAxis
                   dataKey="label"
                   tick={{ fill: MUTED, fontSize: 10 }}
@@ -142,8 +142,8 @@ export default function ExposureTrendsDashboard({ userId, token }: Props) {
                 <YAxis domain={[0, 100]} tick={{ fill: MUTED, fontSize: 11 }} />
                 <Tooltip
                   contentStyle={{
-                    background: "#121820",
-                    border: "1px solid #1e2a38",
+                    background: "var(--bg-card)",
+                    border: "1px solid var(--border)",
                     borderRadius: 8,
                   }}
                 />
@@ -166,7 +166,7 @@ export default function ExposureTrendsDashboard({ userId, token }: Props) {
           ) : (
             <ResponsiveContainer width="100%" height={220}>
               <BarChart data={aqi_categories} layout="vertical">
-                <CartesianGrid strokeDasharray="3 3" stroke="#1e2a38" />
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
                 <XAxis type="number" tick={{ fill: MUTED, fontSize: 11 }} />
                 <YAxis
                   type="category"
@@ -176,8 +176,8 @@ export default function ExposureTrendsDashboard({ userId, token }: Props) {
                 />
                 <Tooltip
                   contentStyle={{
-                    background: "#121820",
-                    border: "1px solid #1e2a38",
+                    background: "var(--bg-card)",
+                    border: "1px solid var(--border)",
                     borderRadius: 8,
                   }}
                 />
