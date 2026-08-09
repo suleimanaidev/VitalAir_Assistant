@@ -79,15 +79,21 @@ export default function HeroSection() {
       <div className="pointer-events-none absolute left-1/2 top-10 h-[500px] w-[500px] -translate-x-1/2 rounded-full bg-vital-primary/12 blur-[120px]" />
       <div className="pointer-events-none absolute left-1/2 top-40 h-[350px] w-[350px] -translate-x-1/2 rounded-full bg-[#FFD700]/8 blur-[100px]" />
 
-      {/* Lahore Mosque, Smog & Route Visual Graphic Background */}
+      {/* Lahore Mosque, Smog & Route Visual Graphic Background — Soft Feathered Fade on All Edges */}
       <div 
-        className="pointer-events-none absolute inset-0 bg-cover bg-center bg-no-repeat opacity-15 mix-blend-darken filter contrast-125 dark:opacity-45 dark:mix-blend-screen dark:filter-none transition-all duration-300"
+        className="pointer-events-none absolute inset-0 bg-cover bg-center bg-no-repeat opacity-15 mix-blend-darken filter contrast-125 dark:opacity-40 dark:mix-blend-screen dark:filter-none transition-all duration-300"
         style={{
           backgroundImage: "url('/images/lahore_hero_bg.png')",
-          maskImage: "radial-gradient(circle at center, black 45%, transparent 92%)",
-          WebkitMaskImage: "radial-gradient(circle at center, black 45%, transparent 92%)",
+          maskImage: "linear-gradient(to bottom, transparent 0%, black 12%, black 45%, transparent 85%)",
+          WebkitMaskImage: "linear-gradient(to bottom, transparent 0%, black 12%, black 45%, transparent 85%)",
         }}
         aria-hidden
+      />
+
+      {/* Feathered Bottom Blend Gradient to eliminate any sharp cut-off lines */}
+      <div 
+        className="pointer-events-none absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-vital-bg via-vital-bg/70 to-transparent" 
+        aria-hidden 
       />
 
       <motion.div className="relative mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 text-center">
