@@ -429,8 +429,11 @@ async def list_queries_full(
     """Full query documents for exposure trends (Innovation 7)."""
     db = await get_db_async()
     query: dict = {"source": {"$exists": True}}
-    if user_id and ObjectId.is_valid(user_id):
-        query["user_id"] = ObjectId(user_id)
+    if user_id:
+        if ObjectId.is_valid(str(user_id)):
+            query["$or"] = [{"user_id": ObjectId(str(user_id))}, {"user_id": str(user_id)}]
+        else:
+            query["user_id"] = str(user_id)
     since = datetime.now(timezone.utc) - timedelta(days=days)
     query["timestamp"] = {"$gte": since}
 
@@ -459,11 +462,20 @@ async def list_queries_full(
 async def list_queries(user_id: str | None = None, limit: int = 30) -> list[dict]:
     db = await get_db_async()
     query: dict = {"source": {"$exists": True}}
-    if user_id and ObjectId.is_valid(user_id):
-        query["user_id"] = ObjectId(user_id)
+    if user_id:
+        if ObjectId.is_valid(str(user_id)):
+            query["$or"] = [{"user_id": ObjectId(str(user_id))}, {"user_id": str(user_id)}]
+        else:
+            query["user_id"] = str(user_id)
     cursor = db.queries.find(query).sort("timestamp", -1).limit(limit)
     items = []
     async for doc in cursor:
+        ts = doc.get("timestamp")
+        ts_str = (
+            ts.isoformat()
+            if hasattr(ts, "isoformat")
+            else (str(ts) if ts else None)
+        )
         items.append(
             {
                 "id": str(doc["_id"]),
@@ -472,12 +484,12 @@ async def list_queries(user_id: str | None = None, limit: int = 30) -> list[dict
                 "aqi_at_time": doc.get("aqi_at_time"),
                 "pes_score": doc.get("pes_score"),
                 "pes_level": doc.get("pes_level"),
+                "personal_exposure_score": doc.get("personal_exposure_score"),
                 "health_advice": doc.get("health_advice"),
+                "diet_plan": doc.get("diet_plan"),
                 "status": doc.get("status", "complete"),
                 "task_id": doc.get("task_id"),
-                "timestamp": doc.get("timestamp").isoformat()
-                if doc.get("timestamp")
-                else None,
+                "timestamp": ts_str,
             }
         )
     return items
@@ -513,7 +525,7 @@ def _normalize_safe_route(result: dict[str, Any]) -> dict[str, Any] | None:
     feature = {
         "type": "Feature",
         "geometry": {"type": "LineString", "coordinates": coords},
-        "properties": {"summary": safe.get("summary", "")},
+        "properties": {"summary": safe.get("summary", "Suggested Route")},
     }
     return {
         "cleanest": feature,
@@ -523,13 +535,62 @@ def _normalize_safe_route(result: dict[str, Any]) -> dict[str, Any] | None:
     }
 
 
-def _exposure_fields_from_result(result: dict[str, Any]) -> dict[str, Any]:
+def _exposure_fields_from_result(
+    result: dict[str, Any], payload: dict[str, Any] | None = None
+) -> dict[str, Any]:
     from services.exposure_trends import aqi_category
 
-    aqi = int(result.get("aqi_at_time") or result.get("aqi") or 0)
-    pes_raw = result.get("personal_exposure_score") or {}
+    payload = payload or {}
+    aqi = int(
+        result.get("aqi_at_time")
+        or result.get("aqi")
+        or payload.get("aqi_at_time")
+        or payload.get("aqi")
+        or 0
+    )
+    pes_raw = (
+        result.get("personal_exposure_score")
+        or payload.get("personal_exposure_score")
+        or {}
+    )
+    if hasattr(pes_raw, "model_dump"):
+        pes_raw = pes_raw.model_dump()
     pes_score = pes_raw.get("score") if isinstance(pes_raw, dict) else None
     pes_level = pes_raw.get("level") if isinstance(pes_raw, dict) else None
+
+    if pes_score is None and (
+        result.get("pes_score") is not None or payload.get("pes_score") is not None
+    ):
+        raw_val = (
+            result.get("pes_score")
+            if result.get("pes_score") is not None
+            else payload.get("pes_score")
+        )
+        pes_score = int(raw_val)
+        pes_level = (
+            result.get("pes_level")
+            or payload.get("pes_level")
+            or (
+                "critical"
+                if pes_score >= 80
+                else "high"
+                if pes_score >= 60
+                else "moderate"
+                if pes_score >= 40
+                else "low"
+            )
+        )
+    elif pes_score is None and aqi > 0:
+        pes_score = min(100, max(10, int(aqi * 0.45)))
+        pes_level = (
+            "critical"
+            if pes_score >= 80
+            else "high"
+            if pes_score >= 60
+            else "moderate"
+            if pes_score >= 40
+            else "low"
+        )
 
     safe = result.get("safe_route") or {}
     if hasattr(safe, "model_dump"):
@@ -546,7 +607,7 @@ def _exposure_fields_from_result(result: dict[str, Any]) -> dict[str, Any]:
         "route_rank_chosen": 1 if route_options else 1,
         "mask_recommended": mask_recommended,
         "advisory_compliant": chose_safest,
-        "personal_exposure_score": pes_raw if isinstance(pes_raw, dict) else None,
+        "personal_exposure_score": pes_raw if isinstance(pes_raw, dict) and pes_raw else None,
     }
 
 
@@ -559,15 +620,19 @@ async def save_query(
     status: str = "complete",
 ) -> str:
     db = await get_db_async()
-    exposure = _exposure_fields_from_result(result)
+    exposure = _exposure_fields_from_result(result, payload)
     safe_route = _normalize_safe_route(result)
 
+    src = payload.get("source") or payload.get("area") or "Lahore"
+    dst = payload.get("destination") or result.get("destination")
+    aqi_val = result.get("aqi_at_time") or result.get("aqi") or payload.get("aqi")
+
     doc = {
-        "user_id": ObjectId(user_id) if user_id and ObjectId.is_valid(user_id) else None,
+        "user_id": ObjectId(str(user_id)) if user_id and ObjectId.is_valid(str(user_id)) else (str(user_id) if user_id else None),
         "task_id": task_id,
-        "source": payload.get("source"),
-        "destination": payload.get("destination"),
-        "aqi_at_time": result.get("aqi_at_time") or result.get("aqi"),
+        "source": src,
+        "destination": dst,
+        "aqi_at_time": int(aqi_val) if aqi_val is not None else None,
         "health_advice": result.get("health_advice"),
         "diet_plan": result.get("diet_plan"),
         "safe_route": safe_route,

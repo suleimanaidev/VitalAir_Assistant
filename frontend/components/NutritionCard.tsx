@@ -13,7 +13,7 @@ export interface NutritionCardProps {
 
 export default function NutritionCard({
   items = [],
-  emptyMessage = "Route analyze karein — Punjab/Lahore mein milne wali cheezen yahan suggest hongi.",
+  emptyMessage = "Analyze an area or route — personalized nutrition recommendations will appear here.",
   embedded = false,
   hasPatientDocs = false,
 }: NutritionCardProps) {

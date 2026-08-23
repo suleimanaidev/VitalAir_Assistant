@@ -29,7 +29,7 @@ function highlightMatch(text: string, query: string) {
   return (
     <>
       {text.slice(0, idx)}
-      <mark className="rounded bg-vital-primary/25 px-0.5 text-vital-text">
+      <mark className="rounded bg-vital-primary/25 px-1 font-bold text-vital-primary">
         {text.slice(idx, idx + query.trim().length)}
       </mark>
       {text.slice(idx + query.trim().length)}
@@ -127,12 +127,12 @@ export default function LocationSearchInput({
   };
 
   return (
-    <div ref={wrapRef} className="relative">
+    <div ref={wrapRef} className="relative w-full">
       <label className="block text-sm font-medium text-vital-text">
         {label}
         <div className="relative mt-1.5">
           <MapPin
-            className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-vital-muted"
+            className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-vital-primary/70"
             aria-hidden
           />
           <input
@@ -141,7 +141,7 @@ export default function LocationSearchInput({
             aria-expanded={open}
             aria-controls={listId}
             aria-autocomplete="list"
-            className="w-full rounded-lg border border-vital-border bg-vital-bg py-2.5 pl-9 pr-9 text-vital-text focus:border-vital-primary focus:outline-none focus:ring-1 focus:ring-vital-primary"
+            className="w-full rounded-xl border border-vital-border bg-vital-bg py-3 pl-10 pr-10 text-sm font-medium text-vital-text shadow-sm transition-all focus:border-vital-primary focus:bg-vital-card focus:outline-none focus:ring-2 focus:ring-vital-primary/20"
             placeholder={placeholder}
             value={value}
             disabled={disabled}
@@ -161,7 +161,7 @@ export default function LocationSearchInput({
           />
           {loading && (
             <Loader2
-              className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-vital-muted"
+              className="absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-vital-primary"
               aria-hidden
             />
           )}
@@ -172,16 +172,16 @@ export default function LocationSearchInput({
         <ul
           id={listId}
           role="listbox"
-          className="absolute z-30 mt-1 max-h-80 w-full min-w-[280px] overflow-auto rounded-lg border border-vital-border bg-vital-card py-1 shadow-xl sm:min-w-full"
+          className="absolute left-0 right-0 z-50 mt-1.5 max-h-80 sm:max-h-96 w-full overflow-y-auto rounded-xl border border-vital-border bg-vital-card p-1.5 shadow-2xl ring-1 ring-black/10 dark:ring-white/10"
         >
           {!trimmed && (
-            <li className="px-3 py-2 text-xs font-semibold uppercase tracking-wide text-vital-muted">
+            <li className="px-3.5 py-2 text-xs font-bold uppercase tracking-wider text-vital-muted">
               All Lahore areas ({listItems.length})
             </li>
           )}
           {trimmed && listItems.some((i) => i.source === "area_mapping") && (
-            <li className="px-3 py-2 text-xs font-semibold uppercase tracking-wide text-vital-primary">
-              Mapped areas
+            <li className="px-3.5 py-2 text-xs font-bold uppercase tracking-wider text-vital-primary">
+              Mapped Lahore Areas
             </li>
           )}
           {listItems.map((item, i) => {
@@ -189,36 +189,50 @@ export default function LocationSearchInput({
               trimmed &&
               item.source === "geocode" &&
               (i === 0 || listItems[i - 1]?.source === "area_mapping");
+            const isCustom = item.id === "__custom__";
             return (
               <li key={item.id} role="presentation">
                 {showGeoHeader && (
-                  <div className="px-3 py-2 text-xs font-semibold uppercase tracking-wide text-vital-muted">
+                  <div className="px-3.5 py-2 text-xs font-bold uppercase tracking-wider text-vital-muted">
                     Map search
                   </div>
                 )}
                 <div role="option" aria-selected={i === activeIndex}>
                   <button
                     type="button"
-                    className={`flex w-full flex-col items-start gap-1 px-3 py-2.5 text-left ${
+                    className={`flex w-full items-start gap-3 rounded-lg px-3.5 py-2.5 text-left transition-all ${
                       i === activeIndex
-                        ? "bg-vital-primary/15"
-                        : "hover:bg-vital-primary/10"
-                    }`}
+                        ? "bg-vital-primary/15 text-vital-primary font-semibold"
+                        : "hover:bg-vital-primary/10 text-vital-text"
+                    } ${isCustom ? "bg-vital-primary/5 border border-vital-primary/20 mb-1" : ""}`}
                     onMouseDown={(e) => e.preventDefault()}
                     onClick={() => pick(item)}
                   >
-                    <span className="flex w-full items-start gap-2 text-sm font-semibold leading-snug text-vital-text">
-                      <MapPin
-                        className="mt-0.5 h-4 w-4 shrink-0 text-vital-primary opacity-80"
-                        aria-hidden
-                      />
-                      <span className="whitespace-normal break-words">
-                        {highlightMatch(item.label, trimmed)}
-                      </span>
+                    <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-vital-primary/15 text-vital-primary">
+                      <MapPin className="h-4 w-4" aria-hidden />
                     </span>
-                    {item.detail && (
-                      <span className="pl-6 text-xs text-vital-muted">{item.detail}</span>
-                    )}
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-semibold text-vital-text leading-snug">
+                          {highlightMatch(item.label, trimmed)}
+                        </span>
+                        {isCustom && (
+                          <span className="rounded-md bg-vital-primary/20 px-2 py-0.5 text-[10px] font-bold text-vital-primary">
+                            Custom Area
+                          </span>
+                        )}
+                        {item.source === "area_mapping" && (
+                          <span className="rounded-md bg-emerald-500/15 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
+                            Live AQI
+                          </span>
+                        )}
+                      </div>
+                      {item.detail && (
+                        <p className="mt-0.5 text-xs text-vital-muted">
+                          {item.detail}
+                        </p>
+                      )}
+                    </div>
                   </button>
                 </div>
               </li>

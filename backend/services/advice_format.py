@@ -51,126 +51,126 @@ SEASON_HEALTH_FALLBACK: dict[str, list[str]] = {
 SEASON_MEALS: dict[str, dict[str, list[str]]] = {
     "monsoon": {
         "breakfast": [
-            "[Nashta (Breakfast) • Monsoon] Fresh Nimbu Paani aur Taza Seb — Monsoon humidity aur airway immunity ke liye.",
-            "[Nashta (Breakfast) • Monsoon] Subah Dalia, Badam aur Filtered Paani — Subah ki digestive energy aur heart protection.",
-            "[Nashta (Breakfast) • Monsoon] Sprouted Moong Chat aur Boiled Anda — Airway clearing & protein for asthma in monsoon.",
+            "[Breakfast • Monsoon] Fresh Lemon Water & Crisp Apple — Boosts airway immunity and counters humidity.",
+            "[Breakfast • Monsoon] Morning Oatmeal with Almonds & Filtered Water — Sustained digestive energy and heart wellness.",
+            "[Breakfast • Monsoon] Sprouted Moong Salad & Boiled Egg — Airway clearing protein for asthma and respiratory care.",
         ],
         "lunch": [
-            "[☀️ Dopahar Ka Khana (Lunch) • Monsoon] Ghar ki Moong Daal, Naram Roti aur Kheera Raita — Dopahar mein halka hazma.",
-            "[☀️ Dopahar Ka Khana (Lunch) • Monsoon] Jamun, Mixed Sabzi aur Chappati — Low sugar, dil aur asthma protection.",
-            "[☀️ Dopahar Ka Khana (Lunch) • Monsoon] Steamed Chukandar Salad aur Bhindi — Heavy monsoon stomach relief.",
+            "[Lunch • Monsoon] Homemade Moong Dal, Soft Roti & Cucumber Raita — Light, easy-to-digest midday meal.",
+            "[Lunch • Monsoon] Black Jamun, Steamed Vegetables & Chapati — Low glycemic index, protects heart and lungs.",
+            "[Lunch • Monsoon] Steamed Beetroot Salad with Okra (Bhindi) — Gentle on the stomach during humid monsoon days.",
         ],
         "snack": [
-            "[🌆 Shaam Ka Snack (Evening) • Monsoon] Falsa Juice ya Papita — Shaam ke waqt high antioxidant & lung defense.",
-            "[🌆 Shaam Ka Snack (Evening) • Monsoon] Bhuni Chana aur Nimbu Paani — High energy, low-moisture healthy snack.",
-            "[🌆 Shaam Ka Snack (Evening) • Monsoon] Fresh Anar ke Daane — Shaam ke waqt blood circulation boost.",
+            "[Evening Snack • Monsoon] Fresh Falsa / Papaya Bowl — High antioxidant intake for lung defense.",
+            "[Evening Snack • Monsoon] Roasted Chickpeas & Fresh Lemon Water — High energy, low-moisture healthy snack.",
+            "[Evening Snack • Monsoon] Fresh Pomegranate Seeds — Boosts blood circulation and cellular defense.",
         ],
         "dinner": [
-            "[🌙 Raat Ka Khana (Dinner) • Monsoon] Ubla Filtered Paani aur Chicken Yakhni Soup — Raat ko chest clearance.",
-            "[🌙 Raat Ka Khana (Dinner) • Monsoon] Halki Moong Khichdi aur Dahi — Raat ko mold spore infection se bachao.",
-            "[🌙 Raat Ka Khana (Dinner) • Monsoon] Garam Haldi Doodh aur Naram Roti — Night-time airway & joint relief.",
+            "[Dinner • Monsoon] Warm Chicken Broth Soup with Boiled Water — Clears chest and throat before sleep.",
+            "[Dinner • Monsoon] Light Moong Khichdi with Fresh Yogurt — Protects against seasonal gut infections and mold spores.",
+            "[Dinner • Monsoon] Warm Turmeric Milk & Soft Whole Wheat Roti — Soothes airways and reduces overnight inflammation.",
         ],
     },
     "summer_heatwave": {
         "breakfast": [
-            "[🌅 Nashta (Breakfast) • Heatwave] Nariyal Paani aur Taza Seb — Early hydration aur electrolyte balance.",
-            "[🌅 Nashta (Breakfast) • Heatwave] Oatmeal aur Thanda Doodh — Low sodium breakfast for heat.",
-            "[🌅 Nashta (Breakfast) • Heatwave] Kacha Aam Panna aur Toast — Heatstroke resistance & stamina.",
+            "[Breakfast • Heatwave] Pure Coconut Water & Fresh Apple — Early morning hydration and electrolyte replenishment.",
+            "[Breakfast • Heatwave] Oatmeal with Chilled Milk & Chia Seeds — Low sodium, heart-healthy breakfast for heat.",
+            "[Breakfast • Heatwave] Raw Mango Cooler (Aam Panna) & Whole Grain Toast — Boosts stamina and heatstroke resistance.",
         ],
         "lunch": [
-            "[☀️ Dopahar Ka Khana (Lunch) • Heatwave] Thanda Kheera Raita, Lauki Sabzi aur Roti — Dopahar ki garmi aur ozone se bachao.",
-            "[☀️ Dopahar Ka Khana (Lunch) • Heatwave] Tarbuz Ke Tukray aur Meethi/Namkeen Lassi — Dopahar mein maximum cooling.",
-            "[☀️ Dopahar Ka Khana (Lunch) • Heatwave] Sattu Sharbat aur Sprouted Moong Chat — Light digestive protein.",
+            "[Lunch • Heatwave] Chilled Cucumber Mint Raita, Bottle Gourd & Roti — Defends against peak afternoon ozone and heat.",
+            "[Lunch • Heatwave] Fresh Watermelon Slices & Probiotic Yogurt Lassi — Maximum daytime hydration and cellular cooling.",
+            "[Lunch • Heatwave] Barley Sattu Drink & Sprouted Moong Bowl — Light digestive protein without thermal stress.",
         ],
         "snack": [
-            "[🌆 Shaam Ka Snack (Evening) • Heatwave] Falsa Crush / Kharbooza — Body heat control & anti-inflammatory.",
-            "[🌆 Shaam Ka Snack (Evening) • Heatwave] Thanda Nimbu Paani Podina Ke Sath — Afternoon hydration recharge.",
-            "[🌆 Shaam Ka Snack (Evening) • Heatwave] Sabza Seeds Rooh Afza / Bel Sharbat — Cooling gut health.",
+            "[Evening Snack • Heatwave] Falsa Berry Crush / Sweet Musk Melon — Controls body heat and relieves oxidative stress.",
+            "[Evening Snack • Heatwave] Chilled Lemon Water with Fresh Mint — Restores electrolyte balance after daytime heat.",
+            "[Evening Snack • Heatwave] Basil Seed (Sabza) Herbal Drink — Natural gut-cooling and soothing drink.",
         ],
         "dinner": [
-            "[🌙 Raat Ka Khana (Dinner) • Heatwave] Halki Moong Khichdi aur Dahi — Raat ko light digestion before sleep.",
-            "[🌙 Raat Ka Khana (Dinner) • Heatwave] Steamed Sabzi aur Naram Roti — Restful sleep without heavy heat.",
-            "[🌙 Raat Ka Khana (Dinner) • Heatwave] Thanda Plain Doodh — Sone se pehle acidity & heat relief.",
+            "[Dinner • Heatwave] Light Moong Khichdi & Plain Yogurt — Effortless digestion for restful sleep in hot weather.",
+            "[Dinner • Heatwave] Steamed Seasonal Greens & Soft Flatbread — Prevents heavy thermal load before bedtime.",
+            "[Dinner • Heatwave] Chilled Plain Milk with a pinch of Cardamom — Soothes acidity and cools internal heat.",
         ],
     },
     "winter_smog": {
         "breakfast": [
-            "[🌅 Nashta (Breakfast) • Smog Season] Garam Yakhni Soup, Taza Seb aur Badam — Subah smog particles se immunity.",
-            "[🌅 Nashta (Breakfast) • Smog Season] Garam Anda & Oats — Respiratory strength for cold morning.",
-            "[🌅 Nashta (Breakfast) • Smog Season] Local Shahad aur Garam Paani — Morning airway lining coating.",
+            "[Breakfast • Smog Season] Warm Chicken Yakhni Soup, Fresh Apple & Walnuts — Builds immunity against fine PM2.5 particles.",
+            "[Breakfast • Smog Season] Warm Boiled Eggs & Whole Grain Oats — Sustained respiratory energy for cold mornings.",
+            "[Breakfast • Smog Season] Pure Honey with Warm Ginger Water — Coats and protects the morning airway lining.",
         ],
         "lunch": [
-            "[☀️ Dopahar Ka Khana (Lunch) • Smog Season] Palak Saag, Whole Wheat Roti aur Lehsan — Iron & anti-inflammatory.",
-            "[☀️ Dopahar Ka Khana (Lunch) • Smog Season] Garam Moong Daal Soup aur Steamed Sabzi — Clear lungs at lunchtime.",
-            "[☀️ Dopahar Ka Khana (Lunch) • Smog Season] Rohu Machli / Fish Curry — Omega-3 cardiovascular & lung protection.",
+            "[Lunch • Smog Season] Fresh Spinach (Palak/Saag), Whole Wheat Roti & Garlic — Rich in iron and anti-inflammatory compounds.",
+            "[Lunch • Smog Season] Hot Moong Dal Soup & Steamed Vegetables — Clears bronchial tubes at midday.",
+            "[Lunch • Smog Season] Grilled Fish (Rohu / Trout) — High Omega-3 fatty acids for cardiovascular and lung resilience.",
         ],
         "snack": [
-            "[🌆 Shaam Ka Snack (Evening) • Smog Season] Gajar aur Chukandar Fresh Juice — Oxygen delivery & antioxidants.",
-            "[🌆 Shaam Ka Snack (Evening) • Smog Season] Anar ke Daane aur Akhrot — Smog oxidative stress defense.",
-            "[🌆 Shaam Ka Snack (Evening) • Smog Season] Amrood (Guava) — Vitamin C lung tissue repair.",
+            "[Evening Snack • Smog Season] Fresh Carrot & Beetroot Juice — Enhances oxygen delivery and provides deep antioxidants.",
+            "[Evening Snack • Smog Season] Pomegranate Seeds & Raw Walnuts — Fights smog-induced oxidative stress.",
+            "[Evening Snack • Smog Season] Fresh Guava with Black Pepper — High Vitamin C for lung tissue repair.",
         ],
         "dinner": [
-            "[🌙 Raat Ka Khana (Dinner) • Smog Season] Garam Haldi Doodh aur Naram Roti — Raat ko lungs restoration.",
-            "[🌙 Raat Ka Khana (Dinner) • Smog Season] Garam Chicken Yakhni Soup — Night-time throat & airway clearing.",
-            "[🌙 Raat Ka Khana (Dinner) • Smog Season] Moong Khichdi aur Pakaye Khane Mein Lehsan — Respiratory recovery.",
+            "[Dinner • Smog Season] Warm Golden Turmeric Milk & Soft Flatbread — Overnight lung restoration and throat soothing.",
+            "[Dinner • Smog Season] Steaming Chicken Soup with Crushed Garlic — Clears throat and chest before sleep.",
+            "[Dinner • Smog Season] Moong Dal Khichdi with Cooked Garlic — Restorative and easy-to-digest evening dinner.",
         ],
     },
     "spring_dust": {
         "breakfast": [
-            "[🌅 Nashta (Breakfast) • Spring Dust] Dalia, Local Shahad aur Seb — Pollen allergy & airway support.",
-            "[🌅 Nashta (Breakfast) • Spring Dust] Gajar-Apple Fresh Juice — Airway lining refreshment.",
+            "[Breakfast • Spring Dust] Oatmeal with Pure Honey & Fresh Apple — Pollen allergy support and respiratory lining care.",
+            "[Breakfast • Spring Dust] Fresh Carrot-Apple Juice — Refreshes and fortifies the airway lining.",
         ],
         "lunch": [
-            "[☀️ Dopahar Ka Khana (Lunch) • Spring Dust] Steamed Mixed Sabzi aur Podina Chutney — Dusty days mein halki digestion.",
-            "[☀️ Dopahar Ka Khana (Lunch) • Spring Dust] Sprouted Moong Chat & Chappati — Protein & immunity boost.",
+            "[Lunch • Spring Dust] Steamed Mixed Vegetables & Fresh Mint Chutney — Easy digestion during dusty conditions.",
+            "[Lunch • Spring Dust] Sprouted Moong Salad & Soft Chapati — Lean protein and immune fortification.",
         ],
         "snack": [
-            "[🌆 Shaam Ka Snack (Evening) • Spring Dust] Falsa / Aloo Bukhara — Dust particle stress defense.",
-            "[🌆 Shaam Ka Snack (Evening) • Spring Dust] Amrood & Ber — Seasonal fruit boost.",
+            "[Evening Snack • Spring Dust] Fresh Falsa / Plums — Shields cells from particulate dust stress.",
+            "[Evening Snack • Spring Dust] Guava & Fresh Seasonal Berries — Rich Vitamin C booster.",
         ],
         "dinner": [
-            "[🌙 Raat Ka Khana (Dinner) • Spring Dust] Chukandar Raita & Naram Roti — Dust detox & hydration.",
-            "[🌙 Raat Ka Khana (Dinner) • Spring Dust] Moong Daal & Normal Temperature Water — Light night digestive care.",
+            "[Dinner • Spring Dust] Beetroot Yogurt Raita & Soft Flatbread — Supports natural detoxification and hydration.",
+            "[Dinner • Spring Dust] Yellow Moong Dal with Room Temperature Water — Gentle nighttime digestive recovery.",
         ],
     },
 }
 
 SEASON_DIET_POOL: dict[str, list[str]] = {
     "winter_smog": [
-        "[Subah 🌅 • Winter Smog] Taza seb aur badam — lung immunity aur smog resistance ke liye.",
-        "[Dophar ☀️ • Winter Smog] Garam moong daal soup — throat clear karne aur inflammation kam karne ke liye.",
-        "[Shaam 🌆 • Winter Smog] Gajar aur chukandar fresh juice — oxygen delivery aur antioxidants ke liye.",
-        "[Raat 🌙 • Winter Smog] Garam haldi wala doodh — raat ko lungs restoration aur throat relief ke liye.",
-        "[Subah 🌅 • Winter Smog] Garam yakhni soup — subah airway clear rakhne ke liye.",
-        "[Dophar ☀️ • Winter Smog] Ghar ka palak saag — iron aur vitamins ke liye.",
-        "[Shaam 🌆 • Winter Smog] Anar ke daane — smog particles se antioxidant defense.",
-        "[Raat 🌙 • Winter Smog] Pakaye khane mein lehsan — respiratory protection.",
+        "[Breakfast • Winter Smog] Fresh Apple & Raw Almonds — Lung immunity and smog resistance.",
+        "[Lunch • Winter Smog] Hot Moong Dal Soup — Clears throat and reduces airway inflammation.",
+        "[Evening Snack • Winter Smog] Fresh Carrot & Beetroot Juice — Oxygen delivery and antioxidant support.",
+        "[Dinner • Winter Smog] Warm Turmeric Milk — Overnight lung restoration and throat relief.",
+        "[Breakfast • Winter Smog] Warm Bone Broth Soup — Keeps morning airways clear.",
+        "[Lunch • Winter Smog] Steamed Spinach & Garlic — Rich in bioavailable iron and vitamins.",
+        "[Evening Snack • Winter Smog] Pomegranate Seeds — Antioxidant shield against smog particulates.",
+        "[Dinner • Winter Smog] Cooked Garlic in Warm Broth — Natural respiratory antimicrobial protection.",
     ],
     "spring_dust": [
-        "[Subah 🌅 • Spring Dust] Subah local shahad aur dalia — pollen allergy aur airway support ke liye.",
-        "[Dophar ☀️ • Spring Dust] Steamed sabzi aur podina chutney — dusty days mein halki digestion ke liye.",
-        "[Shaam 🌆 • Spring Dust] Falsa ya aloo bukhara — dust particle stress defense ke liye.",
-        "[Raat 🌙 • Spring Dust] Chukandar raita aur normal pani — dust detox aur hydration ke liye.",
-        "[Subah 🌅 • Spring Dust] Gajar-apple fresh juice — airway lining refresh karne ke liye.",
-        "[Dophar ☀️ • Spring Dust] Sprouted moong chat — protein aur immunity boost.",
+        "[Breakfast • Spring Dust] Pure Honey & Warm Oatmeal — Pollen allergy and airway soothing.",
+        "[Lunch • Spring Dust] Steamed Vegetables with Mint Chutney — Light digestion on dusty days.",
+        "[Evening Snack • Spring Dust] Fresh Plums or Berries — Cellular defense against dust particles.",
+        "[Dinner • Spring Dust] Beetroot Raita with Filtered Water — Natural detox and hydration.",
+        "[Breakfast • Spring Dust] Fresh Carrot-Apple Juice — Refreshes respiratory tract.",
+        "[Lunch • Spring Dust] Sprouted Moong Salad — Protein and immune defense.",
     ],
     "summer_heatwave": [
-        "[Subah 🌅 • Summer Heat] Thanda nariyal pani aur seb — early hydration aur electrolytes ke liye.",
-        "[Dophar ☀️ • Summer Heat] Thanda nimbu pani aur tarbuz — dopahar ki garmi aur ozone dehydration se bachao.",
-        "[Shaam 🌆 • Summer Heat] Sattu sharbat aur falsa crush — body heat control aur anti-inflammatory support.",
-        "[Raat 🌙 • Summer Heat] Thanda kheera raita aur halki khichdi — cooling digestion before sleep.",
-        "[Subah 🌅 • Summer Heat] Kacha aam panna — heat stroke resistance ke liye.",
-        "[Dophar ☀️ • Summer Heat] Meethi ya namkeen lassi — dopahar ki garmi mein hydration.",
+        "[Breakfast • Summer Heat] Chilled Coconut Water & Apple — Early hydration and electrolyte balance.",
+        "[Lunch • Summer Heat] Fresh Lemon Mint Water & Watermelon — Combats midday heat and ozone dehydration.",
+        "[Evening Snack • Summer Heat] Sattu Beverage & Falsa Crush — Regulates core temperature and fights inflammation.",
+        "[Dinner • Summer Heat] Cucumber Raita & Light Khichdi — Cooling, effortless digestion before sleep.",
+        "[Breakfast • Summer Heat] Raw Mango Drink (Aam Panna) — Shields against heat exhaustion and dehydration.",
+        "[Lunch • Summer Heat] Chilled Sweet or Salted Yogurt Lassi — Natural midday gut hydration.",
     ],
     "monsoon": [
-        "[Subah 🌅 • Monsoon] Garam nimbu & adrak paani — humidity aur throat immunity ke liye.",
-        "[Dophar ☀️ • Monsoon] Jamun & kheera raita — dopahar ki garmi mein digestion, sugar control aur dil ke liye.",
-        "[Shaam 🌆 • Monsoon] Falsa juice ya papita — high antioxidants aur airway protection ke liye.",
-        "[Raat 🌙 • Monsoon] Ubla filtered paani & moong soup — monsoon mold spores aur infection se bachao.",
-        "[Subah 🌅 • Monsoon] Tulsi aur adrak ka paani — immunity aur asthma protection.",
-        "[Dophar ☀️ • Monsoon] Garam naram roti aur moong daal — light monsoonal digestion.",
-        "[Shaam 🌆 • Monsoon] Bhuni chana snack — energy aur low moisture snack.",
-        "[Raat 🌙 • Monsoon] Garam chicken yakhni soup — rainy evening chest clearance.",
+        "[Breakfast • Monsoon] Warm Lemon Ginger Water — Guards against humidity and throat irritation.",
+        "[Lunch • Monsoon] Black Jamun & Cucumber Raita — Healthy digestion, blood sugar control and heart care.",
+        "[Evening Snack • Monsoon] Fresh Papaya / Falsa Bowl — High antioxidants and airway protection.",
+        "[Dinner • Monsoon] Boiled Filtered Water & Moong Dal Soup — Shields against airborne mold spores.",
+        "[Breakfast • Monsoon] Holy Basil (Tulsi) Ginger Tea — Airway defense and asthma support.",
+        "[Lunch • Monsoon] Warm Flatbread with Yellow Moong Dal — Gentle monsoonal digestion.",
+        "[Evening Snack • Monsoon] Roasted Gram / Chickpea Snack — Healthy, crisp, low-moisture energy.",
+        "[Dinner • Monsoon] Warm Chicken Yakhni Soup — Clears chest and throat on rainy evenings.",
     ],
 }
 
@@ -200,19 +200,19 @@ CONDITION_HEALTH: dict[str, list[str]] = {
 
 CONDITION_DIET: dict[str, list[str]] = {
     "asthma": [
-        "[Subah 🌅 • Asthma Care] Garam pani aur adrak — airway constriction kam karne ke liye.",
-        "[Dophar ☀️ • Asthma Care] Nimbu paani & Vitamin C — airway inflammation protection ke liye.",
-        "[Raat 🌙 • Asthma Care] Haldi doodh & garam soup — night-time wheezing control ke liye.",
+        "[Morning 🌅 • Asthma Care] Warm water & ginger — helps ease airway constriction.",
+        "[Afternoon ☀️ • Asthma Care] Fresh lemon water & Vitamin C — provides antioxidant airway protection.",
+        "[Night 🌙 • Asthma Care] Warm turmeric milk & light broth — helps soothe nighttime breathing.",
     ],
     "heart disease": [
-        "[Subah 🌅 • Heart Care] Dalia ya jau ka kanji — cholesterol aur blood pressure balance ke liye.",
-        "[Dophar ☀️ • Heart Care] Jamun & kam namak salad — dil aur vascular protection ke liye.",
-        "[Shaam 🌆 • Heart Care] Garlic & anti-inflammatory soup — blood circulation smooth rakhne ke liye.",
+        "[Morning 🌅 • Heart Care] Oatmeal or barley porridge — supports healthy cholesterol and blood pressure.",
+        "[Afternoon ☀️ • Heart Care] Berries & low-sodium salad — protects vascular and heart health.",
+        "[Evening 🌆 • Heart Care] Garlic & anti-inflammatory soup — supports healthy circulation.",
     ],
     "diabetes": [
-        "[Subah 🌅 • Diabetes Care] Sprouted moong & oats — stable sugar balance ke liye.",
-        "[Dophar ☀️ • Diabetes Care] Bina shakkar lassi ya chaas — low glycemic cooling drink.",
-        "[Shaam 🌆 • Diabetes Care] Kheera-tamatar salad — halka healthy snack.",
+        "[Morning 🌅 • Diabetes Care] Sprouted moong & oats — helps maintain steady blood glucose.",
+        "[Afternoon ☀️ • Diabetes Care] Unsweetened lassi or buttermilk — cooling low-glycemic drink.",
+        "[Evening 🌆 • Diabetes Care] Cucumber & tomato salad — light, high-fiber snack.",
     ],
 }
 
@@ -270,10 +270,10 @@ OUTDOOR_HEALTH: dict[str, list[str]] = {
 }
 
 SUMMARY_UR: dict[str, str] = {
-    "winter_smog": "Smog season — mask pehnein, ghar mein rahein jab ho sake.",
-    "spring_dust": "Spring dust — AQI variable hai, mask aur ehtiyat karein.",
-    "summer_heatwave": "Garmi season — paani zyada, dopahar mein bahir kam jayein.",
-    "monsoon": "Barsaat — paani aur safe commute, ganda pani se bachein.",
+    "winter_smog": "Smog season — wear a mask and stay indoors when possible.",
+    "spring_dust": "Spring dust — AQI is variable, wear a mask on windy days.",
+    "summer_heatwave": "Heatwave season — drink plenty of water and avoid midday sun.",
+    "monsoon": "Monsoon season — drink filtered water and avoid waterlogged roads.",
 }
 
 
@@ -504,10 +504,10 @@ def format_health_advice(
         bullets.insert(0, "Drink water every 30 minutes — heat plus pollution is risky.")
 
     if conditions_list:
-        cond_names = " aur ".join(c.title() for c in conditions_list)
-        summary_ur = f"⚠️ Kyunke aap ko {cond_names} hai, isliye AQI {aqi} aur {season_intel.label_ur} mein zaroori ehtiyat karein."
+        cond_names = " and ".join(c.title() for c in conditions_list)
+        summary_ur = f"⚠️ Because your profile includes {cond_names}, take extra care at AQI {aqi} during {season_intel.name}."
     else:
-        summary_ur = SUMMARY_UR.get(season_id, "Lahore hawa ke liye neeche guidance follow karein.")
+        summary_ur = SUMMARY_UR.get(season_id, "Please follow the protective health guidance below.")
 
     summary_en = _season_summary_en(
         season_id,

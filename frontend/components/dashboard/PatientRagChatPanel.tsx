@@ -21,6 +21,7 @@ export default function PatientRagChatPanel({
   aqi,
 }: Props) {
   const [question, setQuestion] = useState("");
+  const [turns, setTurns] = useState<{ role: "user" | "assistant"; text: string }[]>([]);
   const [asking, setAsking] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [chat, setChat] = useState<PatientRagChatResult | null>(null);
@@ -32,13 +33,17 @@ export default function PatientRagChatPanel({
     if (!prompt || asking) return;
     setAsking(true);
     setError(null);
+    setQuestion("");
+    const newTurns = [...turns, { role: "user" as const, text: prompt }];
+    setTurns(newTurns);
     try {
-      setChat(
-        await askPatientRagChat(prompt, {
-          area: area?.trim() || undefined,
-          aqi: aqi ?? undefined,
-        })
-      );
+      const result = await askPatientRagChat(prompt, {
+        area: area?.trim() || undefined,
+        aqi: aqi ?? undefined,
+        history: newTurns,
+      });
+      setChat(result);
+      setTurns((prev) => [...prev, { role: "assistant" as const, text: result.answer }]);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not answer question");
     } finally {

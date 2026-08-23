@@ -12,7 +12,6 @@ import NutritionCard from "@/components/NutritionCard";
 import RouteCard from "@/components/RouteCard";
 import ExposureScoreCard from "@/components/ExposureScoreCard";
 import HealthExplainabilityPanel from "@/components/HealthExplainabilityPanel";
-import SeasonIntelligenceCard from "@/components/SeasonIntelligenceCard";
 import AgentStepCard, {
   type AgentStepStatus,
 } from "@/components/dashboard/AgentStepCard";
@@ -181,6 +180,8 @@ export default function DashboardView() {
   const setResults = useVitalAirStore((s) => s.setResults);
   const setUserId = useVitalAirStore((s) => s.setUserId);
 
+  const autoSaveHistory = useVitalAirStore((s) => s.autoSaveHistory);
+
   const profile: HealthProfile = healthProfile ?? defaultProfile;
   const profileLoading = profileComplete === null && !!session?.user;
 
@@ -267,8 +268,6 @@ export default function DashboardView() {
     };
   }, [session?.backendToken, setTodaySymptoms]);
 
-
-
   const saveSymptomCheckin = async (payload: SymptomCheckinPayload) => {
     if (!session?.backendToken) return;
     setSymptomSaving(true);
@@ -287,15 +286,14 @@ export default function DashboardView() {
 
   return (
     <main className="pb-16">
-      <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-4xl lg:max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
         <header className="mb-8">
           <h1 className="section-title">AI Agent Dashboard</h1>
           <p className="section-subtitle">
             {healthProfile ? (
               <>
                 Welcome,{" "}
-                <span className="text-vital-primary">{profile.name}</span> — run
-                each agent step by step for {APP_CITY}.
+                <span className="text-vital-primary">{profile.name}</span>
               </>
             ) : profileLoading ? (
               "Loading your health profile…"
@@ -318,7 +316,7 @@ export default function DashboardView() {
             <div className="flex-1 w-full">
               <LocationSearchInput
                 label="Your area"
-                placeholder="Koi bhi Lahore area — e.g. Dubai Town"
+                placeholder="Search any Lahore area…"
                 value={inputArea}
                 onChange={setInputArea}
               />
@@ -330,9 +328,6 @@ export default function DashboardView() {
               Search
             </button>
           </div>
-          <p className="mt-2 text-xs text-vital-muted">
-            Pehle area choose karein aur Search press karein — live AQI fetch hogi.
-          </p>
         </div>
 
         {session?.backendToken && (
@@ -389,6 +384,15 @@ export default function DashboardView() {
               <p className="mt-2 text-xs text-vital-muted">
                 Based on AQI, age/profile, conditions, commute, outdoor time, and today&apos;s symptoms.
               </p>
+
+              <div className="mt-4 flex flex-wrap items-center justify-end gap-2 pt-3 border-t border-vital-border/40">
+                <Link
+                  href="/history"
+                  className="text-xs font-medium text-vital-muted hover:text-vital-primary underline transition"
+                >
+                  View My Health History →
+                </Link>
+              </div>
             </div>
           </div>
         </div>

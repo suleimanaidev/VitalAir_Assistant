@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Loader2, Save } from "lucide-react";
+import Link from "next/link";
+import { ArrowRight, History, Loader2, Save, Trash2 } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -15,6 +16,7 @@ import {
   inputClass,
 } from "@/lib/healthProfileOptions";
 import { profilePayloadFromHealth, updateMyProfile } from "@/lib/profileApi";
+import { clearAllHistory } from "@/lib/historyApi";
 import { APP_CITY } from "@/lib/constants";
 import {
   defaultProfile,
@@ -45,6 +47,8 @@ export default function ProfileEditor({ onSaved }: ProfileEditorProps) {
   const stored = useVitalAirStore((s) => s.healthProfile);
   const setHealthProfile = useVitalAirStore((s) => s.setHealthProfile);
   const setProfileComplete = useVitalAirStore((s) => s.setProfileComplete);
+  const autoSaveHistory = useVitalAirStore((s) => s.autoSaveHistory);
+  const setAutoSaveHistory = useVitalAirStore((s) => s.setAutoSaveHistory);
 
   const initial = stored ?? {
     ...defaultProfile,
@@ -66,6 +70,8 @@ export default function ProfileEditor({ onSaved }: ProfileEditorProps) {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [clearingHistory, setClearingHistory] = useState(false);
+  const [historyActionMsg, setHistoryActionMsg] = useState<string | null>(null);
 
   const conditions = watch("conditions");
   const sensitivity = watch("sensitivity");
@@ -93,6 +99,26 @@ export default function ProfileEditor({ onSaved }: ProfileEditorProps) {
       ? withoutNone.filter((c) => c !== id)
       : [...withoutNone, id];
     setValue("conditions", next, { shouldValidate: true });
+  };
+
+  const handleClearHistory = async () => {
+    if (!window.confirm("Are you sure you want to clear your entire health history?")) {
+      return;
+    }
+    setClearingHistory(true);
+    setHistoryActionMsg(null);
+    try {
+      const res = await clearAllHistory(session?.user?.id, session?.backendToken);
+      setHistoryActionMsg(res.message || "Health history cleared successfully.");
+      setTimeout(() => setHistoryActionMsg(null), 4000);
+    } catch (err) {
+      setHistoryActionMsg(
+        err instanceof Error ? err.message : "Could not clear history."
+      );
+      setTimeout(() => setHistoryActionMsg(null), 4000);
+    } finally {
+      setClearingHistory(false);
+    }
   };
 
   const onSubmit = async (data: ProfileFormValues) => {
@@ -266,6 +292,66 @@ export default function ProfileEditor({ onSaved }: ProfileEditorProps) {
           ))}
         </div>
         {errors.outdoorTime && <p className="mt-1 text-sm text-vital-danger">{errors.outdoorTime.message}</p>}
+      </section>
+
+      {/* Health History & Tracking Settings */}
+      <section className="space-y-4 pt-6 border-t border-vital-border">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-lg font-semibold text-vital-text flex items-center gap-2">
+              <History className="h-5 w-5 text-vital-primary" />
+              Health History &amp; Tracking Settings
+            </h2>
+            <p className="text-sm text-vital-muted mt-0.5">
+              Manage how your checks, daily risk scores, and routes are recorded in Health History.
+            </p>
+          </div>
+        </div>
+
+        <div className="rounded-xl border border-vital-border bg-vital-bg/40 p-4 space-y-4">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <p className="text-sm font-medium text-vital-text">
+                Auto-save checks &amp; daily risk to Health History
+              </p>
+              <p className="text-xs text-vital-muted">
+                Automatically logs your dashboard area checks and daily risk evaluations so you can track pollution trends over time.
+              </p>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer shrink-0">
+              <input
+                type="checkbox"
+                checked={autoSaveHistory}
+                onChange={(e) => setAutoSaveHistory(e.target.checked)}
+                className="sr-only peer"
+              />
+              <div className="w-11 h-6 bg-vital-border peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-vital-primary"></div>
+            </label>
+          </div>
+
+          <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-vital-border/40">
+            <Link
+              href="/history"
+              className="inline-flex items-center gap-1.5 text-xs font-semibold text-vital-primary hover:underline"
+            >
+              Open My Health History
+              <ArrowRight className="h-3.5 w-3.5" />
+            </Link>
+
+            <button
+              type="button"
+              onClick={handleClearHistory}
+              disabled={clearingHistory}
+              className="inline-flex items-center gap-1.5 text-xs text-vital-danger hover:underline disabled:opacity-50"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+              {clearingHistory ? "Clearing history…" : "Clear all health history"}
+            </button>
+          </div>
+          {historyActionMsg && (
+            <p className="text-xs font-medium text-vital-primary animate-fade-in">{historyActionMsg}</p>
+          )}
+        </div>
       </section>
 
       {error && (

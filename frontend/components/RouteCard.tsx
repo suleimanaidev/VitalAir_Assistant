@@ -24,10 +24,10 @@ export interface RouteCardProps {
 }
 
 function aqiBadgeClass(aqi: number): string {
-  if (aqi >= 200) return "bg-red-500/20 text-red-300 border-red-500/40";
-  if (aqi >= 150) return "bg-orange-500/20 text-orange-300 border-orange-500/40";
-  if (aqi >= 100) return "bg-amber-500/20 text-amber-300 border-amber-500/40";
-  return "bg-emerald-500/20 text-emerald-300 border-emerald-500/40";
+  if (aqi >= 200) return "bg-red-500/15 text-red-700 dark:text-red-300 border-red-500/40";
+  if (aqi >= 150) return "bg-orange-500/15 text-orange-700 dark:text-orange-300 border-orange-500/40";
+  if (aqi >= 100) return "bg-amber-500/15 text-amber-800 dark:text-amber-300 border-amber-500/40";
+  return "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/40";
 }
 
 /** Three low-AQI route options from analyze API */
@@ -72,7 +72,7 @@ export default function RouteCard({
           {routeOptions.map((opt) => (
             <li
               key={opt.rank}
-              className="group relative overflow-hidden rounded-xl border border-white/5 bg-vital-card/40 p-5 shadow-lg backdrop-blur-md transition-all duration-300 hover:-translate-y-1 hover:border-vital-primary/40 hover:bg-vital-card hover:shadow-glow-primary"
+              className="group relative overflow-hidden rounded-xl border border-vital-border bg-vital-card/80 p-5 shadow-md backdrop-blur-md transition-all duration-300 hover:-translate-y-1 hover:border-vital-primary/40 hover:bg-vital-card hover:shadow-glow-primary"
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0 flex-1">

@@ -3,26 +3,26 @@
 import { useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
-import { Activity, ArrowRight, CalendarDays, MapPin, ShieldCheck } from "lucide-react";
+import {
+  Activity,
+  ArrowRight,
+  CalendarDays,
+  MapPin,
+  Settings,
+  ShieldCheck,
+  Trash2,
+} from "lucide-react";
 import ProfileSetupGuard from "@/components/auth/ProfileSetupGuard";
 import AppSidebarLayout from "@/components/AppSidebarLayout";
 import ExposureTrendsDashboard from "@/components/history/ExposureTrendsDashboard";
-import { env } from "@/lib/env";
 import { APP_CITY } from "@/lib/constants";
 import { useVitalAirStore } from "@/store/useVitalAirStore";
-
-const API_BASE = env.apiUrl.replace(/\/$/, "");
-
-interface HistoryItem {
-  id: string;
-  source?: string;
-  destination?: string;
-  aqi_at_time?: number;
-  pes_score?: number;
-  health_advice?: string;
-  status?: string;
-  timestamp?: string;
-}
+import {
+  fetchHistory,
+  deleteHistoryRecord,
+  clearAllHistory,
+  type HistoryItem,
+} from "@/lib/historyApi";
 
 function formatHistoryDate(value?: string): string {
   if (!value) return "Date not available";
@@ -94,222 +94,333 @@ export default function HistoryPage() {
   const [items, setItems] = useState<HistoryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [actionMsg, setActionMsg] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [clearing, setClearing] = useState(false);
 
   const effectiveUserId = userId || session?.user?.id;
   const weeklySummary = buildWeeklySummary(items);
 
-  useEffect(() => {
+  const loadData = () => {
     if (status === "unauthenticated") {
       setLoading(false);
       return;
     }
     if (status === "loading") return;
 
-    const q = effectiveUserId
-      ? `?user_id=${encodeURIComponent(effectiveUserId)}`
-      : "";
-    const headers: HeadersInit = {};
-    if (session?.backendToken) {
-      headers.Authorization = `Bearer ${session.backendToken}`;
-    }
-
-    fetch(`${API_BASE}/api/history${q}`, { headers })
-      .then(async (r) => {
-        if (!r.ok) {
-          const body = await r.json().catch(() => ({}));
-          throw new Error(
-            (body as { detail?: string }).detail || `Failed (${r.status})`
-          );
-        }
-        return r.json();
-      })
-      .then((d: { items: HistoryItem[] }) => setItems(d.items ?? []))
+    setLoading(true);
+    fetchHistory(effectiveUserId || undefined, session?.backendToken)
+      .then((data) => setItems(data))
       .catch((err) =>
         setError(err instanceof Error ? err.message : "Could not load history")
       )
       .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    loadData();
   }, [effectiveUserId, session?.backendToken, status]);
+
+  const handleDeleteItem = async (id: string) => {
+    setDeletingId(id);
+    try {
+      await deleteHistoryRecord(id, session?.backendToken);
+      setItems((prev) => prev.filter((it) => it.id !== id));
+      setActionMsg("Record deleted.");
+      setTimeout(() => setActionMsg(null), 3000);
+    } catch (err) {
+      setActionMsg(
+        err instanceof Error ? err.message : "Could not delete record."
+      );
+      setTimeout(() => setActionMsg(null), 3000);
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  const handleClearAll = async () => {
+    if (!window.confirm("Are you sure you want to clear all your health history records?")) {
+      return;
+    }
+    setClearing(true);
+    try {
+      await clearAllHistory(effectiveUserId || undefined, session?.backendToken);
+      setItems([]);
+      setActionMsg("All health history cleared.");
+      setTimeout(() => setActionMsg(null), 3000);
+    } catch (err) {
+      setActionMsg(
+        err instanceof Error ? err.message : "Could not clear history."
+      );
+      setTimeout(() => setActionMsg(null), 3000);
+    } finally {
+      setClearing(false);
+    }
+  };
 
   return (
     <ProfileSetupGuard>
       <AppSidebarLayout>
         <main className="pb-12">
           <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
-          <h1 className="section-title">My health history</h1>
-          <p className="section-subtitle">
-            {APP_CITY}, Pakistan — your saved AQI checks, route exposure, and health guidance
-          </p>
-
-          {status === "unauthenticated" ? (
-            <p className="mt-8 text-vital-muted">
-              Please{" "}
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div>
+                <h1 className="section-title">My health history</h1>
+                <p className="section-subtitle">
+                  {APP_CITY}, Pakistan — your saved AQI checks, route exposure, and health guidance
+                </p>
+              </div>
               <Link
-                href="/login?callbackUrl=/history"
-                className="text-vital-primary underline"
+                href="/profile"
+                className="inline-flex items-center gap-1.5 rounded-xl border border-vital-border bg-vital-bg/60 px-3.5 py-2 text-xs font-medium text-vital-muted hover:border-vital-primary/40 hover:text-vital-primary transition"
               >
-                sign in
-              </Link>{" "}
-              to view your exposure trends.
-            </p>
-          ) : (
-            <div className="mt-8 space-y-10">
-              <section className="grid gap-3 md:grid-cols-3">
-                <InfoCard
-                  icon={<MapPin className="h-4 w-4" />}
-                  title="1. Run analysis"
-                  text="Dashboard par area/route check karein. Har run yahan save hota hai."
-                />
-                <InfoCard
-                  icon={<Activity className="h-4 w-4" />}
-                  title="2. Track exposure"
-                  text="AQI aur PES score batata hai pollution exposure kitna tha."
-                />
-                <InfoCard
-                  icon={<ShieldCheck className="h-4 w-4" />}
-                  title="3. Improve habits"
-                  text="History se pata chalta hai kab mask, safer route, ya indoor time better tha."
-                />
-              </section>
+                <Settings className="h-4 w-4" />
+                History Settings
+              </Link>
+            </div>
 
-              <section className="vital-card border border-vital-primary/25 bg-vital-primary/5 p-5">
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div>
-                    <p className="text-xs uppercase tracking-wide text-vital-muted">
-                      Last 7 days
-                    </p>
-                    <h2 className="text-lg font-semibold text-vital-text">
-                      Weekly health summary
-                    </h2>
-                    <p className="mt-1 text-sm text-vital-muted">
-                      {weeklySummary.recommendation}
-                    </p>
-                  </div>
-                  <Link
-                    href="/dashboard"
-                    className="rounded-xl border border-vital-primary/40 px-3 py-2 text-sm font-medium text-vital-primary hover:bg-vital-primary/10"
-                  >
-                    Add today&apos;s check
-                  </Link>
-                </div>
-                <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-3">
-                  <Metric
-                    label="Checks"
-                    value={weeklySummary.checks}
-                    hint="This week"
-                  />
-                  <Metric
-                    label="Avg AQI"
-                    value={weeklySummary.avgAqi || "—"}
-                    hint={weeklySummary.avgAqi ? aqiLabel(weeklySummary.avgAqi) : "No data"}
-                  />
-                  <Metric
-                    label="Avg PES"
-                    value={weeklySummary.avgPes ? `${weeklySummary.avgPes}/100` : "—"}
-                    hint={weeklySummary.avgPes ? pesLabel(weeklySummary.avgPes) : "No data"}
-                  />
-                  <Metric
-                    label="High risk"
-                    value={weeklySummary.highRisk}
-                    hint="AQI 150+ or PES 70+"
-                  />
-                </div>
-              </section>
+            {actionMsg && (
+              <div className="mt-4 rounded-xl border border-vital-primary/40 bg-vital-primary/10 px-4 py-2.5 text-sm text-vital-primary animate-fade-in">
+                {actionMsg}
+              </div>
+            )}
 
-              <ExposureTrendsDashboard
-                userId={effectiveUserId}
-                token={session?.backendToken}
-              />
+            {status === "unauthenticated" ? (
+              <p className="mt-8 text-vital-muted">
+                Please{" "}
+                <Link
+                  href="/login?callbackUrl=/history"
+                  className="text-vital-primary underline"
+                >
+                  sign in
+                </Link>{" "}
+                to view your exposure trends.
+              </p>
+            ) : (
+              <div className="mt-8 space-y-10">
+                <section className="grid gap-3 md:grid-cols-3">
+                  <InfoCard
+                    icon={<MapPin className="h-4 w-4" />}
+                    title="1. Run analysis"
+                    text="Check any Lahore area or commute route on your dashboard."
+                  />
+                  <InfoCard
+                    icon={<Activity className="h-4 w-4" />}
+                    title="2. Track exposure"
+                    text="Monitor your Personal Exposure Score (PES) and live AQI trends."
+                  />
+                  <InfoCard
+                    icon={<ShieldCheck className="h-4 w-4" />}
+                    title="3. Improve habits"
+                    text="Review past exposure to plan safer travel and reduce health risks."
+                  />
+                </section>
 
-              <section>
-                <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
-                  <div>
-                    <h2 className="text-lg font-semibold text-vital-text">
-                      Recent checks
-                    </h2>
-                    <p className="mt-1 text-sm text-vital-muted">
-                      Aap ke dashboard runs ka simple record.
-                    </p>
-                  </div>
-                  <Link
-                    href="/dashboard"
-                    className="rounded-xl bg-vital-primary px-4 py-2 text-sm font-semibold text-[#04130f] transition hover:brightness-110"
-                  >
-                    Run new check
-                  </Link>
-                </div>
-                {loading || status === "loading" ? (
-                  <div className="vital-card p-5 text-sm text-vital-muted">
-                    Loading your saved checks…
-                  </div>
-                ) : error ? (
-                  <p className="vital-card p-5 text-sm text-vital-danger" role="alert">
-                    {error}
-                  </p>
-                ) : items.length === 0 ? (
-                  <div className="vital-card border border-vital-primary/30 bg-vital-primary/5 p-6">
-                    <h3 className="text-lg font-semibold text-vital-text">
-                      No history yet
-                    </h3>
-                    <p className="mt-2 max-w-2xl text-sm text-vital-muted">
-                      Pehle dashboard par health/route analysis run karein. Us ke baad
-                      yahan AQI, PES score, route, aur date automatically show honge.
-                    </p>
+                <section className="vital-card border border-vital-primary/25 bg-vital-primary/5 p-5">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <p className="text-xs uppercase tracking-wide text-vital-muted">
+                        Last 7 days
+                      </p>
+                      <h2 className="text-lg font-semibold text-vital-text">
+                        Weekly health summary
+                      </h2>
+                      <p className="mt-1 text-sm text-vital-muted">
+                        {weeklySummary.recommendation}
+                      </p>
+                    </div>
                     <Link
                       href="/dashboard"
-                      className="mt-4 inline-flex items-center gap-2 rounded-xl bg-vital-primary px-4 py-2 text-sm font-semibold text-[#04130f] transition hover:brightness-110"
+                      className="rounded-xl border border-vital-primary/40 px-3 py-2 text-sm font-medium text-vital-primary hover:bg-vital-primary/10"
                     >
-                      Go to dashboard
-                      <ArrowRight className="h-4 w-4" aria-hidden />
+                      Add today&apos;s check
                     </Link>
                   </div>
-                ) : (
-                  <ul className="grid gap-3 md:grid-cols-2">
-                    {items.map((item) => (
-                      <li key={item.id} className="vital-card p-4">
-                        <div className="flex items-start justify-between gap-3">
-                          <div>
-                            <p className="text-sm font-semibold text-vital-text">
-                              {item.source || "Selected area"}
-                              {item.destination ? ` → ${item.destination}` : ""}
-                            </p>
-                            <p className="mt-1 flex items-center gap-1.5 text-xs text-vital-muted">
-                              <CalendarDays className="h-3.5 w-3.5" aria-hidden />
-                              {formatHistoryDate(item.timestamp)}
-                            </p>
+                  <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <Metric
+                      label="Checks"
+                      value={weeklySummary.checks}
+                      hint="This week"
+                    />
+                    <Metric
+                      label="Avg AQI"
+                      value={weeklySummary.avgAqi || "—"}
+                      hint={weeklySummary.avgAqi ? aqiLabel(weeklySummary.avgAqi) : "No data"}
+                    />
+                    <Metric
+                      label="Avg PES"
+                      value={weeklySummary.avgPes ? `${weeklySummary.avgPes}/100` : "—"}
+                      hint={weeklySummary.avgPes ? pesLabel(weeklySummary.avgPes) : "No data"}
+                    />
+                    <Metric
+                      label="High risk"
+                      value={weeklySummary.highRisk}
+                      hint="AQI 150+ or PES 70+"
+                    />
+                  </div>
+                </section>
+
+                <ExposureTrendsDashboard
+                  userId={effectiveUserId}
+                  token={session?.backendToken}
+                />
+
+                <section>
+                  <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
+                    <div>
+                      <h2 className="text-lg font-semibold text-vital-text">
+                        Recent checks
+                      </h2>
+                      <p className="mt-1 text-sm text-vital-muted">
+                        Your saved dashboard and route analysis records.
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {items.length > 0 && (
+                        <button
+                          onClick={handleClearAll}
+                          disabled={clearing}
+                          className="rounded-xl border border-vital-danger/30 bg-vital-danger/5 px-3 py-2 text-xs font-semibold text-vital-danger hover:bg-vital-danger/15 transition disabled:opacity-50"
+                        >
+                          {clearing ? "Clearing…" : "Clear all"}
+                        </button>
+                      )}
+                      <Link
+                        href="/dashboard"
+                        className="rounded-xl bg-vital-primary px-4 py-2 text-sm font-semibold text-[#04130f] transition hover:brightness-110"
+                      >
+                        Run new check
+                      </Link>
+                    </div>
+                  </div>
+                  {loading || status === "loading" ? (
+                    <div className="vital-card p-5 text-sm text-vital-muted">
+                      Loading your saved checks…
+                    </div>
+                  ) : error ? (
+                    <p className="vital-card p-5 text-sm text-vital-danger" role="alert">
+                      {error}
+                    </p>
+                  ) : items.length === 0 ? (
+                    <div className="vital-card border border-vital-primary/30 bg-vital-primary/5 p-6">
+                      <h3 className="text-lg font-semibold text-vital-text">
+                        No history yet
+                      </h3>
+                      <p className="mt-2 max-w-2xl text-sm text-vital-muted">
+                        Pehle dashboard par health/route analysis run karein ya area search karein. Us ke baad
+                        yahan AQI, PES score, route, aur date automatically record honge.
+                      </p>
+                      <Link
+                        href="/dashboard"
+                        className="mt-4 inline-flex items-center gap-2 rounded-xl bg-vital-primary px-4 py-2 text-sm font-semibold text-[#04130f] transition hover:brightness-110"
+                      >
+                        Go to dashboard
+                        <ArrowRight className="h-4 w-4" aria-hidden />
+                      </Link>
+                    </div>
+                  ) : (
+                    <ul className="grid gap-3 md:grid-cols-2">
+                      {items.map((item) => (
+                        <li key={item.id} className="vital-card p-4 relative group">
+                          <div className="flex items-start justify-between gap-3">
+                            <div>
+                              <p className="text-sm font-semibold text-vital-text">
+                                {item.source || "Selected area"}
+                                {item.destination ? ` → ${item.destination}` : ""}
+                              </p>
+                              <p className="mt-1 flex items-center gap-1.5 text-xs text-vital-muted">
+                                <CalendarDays className="h-3.5 w-3.5" aria-hidden />
+                                {formatHistoryDate(item.timestamp)}
+                              </p>
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                              <span className="rounded-full border border-vital-border px-2 py-1 text-[10px] uppercase tracking-wide text-vital-muted">
+                                {item.status || "complete"}
+                              </span>
+                              <button
+                                onClick={() => handleDeleteItem(item.id)}
+                                disabled={deletingId === item.id}
+                                title="Delete record"
+                                className="rounded-lg p-1 text-vital-muted hover:bg-vital-danger/15 hover:text-vital-danger transition"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
                           </div>
-                          <span className="rounded-full border border-vital-border px-2 py-1 text-[10px] uppercase tracking-wide text-vital-muted">
-                            {item.status || "complete"}
-                          </span>
-                        </div>
 
-                        <div className="mt-4 grid grid-cols-2 gap-3">
-                          <Metric
-                            label="AQI"
-                            value={item.aqi_at_time ?? "—"}
-                            hint={aqiLabel(item.aqi_at_time)}
-                          />
-                          <Metric
-                            label="PES"
-                            value={
-                              item.pes_score != null ? `${item.pes_score}/100` : "—"
-                            }
-                            hint={pesLabel(item.pes_score)}
-                          />
-                        </div>
+                          <div className="mt-4 grid grid-cols-2 gap-3">
+                            <div className="rounded-xl border border-vital-border bg-vital-bg/50 p-3">
+                              <div className="flex items-center justify-between">
+                                <p className="text-xs text-vital-muted">AQI</p>
+                                <span className="text-[10px] font-semibold text-vital-muted uppercase">
+                                  {aqiLabel(item.aqi_at_time)}
+                                </span>
+                              </div>
+                              <p className="mt-1 text-xl font-bold text-vital-primary">
+                                {item.aqi_at_time ?? "—"}
+                              </p>
+                              <p className="text-xs text-vital-muted">Air quality</p>
+                            </div>
 
-                        {item.health_advice && (
-                          <p className="mt-3 line-clamp-2 rounded-lg bg-vital-bg/60 px-3 py-2 text-xs text-vital-muted">
-                            {item.health_advice}
-                          </p>
-                        )}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </section>
-            </div>
-          )}
-        </div>
+                            <div
+                              className={`rounded-xl border p-3 ${
+                                item.pes_score == null
+                                  ? "border-vital-border bg-vital-bg/50"
+                                  : item.pes_score >= 75
+                                    ? "border-vital-danger/40 bg-vital-danger/10"
+                                    : item.pes_score >= 45
+                                      ? "border-amber-400/40 bg-amber-400/10"
+                                      : "border-vital-primary/30 bg-vital-primary/10"
+                              }`}
+                            >
+                              <div className="flex items-center justify-between">
+                                <p className="text-xs text-vital-muted">PES Score</p>
+                                <span
+                                  className={`text-[10px] font-bold uppercase tracking-wider ${
+                                    item.pes_score == null
+                                      ? "text-vital-muted"
+                                      : item.pes_score >= 75
+                                        ? "text-vital-danger"
+                                        : item.pes_score >= 45
+                                          ? "text-amber-400"
+                                          : "text-vital-primary"
+                                  }`}
+                                >
+                                  {item.pes_level || pesLabel(item.pes_score)}
+                                </span>
+                              </div>
+                              <p
+                                className={`mt-1 text-xl font-bold ${
+                                  item.pes_score == null
+                                    ? "text-vital-muted"
+                                    : item.pes_score >= 75
+                                      ? "text-vital-danger"
+                                      : item.pes_score >= 45
+                                        ? "text-amber-400"
+                                        : "text-vital-primary"
+                                }`}
+                              >
+                                {item.pes_score != null ? `${item.pes_score}/100` : "—"}
+                              </p>
+                              <p className="text-xs text-vital-muted">
+                                {pesLabel(item.pes_score)}
+                              </p>
+                            </div>
+                          </div>
+
+                          {item.health_advice && (
+                            <p className="mt-3 line-clamp-2 rounded-lg bg-vital-bg/60 px-3 py-2 text-xs text-vital-muted">
+                              {item.health_advice}
+                            </p>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </section>
+              </div>
+            )}
+          </div>
         </main>
       </AppSidebarLayout>
     </ProfileSetupGuard>

@@ -207,8 +207,8 @@ export default function LoginForm() {
         </h1>
         <p className="mt-2 text-base text-vital-muted">
           {mode === "login"
-            ? `Sign in to continue — ${APP_CITY} smog safety & health.`
-            : `Join VitalAir — ${APP_CITY} air, health & safer routes.`}
+            ? "Sign in to access your dashboard and health advice."
+            : "Create an account for personalized air quality protection."}
         </p>
       </div>
 

@@ -155,22 +155,34 @@ async def login(body: LoginBody) -> AuthResponse:
     try:
         t_db_start = time.perf_counter()
         user = await get_auth_user_by_email(email)
-        stored_hash = get_stored_password_hash(user) if user else None
         t_db = (time.perf_counter() - t_db_start) * 1000
+
+        if not user:
+            any_doc = await get_user_by_email(email)
+            if not any_doc:
+                raise HTTPException(
+                    status_code=401,
+                    detail="Email not found. No account is registered with this email address.",
+                )
+            user = any_doc
+
+        stored_hash = get_stored_password_hash(user)
+
+        if not stored_hash:
+            raise HTTPException(
+                status_code=401,
+                detail="No password set for this email. Please register to set a password.",
+            )
 
         t_pwd_start = time.perf_counter()
         password_verified = await asyncio.to_thread(verify_password, body.password, stored_hash)
         t_pwd = (time.perf_counter() - t_pwd_start) * 1000
 
-        if not user or not stored_hash or not password_verified:
-            # Helpful hint if email exists but no password (onboarding-only profile)
-            any_doc = await get_user_by_email(email)
-            if any_doc and not stored_hash:
-                raise HTTPException(
-                    status_code=401,
-                    detail="No password set for this email. Please register to set a password.",
-                )
-            raise HTTPException(status_code=401, detail="Invalid email or password")
+        if not password_verified:
+            raise HTTPException(
+                status_code=401,
+                detail="Incorrect password. Please enter the correct password and try again.",
+            )
 
         if user.get("is_active") is False:
             raise HTTPException(status_code=403, detail="Account disabled")

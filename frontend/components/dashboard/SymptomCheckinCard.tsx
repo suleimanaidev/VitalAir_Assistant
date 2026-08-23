@@ -99,21 +99,7 @@ export default function SymptomCheckinCard({
   }
 
   if (today && !today.symptoms.skipped) {
-    return (
-      <section className="vital-card mb-6 border-vital-primary/30 bg-vital-primary/5 p-4">
-        <div className="flex items-start gap-3">
-          <HeartPulse className="mt-0.5 h-5 w-5 text-vital-primary" aria-hidden />
-          <div>
-            <p className="text-sm font-semibold text-vital-text">
-              Aaj ka health check-in saved
-            </p>
-            <p className="mt-1 text-sm text-vital-muted">
-              {today.summary} Health agent advice ab isko bhi consider karegi.
-            </p>
-          </div>
-        </div>
-      </section>
-    );
+    return null;
   }
 
   if (!shouldPrompt || today?.symptoms.skipped) return null;

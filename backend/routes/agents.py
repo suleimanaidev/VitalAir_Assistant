@@ -198,6 +198,9 @@ async def patient_rag_chat(
     has_patient_docs = bool(user_doc_chunks)
     sources_used = len([p for p in context.split("\n\n") if len(p.strip()) > 40])
 
+    history_list = [t.model_dump() for t in body.history] if body.history else []
+    is_first = len(history_list) <= 1
+
     answer = await asyncio.to_thread(
         generate_patient_rag_chat_answer,
         question=question,
@@ -210,6 +213,8 @@ async def patient_rag_chat(
         season_label=season_label,
         temp_c=temp_c,
         profile_summary=profile_summary,
+        history=history_list,
+        is_first_message=is_first,
     )
     mode = "openai_rag" if answer else "context_fallback"
     if not answer:
@@ -284,7 +289,7 @@ async def agent_health(
     uid_token = set_active_user_id(body.user_id)
     kw_token = set_active_keyword_chunks(user_doc_chunks or None)
     try:
-        return await asyncio.to_thread(
+        res = await asyncio.to_thread(
             run_health_agent,
             body.profile,
             body.area.strip(),
@@ -295,6 +300,7 @@ async def agent_health(
             symptom_summary=today_symptoms.summary if today_symptoms else None,
             symptom_score=today_symptoms.score if today_symptoms else None,
         )
+        return res
     finally:
         reset_active_keyword_chunks(kw_token)
         reset_active_user_id(uid_token)
@@ -311,7 +317,7 @@ async def agent_nutrition(
 
     user_doc_chunks = await _prepare_user_rag(body.user_id)
 
-    return await asyncio.to_thread(
+    res = await asyncio.to_thread(
         run_nutrition_agent,
         body.profile,
         body.area.strip(),
@@ -319,6 +325,7 @@ async def agent_nutrition(
         user_doc_chunks=user_doc_chunks,
         aqi=body.aqi,
     )
+    return res
 
 
 @router.post("/agents/route", response_model=AgentRouteResponse)
@@ -330,9 +337,10 @@ async def agent_route(
     if user_id_from_token and not body.user_id:
         body.user_id = user_id_from_token
 
-    return await asyncio.to_thread(
+    res = await asyncio.to_thread(
         run_route_agent,
         body.profile,
         body.query,
         aqi=body.aqi,
     )
+    return res

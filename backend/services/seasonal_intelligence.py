@@ -396,7 +396,7 @@ def build_personalized_season_intelligence(
             )
         else:
             health = (
-                "Asthma profile — inhaler saath rakhein; aaj ki hawa theek hai. "
+                "Asthma profile — keep rescue inhaler handy; air quality is moderate today. "
                 + health
             )
 
@@ -423,7 +423,7 @@ def build_personalized_season_intelligence(
 
     if "diabetes" in conds:
         nutrition = (
-            "Unsweetened drinks only (no sugary lassi or rooh afza). "
+            "Unsweetened drinks only (avoid sugary drinks or syrups). "
             + nutrition
         )
 

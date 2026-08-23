@@ -47,9 +47,9 @@ export default function AgentStepCard({
 
   return (
     <article
-      className={`vital-card overflow-hidden border-2 transition-colors ${statusRing[status]}`}
+      className={`vital-card border-2 transition-colors ${statusRing[status]}`}
     >
-      <header className="flex items-start gap-4 border-b border-vital-border/40 bg-vital-bg/40 p-4 sm:p-5">
+      <header className="flex items-start gap-4 rounded-t-[calc(var(--radius-lg)-2px)] border-b border-vital-border/40 bg-vital-bg/40 p-4 sm:p-5">
         {icon ? (
           <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-vital-primary/15 text-xl">
             {icon}

@@ -180,15 +180,19 @@ async def generate_health_advice_async(
     )
     return await _async_chat(
         system=(
-            "You are a professional digital pulmonologist for VitalAir Lahore. "
-            "Based on the patient's uploaded documents (if any), health profile, "
-            "and current air quality, provide structured, highly accurate health advice. "
-            "Give exactly 4 bullet points (• prefix), no more. Each bullet one clear, "
-            "actionable step tailored to age, conditions, sensitivity, and commute. "
-            "Start with one English summary line, then one Roman Urdu summary line, then bullets. "
-            "CRITICAL SUMMARY RULE: In the Roman Urdu summary line (2nd line), you MUST explicitly state the user's specific health conditions by name (e.g., 'Kyunke aap ko Asthma aur Heart Disease hai, isliye is mausam mein...'). "
-            "DO NOT write generic phrases like 'Given your current symptoms and health conditions' or 'Aap ki halat aur sehat ke madde nazar'. "
-            "Be cautious and professional — never diagnose; recommend medical care when symptoms are severe. "
+            "You are a Senior Digital Pulmonologist and Environmental Health Specialist for VitalAir Lahore.\n"
+            "YOUR EXCLUSIVE ROLE & DIVERGENCE:\n"
+            "- Focus ONLY on respiratory health, medical safety, N95/KN95 mask guidance, indoor HEPA air filtration, exposure timing, and airway recovery.\n"
+            "- DO NOT provide meal plans, food recipes, or diet menus (leave food advice strictly to the Nutritionist Agent).\n"
+            "RULES & GROUNDING:\n"
+            "- Cross-reference current AQI and weather with the user's specific health conditions (e.g., Asthma, Heart Disease).\n"
+            "- Give exactly 4 bullet points (• prefix), no more. Each bullet one clear, actionable medical step tailored to age, conditions, sensitivity, and commute.\n"
+            "LANGUAGE & STRUCTURE:\n"
+            "- Write the ENTIRE response in clear, professional ENGLISH.\n"
+            "- Start with a 1-line English summary explicitly stating the user's specific health conditions by name (e.g., 'Given your Asthma and Heart Disease, in this air quality...').\n"
+            "- DO NOT write generic phrases like 'Given your current symptoms and health conditions'.\n"
+            "- Followed by exactly 4 actionable medical safety bullet points (• prefix).\n"
+            "- Be cautious and professional — never diagnose; recommend medical care when symptoms are severe.\n"
             f"{season_rule} {time_rule} {doc_rule}"
         ),
         user=(
@@ -226,21 +230,25 @@ def generate_health_advice(
         else "Smog season guidance is appropriate (N95, indoor, HEPA)."
     )
     doc_rule = (
-        "Patient uploaded health documents are included below."
+        "Patient uploaded health documents are included below. Cite medical restrictions ONLY from those documents."
         if has_patient_docs
         else "No patient documents uploaded."
     )
     return _chat(
         system=(
-            "You are a professional digital pulmonologist for VitalAir Lahore. "
-            "Based on the patient's uploaded documents (if any), health profile, "
-            "and current air quality, provide structured, highly accurate health advice. "
-            "Give exactly 4 bullet points (• prefix), no more. Each bullet one clear, "
-            "actionable step tailored to age, conditions, sensitivity, and commute. "
-            "Start with one English summary line, then one Roman Urdu summary line, then bullets. "
-            "CRITICAL SUMMARY RULE: In the Roman Urdu summary line (2nd line), you MUST explicitly state the user's specific health conditions by name (e.g., 'Kyunke aap ko Asthma aur Heart Disease hai, isliye is mausam mein...'). "
-            "DO NOT write generic phrases like 'Given your current symptoms and health conditions' or 'Aap ki halat aur sehat ke madde nazar'. "
-            "Be cautious and professional — never diagnose; recommend medical care when symptoms are severe. "
+            "You are a Senior Digital Pulmonologist and Environmental Health Specialist for VitalAir Lahore.\n"
+            "YOUR EXCLUSIVE ROLE & DIVERGENCE:\n"
+            "- Focus ONLY on respiratory health, medical safety, N95/KN95 mask guidance, indoor HEPA air filtration, exposure timing, and airway recovery.\n"
+            "- DO NOT provide meal plans, food recipes, or diet menus (leave food advice strictly to the Nutritionist Agent).\n"
+            "RULES & GROUNDING:\n"
+            "- Cross-reference current AQI and weather with the user's specific health conditions (e.g., Asthma, Heart Disease).\n"
+            "- Give exactly 4 bullet points (• prefix), no more. Each bullet one clear, actionable medical step tailored to age, conditions, sensitivity, and commute.\n"
+            "LANGUAGE & STRUCTURE:\n"
+            "- Write the ENTIRE response in clear, professional ENGLISH.\n"
+            "- Start with a 1-line English summary explicitly stating the user's specific health conditions by name (e.g., 'Given your Asthma and Heart Disease, in this air quality...').\n"
+            "- DO NOT write generic phrases like 'Given your current symptoms and health conditions'.\n"
+            "- Followed by exactly 4 actionable medical safety bullet points (• prefix).\n"
+            "- Be cautious and professional — never diagnose; recommend medical care when symptoms are severe.\n"
             f"{season_rule} {doc_rule}"
         ),
         user=(
@@ -290,28 +298,34 @@ async def generate_diet_plan_async(
     now = lahore_now()
     hour = now.hour
     if 5 <= hour < 12:
-        meal_name = "Nashta (Breakfast)"
+        meal_name = "Breakfast"
     elif 12 <= hour < 17:
-        meal_name = "Dopahar Ka Khana (Lunch)"
+        meal_name = "Lunch"
     elif 17 <= hour < 21:
-        meal_name = "Shaam Ka Snack (Evening)"
+        meal_name = "Evening Snack"
     else:
-        meal_name = "Raat Ka Khana (Dinner)"
+        meal_name = "Dinner"
 
     raw = await _async_chat(
         system=(
-            "You are a Lahore/Punjab nutrition advisor. Return ONLY a JSON array of exactly 4 "
-            "strings in natural, conversational ROMAN URDU. "
-            f"IMPORTANT CURRENT TIME RULE: Local time is {hour:02d}:00 PKT. "
-            f"Focus 100% on recommending foods, drinks, and meals for CURRENT MEAL: '{meal_name}'! "
-            f"Each of the 4 strings MUST start with '[{meal_name} • Season] ...'. "
-            "CRITICAL MAUSAM (SEASON) RULE: Pay strict attention to the current season focus! "
-            "If season is summer_heatwave, monsoon, or pre_monsoon_heat, suggest ONLY summer-appropriate cooling foods (e.g. Tarbuz, Lassi, Sattu, Kheera, Nimbu Pani, Falsa, Jamun). "
-            "NEVER suggest winter items like Kinnow, Malta, Gajar juice, or Haldi Doodh during summer/monsoon. "
-            "CRITICAL HEALTH CONDITION RULE: You MUST tailor each tip to the user's specific health conditions "
-            "(e.g. if user has Asthma, Diabetes, or Heart Disease, name the condition or its dietary requirement explicitly). "
-            "Use only common Lahore/Punjab foods. Avoid random exotic items. "
-            "Do NOT repeat the same food in multiple tips. "
+            "You are a Punjab/Lahore Environmental Nutritionist Advisor for VitalAir.\n"
+            "YOUR EXCLUSIVE ROLE & DIVERGENCE:\n"
+            "- Focus ONLY on food, diet, meal schedules (Breakfast, Lunch, Evening Snack, Dinner), hydration, and anti-pollution nutrition.\n"
+            "- DO NOT provide medical diagnostic advice, mask instructions, or route planning (leave medical safety strictly to the Health Agent).\n"
+            "RULES & PDF GROUNDING:\n"
+            "- If uploaded health documents / PDFs contain food guidelines, dietary restrictions, or doctor-recommended diets, STRICTLY ground your advice on those PDF documents first.\n"
+            "LANGUAGE & FORMAT:\n"
+            "- Return ONLY a JSON array of exactly 4 strings in clear, natural ENGLISH.\n"
+            "- All titles, meal recommendations, and food descriptions MUST be in 100% English. Do NOT output Roman Urdu or Urdu text.\n"
+            f"- IMPORTANT CURRENT TIME RULE: Local time is {hour:02d}:00 PKT.\n"
+            f"- Focus 100% on recommending foods, drinks, and meals for CURRENT MEAL: '{meal_name}'!\n"
+            f"- Each of the 4 strings MUST start with '[{meal_name} • Season] ...'.\n"
+            "- CRITICAL SEASON RULE: Pay strict attention to the current season focus!\n"
+            "  If summer_heatwave/monsoon: suggest ONLY cooling summer foods & hydration (e.g., Watermelon, Mint Lemonade, Cucumber, Coconut Water, Sattu Drink, Yogurt Lassi).\n"
+            "  NEVER suggest warming winter items like Kinnow, Malta, Gajar juice, or Turmeric Milk during summer/monsoon.\n"
+            "- CRITICAL HEALTH CONDITION RULE: Tailor each tip to the user's specific health conditions (e.g., Asthma, Diabetes, Heart Disease).\n"
+            "- Use accessible home foods.\n"
+            "- Do NOT repeat the same food in multiple tips.\n"
             f"{doc_rule}"
         ),
         user=(
@@ -362,33 +376,40 @@ def generate_diet_plan(
     profile_summary: str = "",
 ) -> list[str] | None:
     season_focus = {
-        "summer_heatwave": "cooling, hydrating summer foods (watermelon/tarbuz, lassi, sattu, cucumber/kheera, coconut water, falsa, lemon water). STRICTLY FORBIDDEN IN SUMMER: Do NOT suggest winter fruits like Kinnow or Malta, and do NOT suggest warming drinks like Haldi Doodh.",
-        "pre_monsoon_heat": "cooling drinks and light summer meals for rising heat. STRICTLY FORBIDDEN IN SUMMER: Do NOT suggest Kinnow, Malta, or Haldi Doodh.",
-        "monsoon": "hydration, light meals, hygiene, jamun; avoid street food. STRICTLY FORBIDDEN: Do NOT suggest Kinnow, Malta, or Haldi Doodh.",
-        "winter_smog": "vitamin C (kinnow, malta), anti-inflammatory and warming foods for smog (haldi doodh, ginger, saag, soup).",
+        "summer_heatwave": "cooling, hydrating summer foods (watermelon, lassi, sattu, cucumber, coconut water, falsa, lemon water). STRICTLY FORBIDDEN IN SUMMER: Do NOT suggest winter fruits like Kinnow or Malta, and do NOT suggest warming drinks like Turmeric Milk.",
+        "pre_monsoon_heat": "cooling drinks and light summer meals for rising heat. STRICTLY FORBIDDEN IN SUMMER: Do NOT suggest Kinnow, Malta, or Turmeric Milk.",
+        "monsoon": "hydration, light meals, hygiene, jamun; avoid street food. STRICTLY FORBIDDEN: Do NOT suggest Kinnow, Malta, or Turmeric Milk.",
+        "winter_smog": "vitamin C (kinnow, malta), anti-inflammatory and warming foods for smog (turmeric milk, ginger, saag, soup).",
         "post_monsoon": "immunity-building seasonal fruits and light meals.",
-        "spring": "fresh seasonal fruits (amrood, ber) and balanced light meals.",
+        "spring": "fresh seasonal fruits (guava, ber) and balanced light meals.",
     }.get(season_id, "season-appropriate Punjab home foods")
 
     doc_rule = (
-        "Patient uploaded health documents are included. Tailor food advice to medications/conditions."
+        "Patient uploaded health documents are included. Ground diet strictly on recommendations/restrictions in those documents."
         if has_patient_docs
         else "No patient documents — use profile conditions and general anti-pollution diet guidance."
     )
 
     raw = _chat(
         system=(
-            "You are a Lahore/Punjab nutrition advisor. Return ONLY a JSON array of exactly 4 "
-            "strings in natural, conversational ROMAN URDU. "
-            "CRITICAL MAUSAM (SEASON) RULE: Pay strict attention to the current season focus! "
-            "If season is summer_heatwave, monsoon, or pre_monsoon_heat, suggest ONLY summer-appropriate cooling foods (e.g. Tarbuz, Lassi, Sattu, Kheera, Nimbu Pani, Falsa, Jamun). "
-            "NEVER suggest winter items like Kinnow, Malta, Gajar juice, or Haldi Doodh during summer/monsoon. "
+            "You are a Punjab/Lahore Environmental Nutritionist Advisor for VitalAir.\n"
+            "YOUR EXCLUSIVE ROLE & DIVERGENCE:\n"
+            "- Focus ONLY on food, diet, meal schedules (Breakfast, Lunch, Evening Snack, Dinner), hydration, and anti-pollution nutrition.\n"
+            "- DO NOT provide medical diagnostic advice, mask instructions, or route planning (leave medical safety strictly to the Health Agent).\n"
+            "RULES & PDF GROUNDING:\n"
+            "- If uploaded health documents / PDFs contain food guidelines, dietary restrictions, or doctor-recommended diets, STRICTLY ground your advice on those PDF documents first.\n"
+            "LANGUAGE & FORMAT:\n"
+            "- Return ONLY a JSON array of exactly 4 strings in clear, natural ENGLISH.\n"
+            "- All titles, food items, and descriptions MUST be in 100% English. Do NOT output Roman Urdu or Urdu text.\n"
+            "CRITICAL SEASON RULE: Pay strict attention to the current season focus! "
+            "If season is summer_heatwave, monsoon, or pre_monsoon_heat, suggest ONLY summer-appropriate cooling foods (e.g., Watermelon, Lassi, Sattu Drink, Cucumber, Lemon water, Falsa, Jamun). "
+            "NEVER suggest winter items like Kinnow, Malta, Carrot juice, or Turmeric Milk during summer/monsoon. "
             "CRITICAL HEALTH CONDITION RULE: You MUST tailor each tip to the user's specific health conditions "
-            "(e.g. if user has Asthma, Diabetes, or Heart Disease, name the condition or its dietary requirement explicitly). "
+            "(e.g., if user has Asthma, Diabetes, or Heart Disease, name the condition or its dietary requirement explicitly). "
             "If the user has asthma, recommend anti-inflammatory foods. "
             "If diabetic, avoid sugary items and mention sugar-safe alternatives. "
             "If heart disease, recommend low-sodium heart-healthy options. "
-            "Use only common Lahore/Punjab foods. Avoid random exotic items. "
+            "Use only common foods. Avoid random exotic items. "
             "Do NOT repeat the same food in multiple tips. "
             "Keep each tip under 90 characters. "
             f"{doc_rule}"
@@ -437,15 +458,18 @@ def generate_patient_rag_chat_answer(
     season_label: str = "Lahore",
     temp_c: float = 0.0,
     profile_summary: str = "",
+    history: list[dict] | None = None,
+    is_first_message: bool = False,
 ) -> str | None:
     """Answer a user question using retrieved WHO + personal health document context."""
     logger.debug(
-        "generate_patient_rag_chat_answer q=%s… area=%s aqi=%s name=%s season=%s",
+        "generate_patient_rag_chat_answer q=%s… area=%s aqi=%s name=%s season=%s is_first=%s",
         question[:60],
         area,
         aqi,
         user_name,
         season_id,
+        is_first_message,
     )
 
     doc_rule = (
@@ -455,53 +479,81 @@ def generate_patient_rag_chat_answer(
     )
 
     season_focus = {
-        "summer_heatwave": "cooling, hydrating summer items (tarbuz/watermelon, lassi, sattu, kheera, nimbu pani, coconut water). FORBIDDEN IN SUMMER: Do NOT suggest winter items like Kinnow, Malta, Gajar juice, or Haldi Doodh.",
+        "summer_heatwave": "cooling, hydrating summer items (watermelon, lassi, sattu, cucumber, lemon water, coconut water). FORBIDDEN IN SUMMER: Do NOT suggest winter items like Kinnow, Malta, Carrot juice, or Turmeric Milk.",
         "pre_monsoon_heat": "cooling drinks and light summer meals for rising heat.",
         "monsoon": "clean water, light meals, hygiene, jamun; avoid street food.",
-        "winter_smog": "vitamin C (kinnow, malta), anti-inflammatory and warming items for smog (haldi doodh, ginger, saag, soup).",
+        "winter_smog": "vitamin C (kinnow, malta), anti-inflammatory and warming items for smog (turmeric milk, ginger, saag, soup).",
         "post_monsoon": "immunity-building seasonal fruits and light meals.",
-        "spring": "fresh seasonal fruits (amrood, ber) and light meals.",
+        "spring": "fresh seasonal fruits (guava, ber) and light meals.",
     }.get(season_id, "season-appropriate home advice")
-
-    name_rule = (
-        f"The user's name is '{user_name}'. Greet them warmly by first name (e.g. 'Assalam-o-Alaikum {user_name}!' or '{user_name}, ...'). "
-        "NEVER write 'Mujhe aapka naam nahi pata' or 'I don't know your name'. You already know their identity!"
-        if user_name
-        else "If name is available in context, use it. Never say 'Mujhe aapka naam nahi pata'."
-    )
 
     now = lahore_now()
     hour = now.hour
     today_str = now.strftime("%d %B %Y")
     if 5 <= hour < 12:
-        time_focus = f"Current local time is {hour:02d}:00 PKT (Morning). Tailor suggestions for morning schedule, breakfast nutrition, and early commute precautions before heat/smog builds up."
+        time_focus = f"Current local time is {hour:02d}:00 PKT (Morning). Tailor suggestions for morning schedule and early precautions."
     elif 12 <= hour < 17:
-        time_focus = f"Current local time is {hour:02d}:00 PKT (Afternoon Peak Heat/Sun). Tailor suggestions for peak afternoon rest, hydration, staying indoors, and avoiding peak sun/smog."
+        time_focus = f"Current local time is {hour:02d}:00 PKT (Afternoon Peak Heat/Sun). Tailor suggestions for peak afternoon rest and hydration."
     elif 17 <= hour < 22:
-        time_focus = f"Current local time is {hour:02d}:00 PKT (Evening). Tailor suggestions for evening travel window, light evening meals, and evening walk precautions."
+        time_focus = f"Current local time is {hour:02d}:00 PKT (Evening). Tailor suggestions for evening window and light meals."
     else:
-        time_focus = f"Current local time is {hour:02d}:00 PKT (Night). Tailor suggestions for night-time rest, indoor air filtration, window closure, and airway recovery."
+        time_focus = f"Current local time is {hour:02d}:00 PKT (Night). Tailor suggestions for night-time rest and indoor air protection."
+
+    q_clean = question.strip().lower()
+    GREETING_WORDS = {"hi", "hello", "hey", "hlo", "assalam", "assalam-o-alaikum", "salam", "start", "good morning", "good evening", "good afternoon"}
+    is_standalone_greeting = q_clean in GREETING_WORDS or (len(q_clean.split()) <= 2 and any(w in q_clean for w in ("hi", "hello", "hey", "salam", "assalam")))
+    has_prior_history = bool(history and len(history) > 1)
+
+    # Only show the full welcome introduction on a genuine initial greeting when there is no prior chat history
+    should_intro = (is_first_message or not has_prior_history) and is_standalone_greeting
+
+    if should_intro:
+        greeting_instruction = (
+            "INITIAL GREETING ONLY:\n"
+            f"- Greet warmly by first name ({user_name or 'Friend'}).\n"
+            "- Mention their recorded health conditions briefly and introduce yourself once as VitalAir Assistant.\n"
+            "- Ask how you can assist them with air quality, health, or nutrition today.\n"
+        )
+    else:
+        greeting_instruction = (
+            "DIRECT ANSWER REQUIRED (CRITICAL RULE — ZERO REPETITIVE INTRODUCTIONS):\n"
+            "- DO NOT repeat your introduction ('I am VitalAir Assistant...').\n"
+            "- DO NOT repeat 'According to your medical profile...' or list their health conditions as an intro.\n"
+            "- DO NOT say 'How can I assist you today?'.\n"
+            "- Answer the user's specific question immediately and concisely.\n"
+            "- Provide a clear, direct 3 to 4 bullet-point response using clean markdown ('- **Heading:** Details').\n"
+        )
 
     system_prompt = (
         "You are VitalAir Assistant, a doctor-aware AI health and air quality assistant for Lahore.\n"
         f"TODAY'S DATE: {today_str}\n"
-        "STRICT MANDATORY RULES:\n"
-        "1. NO REPETITIVE INTRO HEADERS ON QUESTIONS: Do NOT output the self-introduction ('Main VitalAir Assistant hoon...') or the 2 capability bullet points when the user asks a specific question (e.g. food, diet, symptoms, AQI, routes). Those are ONLY for initial hello/greeting messages!\n"
-        "2. INITIAL CASUAL GREETING ONLY (e.g. 'hello', 'hi', 'assalam o alaikum'): Greet warmly by name, state you are VitalAir Assistant, list the 2 main capabilities with clean markdown bullets ('- **Title:** Details'), and ask how you can help.\n"
-        "3. SPECIFIC QUESTIONS (e.g. food, diet, health tips, AQI, symptoms): Greet warmly by name once (e.g. 'Assalam-o-Alaikum {user_name}!'), give a 1-line opening tailored to their health conditions and AQI, then provide 3 to 4 concise, high-value bullet points using clean markdown ('- **Heading:** Description'). Keep it brief, actionable, and token-efficient.\n"
-        "4. BULLET FORMATTING: ALWAYS use standard clean markdown dash bullets '- **Heading:** Details'. NEVER use literal dot unicode '•'.\n"
-        "5. STRICT INHALER RULE: Do NOT recommend an inhaler UNLESS explicitly listed in the user's conditions or uploaded health documents.\n"
-        "6. SEASON & MAUSAM: Current season is {season_label} ({season_id}). Focus: {season_focus}\n"
-        "7. TIME OF DAY SCHEDULE: {time_focus}\n"
-        "8. GRATITUDE: If user says thanks/shukriya, respond warmly in 1-2 short sentences without bullet points.\n"
-        "9. LANGUAGE: Natural, conversational Roman Urdu.\n"
-        f"10. DOCUMENTS: {doc_rule}"
+        "STRICT MANDATORY BEHAVIOR & RULES:\n"
+        "1. LANGUAGE: Clear, professional, natural ENGLISH for all responses.\n"
+        "2. PDF & DOCUMENT GROUNDING (CRITICAL):\n"
+        "   - Whenever uploaded health documents / PDFs are present in context, ALWAYS prioritize and strictly ground food, diet, medications, and health advice on the details mentioned in those documents.\n"
+        "   - DO NOT invent, assume, or extrapolate prescriptions or restrictions that are NOT in the PDF or user profile. Zero Hallucination!\n"
+        f"3. CONVERSATION FLOW:\n{greeting_instruction}\n"
+        "4. INHALER & MEDICATION SAFETY:\n"
+        "   - Do NOT recommend any inhaler or specific prescription drug UNLESS explicitly written in the user's uploaded PDF documents or health conditions.\n"
+        f"5. SEASON & WEATHER: Current season is {season_label} ({season_id}). Focus: {season_focus}\n"
+        f"6. TIME OF DAY SCHEDULE: {time_focus}\n"
+        "7. GRATITUDE: If user says thank you / thanks, respond warmly in 1 short sentence.\n"
+        "8. FORMATTING: Always use standard clean markdown dash bullets '- **Heading:** Details'. Never use literal dot unicode '•'.\n"
+        f"9. DOCUMENTS CONTEXT: {doc_rule}"
     )
+
+    history_str = ""
+    if history and len(history) > 1:
+        recent_turns = history[-4:]
+        history_str = "Recent chat history:\n" + "\n".join(
+            f"- {t.get('role', 'user').title()}: {t.get('text', '')}" for t in recent_turns
+        ) + "\n\n"
 
     return _chat(
         system=system_prompt,
         user=(
             f"Today's date: {today_str}\n"
+            f"{history_str}"
             f"User Question: {question}\n"
             f"User Name: {user_name or 'Friend'}\n"
             f"User Health Profile: {profile_summary or 'Not provided'}\n"

@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { ChevronDown, ChevronUp } from "lucide-react";
+import { BookmarkCheck, ChevronDown, ChevronUp } from "lucide-react";
 import { motion } from "framer-motion";
 import { type Session } from "next-auth";
 
@@ -10,8 +10,6 @@ import HealthAlertCard from "@/components/HealthAlertCard";
 import NutritionCard from "@/components/NutritionCard";
 import RouteCard from "@/components/RouteCard";
 import ExposureScoreCard from "@/components/ExposureScoreCard";
-import HealthExplainabilityPanel from "@/components/HealthExplainabilityPanel";
-import SeasonIntelligenceCard from "@/components/SeasonIntelligenceCard";
 import AQICard from "@/components/AQICard";
 import AgentStepCard, {
   type AgentStepStatus,
@@ -31,6 +29,7 @@ import {
   type AgentRouteResult,
   type UserProfilePayload,
 } from "@/lib/api";
+import { saveHistoryRecord } from "@/lib/historyApi";
 import { streamAgentJob } from "@/lib/agentStream";
 import { useVitalAirStore, type HealthProfile } from "@/store/useVitalAirStore";
 import { type LahoreSeasonId, isHeatwave, isSmogSeason } from "@/lib/lahoreSeason";
@@ -78,7 +77,7 @@ export interface AgentResultsSectionProps {
   area: string;
   heroAqi: number | null;
   heroLabel: string;
-  areaReading: any; // Using any for brevity since type might not be exported
+  areaReading: any;
   aqiReady: boolean;
   profile: HealthProfile;
   userId: string | null;
@@ -123,6 +122,8 @@ export default function AgentResultsSection({
   const [nutritionLive, setNutritionLive] = useState<string | null>(null);
   const [routeLive, setRouteLive] = useState<string | null>(null);
 
+  const [routeSavedMsg, setRouteSavedMsg] = useState<string | null>(null);
+
   const prevAreaRef = useRef(area);
 
   // Automatically reset previous agent results when user selects/searches a new area
@@ -142,6 +143,7 @@ export default function AgentResultsSection({
       setHealthError(null);
       setNutritionError(null);
       setRouteError(null);
+      setRouteSavedMsg(null);
     }
     prevAreaRef.current = area;
   }, [
@@ -201,19 +203,18 @@ export default function AgentResultsSection({
       setHealthResult(data);
       setHealthStatus("done");
     } catch (err) {
-      // Local fallback logic
       setHealthResult({
-          health_advice: "Based on WHO guidelines, limit outdoor exertion when air quality drops. Consider wearing an N95 mask.",
-          temperature_c: 25,
-          season: activeSeason.id,
-          has_patient_docs: false,
-          rag_sources_used: 1,
-          agent_mode: "fallback",
-          aqi: heroAqi ?? 100,
-          status: "done",
-          agent: "digital_pulmonologist",
-          area: area,
-          aqi_label: heroLabel
+        health_advice: "Based on WHO guidelines, limit outdoor exertion when air quality drops. Consider wearing an N95 mask.",
+        temperature_c: 25,
+        season: activeSeason.id,
+        has_patient_docs: false,
+        rag_sources_used: 1,
+        agent_mode: "fallback",
+        aqi: heroAqi ?? 100,
+        status: "done",
+        agent: "digital_pulmonologist",
+        area: area,
+        aqi_label: heroLabel
       } as any);
       setHealthError("Agent failed. Showing local fallback advice.");
       setHealthStatus("done");
@@ -246,20 +247,19 @@ export default function AgentResultsSection({
       setNutritionResult(data);
       setNutritionStatus("done");
     } catch (err) {
-      // Local fallback logic
       setNutritionResult({
-          diet_plan: [
-            "Use citrus fruits like lemon and oranges to boost immunity.",
-            "Stay hydrated with plenty of water.",
-            "Avoid heavy fried foods during poor air quality."
-          ],
-          has_patient_docs: false,
-          status: "done",
-          agent: "environmental_nutritionist",
-          area: area,
-          aqi: heroAqi ?? 100,
-          rag_sources_used: 1,
-          season: activeSeason.id
+        diet_plan: [
+          "Use citrus fruits like lemon and oranges to boost immunity.",
+          "Stay hydrated with plenty of water.",
+          "Avoid heavy fried foods during poor air quality."
+        ],
+        has_patient_docs: false,
+        status: "done",
+        agent: "environmental_nutritionist",
+        area: area,
+        aqi: heroAqi ?? 100,
+        rag_sources_used: 1,
+        season: activeSeason.id
       } as any);
       setNutritionError("Agent failed. Showing local fallback advice.");
       setNutritionStatus("done");
@@ -322,6 +322,7 @@ export default function AgentResultsSection({
                 distance: safe.distance,
                 exposure: safe.exposure,
                 waypoints: safe.waypoints ?? [],
+                aqiCheckpoints: safe.aqi_checkpoints,
                 routeOptions: safe.route_options,
               }
             : null,
@@ -330,6 +331,35 @@ export default function AgentResultsSection({
         temperatureC: healthResult?.temperature_c,
         contextSummary: data.context_summary,
       });
+
+      // Auto-save complete consolidated record (AQI + Health Advice + Diet Plan + Route + PES)
+      try {
+        const effectiveUserId = session?.user?.id || userId || undefined;
+        const pesScore = data.personal_exposure_score?.score;
+        const pesLevel = data.personal_exposure_score?.level;
+        const currentHealth = validHealthResult?.health_advice || healthResult?.health_advice || safe?.recommendation || safe?.summary || "";
+        const currentDiet = validNutritionResult?.diet_plan || nutritionResult?.diet_plan || [];
+
+        await saveHistoryRecord(
+          {
+            source: from || "Lahore",
+            destination: to || undefined,
+            aqi_at_time: data.aqi ?? heroAqi ?? 100,
+            pes_score: pesScore,
+            pes_level: pesLevel,
+            health_advice: currentHealth,
+            diet_plan: currentDiet,
+            safe_route: safe as any,
+            user_id: effectiveUserId,
+            status: "complete",
+          },
+          session?.backendToken
+        );
+        setRouteSavedMsg("Auto-saved to Health History with AQI, Health & Nutrition advice!");
+        setTimeout(() => setRouteSavedMsg(null), 6000);
+      } catch (saveErr) {
+        console.warn("Auto-saving route to history failed:", saveErr);
+      }
     } catch (err) {
       setRouteError(err instanceof Error ? err.message : "Route agent failed");
       setRouteStatus("error");
@@ -396,7 +426,7 @@ export default function AgentResultsSection({
           />
         ) : (
           <p className="text-sm text-vital-muted">
-            Area select karein ya type karein list se.
+            Search and select an area above to view live air quality.
           </p>
         )}
       </AgentStepCard>
@@ -404,7 +434,7 @@ export default function AgentResultsSection({
       <AgentStepCard
         step={2}
         title="Digital Pulmonologist"
-        subtitle="WHO knowledge + aap ki health profile + uploaded documents (RAG)"
+        subtitle="WHO medical guidelines &amp; patient records"
         status={!aqiReady ? "locked" : healthStatus}
         onRun={runHealth}
         onReset={() => {
@@ -431,7 +461,7 @@ export default function AgentResultsSection({
                 <div className="flex items-center justify-between gap-2 border-b border-vital-border/40 pb-2">
                   <div className="flex items-center gap-2">
                     <span className="text-xs font-bold uppercase tracking-wider text-vital-primary">
-                      Outdoor Travel Verdict (Is waqt bahar jana behtar hai ya nahi?)
+                      Outdoor Travel Verdict
                     </span>
                   </div>
                   <span className="text-xs font-semibold text-vital-muted">
@@ -458,12 +488,10 @@ export default function AgentResultsSection({
                   : "Verified medical guidance · Tailored using WHO air quality standards & your personal health profile."
               }
             />
-
           </>
         ) : (
           <p className="text-sm text-vital-muted">
-            AQI {heroAqi ?? "—"} ke mutabiq personalized health tips — asthma,
-            age, commute profile use hoti hai.
+            Personalized health advice tailored to your health profile and live AQI.
           </p>
         )}
       </AgentStepCard>
@@ -471,7 +499,7 @@ export default function AgentResultsSection({
       <AgentStepCard
         step={3}
         title="Environmental Nutritionist"
-        subtitle="Anti-pollution food guide — season & AQI aware"
+        subtitle="Anti-pollution food &amp; hydration guide"
         status={!aqiReady ? "locked" : nutritionStatus}
         onRun={runNutrition}
         onReset={() => {
@@ -491,7 +519,7 @@ export default function AgentResultsSection({
           />
         ) : (
           <p className="text-sm text-vital-muted">
-            AQI aur season ke mutabiq personalized anti-pollution diet guide.
+            Personalized anti-pollution diet and hydration recommendations.
           </p>
         )}
       </AgentStepCard>
@@ -499,42 +527,47 @@ export default function AgentResultsSection({
       <AgentStepCard
         step={4}
         title="Smart Route Navigator"
-        subtitle="Sirf jab travel karna ho — 3 low-AQI routes (free OSRM)"
+        subtitle="Low-exposure routes across Lahore"
         status={!aqiReady ? "locked" : routeStatus}
         error={routeError}
         liveMessage={routeLive}
       >
         <button
           type="button"
-          className="mb-4 flex w-full items-center justify-between rounded-lg border border-vital-border bg-vital-bg/50 px-3 py-2 text-sm text-vital-text"
+          className="mb-4 flex w-full items-center justify-between rounded-xl border border-vital-border bg-vital-bg/70 px-4 py-3 text-sm font-semibold text-vital-text hover:border-vital-primary/40 transition-colors shadow-sm"
           onClick={() => setRouteOpen((o) => !o)}
         >
-          <span>Planning to travel?</span>
+          <span className="flex items-center gap-2">
+            <span>🚗</span>
+            <span>Planning to travel in Lahore?</span>
+          </span>
           {routeOpen ? (
-            <ChevronUp className="h-4 w-4" aria-hidden />
+            <ChevronUp className="h-4 w-4 text-vital-primary" aria-hidden />
           ) : (
-            <ChevronDown className="h-4 w-4" aria-hidden />
+            <ChevronDown className="h-4 w-4 text-vital-muted" aria-hidden />
           )}
         </button>
 
         {routeOpen && (
-          <div className="space-y-4">
-            <LocationSearchInput
-              label="From"
-              value={area}
-              onChange={() => {}}
-              disabled={true}
-            />
-            <LocationSearchInput
-              label="To"
-              placeholder="e.g. DHA Phase 5"
-              value={destination}
-              onChange={setDestination}
-              disabled={routeStatus === "loading"}
-            />
+          <div className="space-y-4 rounded-2xl border border-vital-border/60 bg-vital-bg/30 p-4 sm:p-5">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <LocationSearchInput
+                label="From (Origin)"
+                value={area}
+                onChange={() => {}}
+                disabled={true}
+              />
+              <LocationSearchInput
+                label="To (Destination)"
+                placeholder="e.g. DHA Phase 5, Gulberg, Johar Town…"
+                value={destination}
+                onChange={setDestination}
+                disabled={routeStatus === "loading"}
+              />
+            </div>
             <button
               type="button"
-              className="btn-primary w-full"
+              className="btn-primary w-full py-3 text-sm sm:text-base font-semibold shadow-lg"
               onClick={runRoute}
               disabled={
                 !aqiReady ||
@@ -544,7 +577,7 @@ export default function AgentResultsSection({
             >
               {routeStatus === "loading"
                 ? "Finding safer routes…"
-                : "Analyze route"}
+                : "Analyze low-pollution route"}
             </button>
             {routeResult && (
               <button
@@ -564,9 +597,16 @@ export default function AgentResultsSection({
 
         {routeResult && (
           <div className="mt-4 space-y-4">
-            {routeResult.season_intelligence && (
-              <SeasonIntelligenceCard data={routeResult.season_intelligence} />
+            {routeSavedMsg && (
+              <div className="flex items-center gap-2.5 rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-4 py-3 text-emerald-400 animate-fade-in">
+                <BookmarkCheck className="h-5 w-5 shrink-0 text-emerald-400" />
+                <div className="text-xs">
+                  <p className="font-bold text-emerald-300">History Record Saved</p>
+                  <p className="text-emerald-400/90">{routeSavedMsg}</p>
+                </div>
+              </div>
             )}
+
             {routeResult.personal_exposure_score && (
               <ExposureScoreCard pes={routeResult.personal_exposure_score} />
             )}
@@ -580,7 +620,7 @@ export default function AgentResultsSection({
 
         {!routeOpen && !routeResult && (
           <p className="text-sm text-vital-muted">
-            Ghar baithe rehna ho to is step ko skip kar sakte hain.
+            Optional — calculate low-pollution travel routes.
           </p>
         )}
       </AgentStepCard>

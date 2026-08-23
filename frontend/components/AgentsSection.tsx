@@ -36,13 +36,6 @@ const AGENTS = [
   },
 ];
 
-const PIPELINE = [
-  "Works step by step — each agent uses the last answer",
-  "Adjusts for Lahore's season: smog, heat, dust, rain",
-  "Includes your uploaded prescriptions when you add them",
-  "You get: risk score, routes, history, and plain explanations",
-];
-
 export default function AgentsSection() {
   return (
     <section
@@ -62,24 +55,11 @@ export default function AgentsSection() {
           >
             <Bot className="h-5 w-5" aria-hidden />
           </motion.span>
-          <h2 className="section-title">Four specialists, one clear answer</h2>
+          <h2 className="section-title">Four specialized AI agents for your protection</h2>
           <p className="section-subtitle mx-auto max-w-xl">
-            Every time you analyze a trip, four AI helpers work in order — air
-            quality, health, food, then your best route. Each step builds on the
-            last so everything fits together.
+            Coordinated environmental intelligence combining live air monitoring, medical precautions, nutrition, and clean routing.
           </p>
         </motion.div>
-
-        <ul className="mx-auto mt-6 flex max-w-3xl flex-wrap justify-center gap-2">
-          {PIPELINE.map((line) => (
-            <li
-              key={line}
-              className="rounded-full border border-vital-border bg-vital-bg/80 px-3 py-1.5 text-xs leading-snug text-vital-muted"
-            >
-              {line}
-            </li>
-          ))}
-        </ul>
 
         <div className="mt-12 grid gap-6 md:grid-cols-2">
           {AGENTS.map((agent, i) => (

@@ -157,6 +157,7 @@ interface VitalAirState {
   lahoreAreas: AreaAqiPayload[];
   lahoreAreasFetchedAt: string | null;
   chatTurns: ChatTurn[];
+  autoSaveHistory: boolean;
 
   setHealthProfile: (profile: HealthProfile) => void;
   setProfileComplete: (complete: boolean | null) => void;
@@ -172,6 +173,7 @@ interface VitalAirState {
   reset: () => void;
   setLahoreAreas: (areas: AreaAqiPayload[]) => void;
   setChatTurns: (turns: ChatTurn[]) => void;
+  setAutoSaveHistory: (val: boolean) => void;
 }
 
 export const defaultProfile: HealthProfile = {
@@ -300,6 +302,18 @@ export function mapAnalyzeToResults(data: AnalyzeResult): AnalyzeResultsState {
   };
 }
 
+const AUTO_SAVE_KEY = "vitalair_auto_save_history";
+
+function getInitialAutoSave(): boolean {
+  if (typeof window === "undefined") return true;
+  try {
+    const val = localStorage.getItem(AUTO_SAVE_KEY);
+    return val !== null ? val === "true" : true;
+  } catch {
+    return true;
+  }
+}
+
 export const useVitalAirStore = create<VitalAirState>((set) => ({
   healthProfile: null,
   profileComplete: null,
@@ -312,6 +326,7 @@ export const useVitalAirStore = create<VitalAirState>((set) => ({
   lahoreAreas: [],
   lahoreAreasFetchedAt: null,
   chatTurns: [],
+  autoSaveHistory: getInitialAutoSave(),
 
   setHealthProfile: (profile) =>
     set({ healthProfile: { ...profile, city: APP_CITY } }),
@@ -359,4 +374,12 @@ export const useVitalAirStore = create<VitalAirState>((set) => ({
       lahoreAreasFetchedAt: new Date().toISOString(),
     }),
   setChatTurns: (turns) => set({ chatTurns: turns }),
+  setAutoSaveHistory: (val: boolean) => {
+    if (typeof window !== "undefined") {
+      try {
+        localStorage.setItem(AUTO_SAVE_KEY, String(val));
+      } catch {}
+    }
+    set({ autoSaveHistory: val });
+  },
 }));

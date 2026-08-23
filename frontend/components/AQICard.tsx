@@ -118,9 +118,10 @@ export default function AQICard({
           <path
             d="M 25 105 A 85 85 0 0 1 195 105"
             fill="none"
-            stroke="#30363D"
+            stroke="currentColor"
             strokeWidth="12"
             strokeLinecap="round"
+            className="text-slate-200 dark:text-[#30363D]"
           />
 
           {/* Full Color Scale Track (Subtle background) */}
@@ -130,7 +131,7 @@ export default function AQICard({
             stroke="url(#aqi-gauge-gradient-pro)"
             strokeWidth="12"
             strokeLinecap="round"
-            opacity="0.3"
+            opacity="0.35"
           />
 
           {/* Active Filled Arc Segment with Neon Glow */}
@@ -146,32 +147,54 @@ export default function AQICard({
             className="transition-all duration-1000 ease-out"
           />
 
-          {/* Center Pin Glow Halo */}
-          <circle cx="110" cy="105" r="10" fill={color} opacity="0.3" />
-          <circle cx="110" cy="105" r="6" fill="#FFFFFF" />
+          {/* Center Pin Glow Halo & Pivot */}
+          <circle cx="110" cy="105" r="11" fill={color} opacity="0.35" />
+          <circle
+            cx="110"
+            cy="105"
+            r="6.5"
+            className="fill-slate-800 dark:fill-slate-100 stroke-2 stroke-vital-card"
+          />
+          <circle cx="110" cy="105" r="2.5" fill={color} />
 
-          {/* Needle Indicator Line (Crisp White + Glowing Tip) */}
+          {/* Needle Indicator Line (High-contrast Slate in light mode, bright white in dark mode + Glowing Tip) */}
           <g transform={`translate(110, 105) rotate(${rotation})`}>
+            {/* Needle Shadow */}
             <line
               x1="0"
               y1="0"
               x2="0"
               y2="-78"
-              stroke="#FFFFFF"
-              strokeWidth="4"
+              className="stroke-black/30 dark:stroke-black/60"
+              strokeWidth="5"
               strokeLinecap="round"
-              style={{
-                filter: "drop-shadow(0 0 4px rgba(255,255,255,0.8))",
-              }}
+              transform="translate(0, 2)"
             />
-            {/* Needle Tip Marker */}
+            {/* Main Needle Line */}
+            <line
+              x1="0"
+              y1="0"
+              x2="0"
+              y2="-78"
+              className="stroke-slate-800 dark:stroke-slate-100 transition-colors"
+              strokeWidth="3.5"
+              strokeLinecap="round"
+            />
+            {/* Needle Tip Outer Ring */}
             <circle
               cx="0"
               cy="-78"
-              r="3.5"
+              r="4.5"
               fill={color}
-              stroke="#FFFFFF"
-              strokeWidth="1.5"
+              className="stroke-slate-900 dark:stroke-white transition-colors"
+              strokeWidth="2"
+            />
+            {/* Needle Tip Inner Dot */}
+            <circle
+              cx="0"
+              cy="-78"
+              r="2"
+              fill="#FFFFFF"
             />
           </g>
         </svg>
@@ -179,9 +202,9 @@ export default function AQICard({
         {/* Central AQI Number inside the arc */}
         <div className="absolute bottom-2 flex flex-col items-center pointer-events-none">
           <span
-            className="text-5xl font-black tracking-tight text-white"
+            className="text-5xl font-black tracking-tight text-slate-900 dark:text-white transition-colors"
             style={{
-              textShadow: `0 0 20px ${color}80, 0 2px 4px rgba(0,0,0,0.8)`,
+              textShadow: `0 0 24px ${color}60, 0 2px 6px rgba(0,0,0,0.15)`,
             }}
           >
             {aqi}
@@ -194,22 +217,22 @@ export default function AQICard({
         className="mt-1 flex items-center justify-center gap-1.5 rounded-full px-3.5 py-1 text-xs font-bold tracking-wide shadow-sm"
         style={{
           color: theme.textColor,
-          backgroundColor: `${color}1A`,
-          border: `1px solid ${color}40`,
+          backgroundColor: `${color}20`,
+          border: `1px solid ${color}60`,
         }}
       >
         <span
           className="h-2 w-2 rounded-full animate-pulse shrink-0"
           style={{ backgroundColor: color, boxShadow: `0 0 8px ${color}` }}
         />
-        <span className="text-center">{displayLabel}</span>
+        <span className="text-center font-extrabold">{displayLabel}</span>
       </div>
 
       {/* Prominent High-Visibility Source Location Banner */}
-      <div className="mt-3 flex items-center justify-center gap-1.5 text-xs text-vital-text bg-vital-card/90 border border-vital-border/80 rounded-xl px-3 py-2 w-full shadow-inner">
+      <div className="mt-3 flex items-center justify-center gap-1.5 text-xs text-vital-text bg-slate-100/90 dark:bg-vital-card/90 border border-vital-border rounded-xl px-3 py-2 w-full shadow-inner">
         <MapPin className="h-4 w-4 text-vital-primary shrink-0" />
         <span className="text-vital-muted font-medium">Exact Source:</span>
-        <span className="font-extrabold text-white truncate max-w-[200px]" title={exactLocationName}>
+        <span className="font-extrabold text-slate-900 dark:text-white truncate max-w-[220px]" title={exactLocationName}>
           {exactLocationName}
         </span>
       </div>

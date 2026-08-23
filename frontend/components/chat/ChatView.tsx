@@ -39,7 +39,10 @@ export default function ChatView() {
 
     try {
       const storedArea = typeof window !== "undefined" ? window.localStorage.getItem("vitalair-dashboard-area") || "Gulberg" : "Gulberg";
-      const res = await askPatientRagChat(prompt, { area: storedArea });
+      const res = await askPatientRagChat(prompt, {
+        area: storedArea,
+        history: newTurns.map((t) => ({ role: t.role, text: t.text })),
+      });
       setTurns([
         ...newTurns,
         {

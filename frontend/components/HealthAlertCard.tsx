@@ -72,7 +72,7 @@ export default function HealthAlertCard({
         </motion.span>
         <div>
           <p className="text-xs font-semibold uppercase tracking-wide text-vital-muted">
-            Aap ke liye health guidance
+            Personalized Health Guidance
           </p>
           <h2 className={`mt-1 text-lg font-bold leading-snug sm:text-xl ${titleStyles[severity]}`}>
             {title}
@@ -92,7 +92,7 @@ export default function HealthAlertCard({
           >
             <div className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-vital-primary">
               <Languages className="h-3.5 w-3.5" aria-hidden />
-              Roman Urdu — short summary
+              Key Summary
             </div>
             <p className="text-base font-medium leading-relaxed text-vital-text sm:text-[17px]">
               {parsed.summaryUr}

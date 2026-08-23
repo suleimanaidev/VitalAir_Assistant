@@ -18,7 +18,7 @@ export function getAqiTheme(aqi: number): AqiTheme {
       glow: "rgba(139, 148, 158, 0.4)",
       label: "Unknown",
       bgLight: "rgba(139, 148, 158, 0.15)",
-      textColor: "#8B949E",
+      textColor: "#57606A",
     };
   }
   if (aqi <= 50) {
@@ -27,7 +27,7 @@ export function getAqiTheme(aqi: number): AqiTheme {
       glow: "rgba(0, 200, 150, 0.55)",
       label: "Good",
       bgLight: "rgba(0, 200, 150, 0.15)",
-      textColor: "#00C896",
+      textColor: "#047857",
     };
   }
   if (aqi <= 100) {
@@ -36,7 +36,7 @@ export function getAqiTheme(aqi: number): AqiTheme {
       glow: "rgba(255, 215, 0, 0.55)",
       label: "Moderate",
       bgLight: "rgba(255, 215, 0, 0.15)",
-      textColor: "#FFD700",
+      textColor: "#B45309",
     };
   }
   if (aqi <= 150) {
@@ -45,7 +45,7 @@ export function getAqiTheme(aqi: number): AqiTheme {
       glow: "rgba(255, 165, 0, 0.55)",
       label: "Unhealthy for Sensitive Groups",
       bgLight: "rgba(255, 165, 0, 0.15)",
-      textColor: "#FFA500",
+      textColor: "#C2410C",
     };
   }
   if (aqi <= 200) {
@@ -54,7 +54,7 @@ export function getAqiTheme(aqi: number): AqiTheme {
       glow: "rgba(255, 69, 69, 0.6)",
       label: "Unhealthy",
       bgLight: "rgba(255, 69, 69, 0.15)",
-      textColor: "#FF4545",
+      textColor: "#B91C1C",
     };
   }
   if (aqi <= 300) {
@@ -63,7 +63,7 @@ export function getAqiTheme(aqi: number): AqiTheme {
       glow: "rgba(155, 89, 182, 0.6)",
       label: "Very Unhealthy",
       bgLight: "rgba(155, 89, 182, 0.15)",
-      textColor: "#B07CC6",
+      textColor: "#7E22CE",
     };
   }
   return {
@@ -71,7 +71,7 @@ export function getAqiTheme(aqi: number): AqiTheme {
     glow: "rgba(139, 0, 0, 0.7)",
     label: "Hazardous",
     bgLight: "rgba(139, 0, 0, 0.2)",
-    textColor: "#FF6B6B",
+    textColor: "#991B1B",
   };
 }
 

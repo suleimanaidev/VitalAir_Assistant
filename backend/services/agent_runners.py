@@ -75,11 +75,11 @@ def _symptom_health_prefix(symptom_summary: str | None, symptom_score: int | Non
         return ""
     if symptom_score >= 5:
         return (
-            "Aaj symptoms zyada hain — outdoor exertion avoid karein, rescue medicine/inhaler "
-            "paas rakhein, aur symptoms worse hon to doctor se rabta karein."
+            "Elevated symptoms reported today — avoid outdoor exertion, keep rescue inhaler/medicine "
+            "accessible, and consult your physician if symptoms worsen."
         )
     return (
-        "Aaj halkay symptoms note hue — AQI high ho to mask use karein aur outdoor time short rakhein."
+        "Mild symptoms noted today — wear an N95 mask if AQI is elevated and keep outdoor exposure short."
     )
 
 
@@ -229,6 +229,7 @@ def run_health_agent(
         aqi_label=aqi_label(aqi_val),
         health_advice=health,
         health_explainability=explainability,
+        personal_exposure_score=pes,
         time_recommendation=time_rec,
         rag_sources_used=count_rag_chunks(rag_health),
         has_patient_docs=has_patient_docs,
@@ -338,10 +339,19 @@ def run_nutrition_agent(
             diet = ai_diet
             agent_mode = "openai_rag"
 
+    pes = compute_personal_exposure_score(
+        aqi=aqi_val,
+        distance=None,
+        commute_mode=commute,
+        conditions=conditions,
+        sensitivity=sensitivity,
+    )
+
     return AgentNutritionResponse(
         area=area,
         aqi=aqi_val,
         diet_plan=diet,
+        personal_exposure_score=pes,
         rag_sources_used=count_rag_chunks(rag_diet),
         agent_mode=agent_mode,
         season=season_id,
@@ -566,6 +576,7 @@ async def run_health_agent_async(
         aqi_label=aqi_label(aqi_val),
         health_advice=health,
         health_explainability=explainability,
+        personal_exposure_score=pes,
         rag_sources_used=count_rag_chunks(rag_health),
         has_patient_docs=has_patient_docs,
         agent_mode=agent_mode,
@@ -676,10 +687,19 @@ async def run_nutrition_agent_async(
             diet = ai_diet
             agent_mode = "openai_rag"
 
+    pes = compute_personal_exposure_score(
+        aqi=aqi_val,
+        distance=None,
+        commute_mode=commute,
+        conditions=conditions,
+        sensitivity=sensitivity,
+    )
+
     return AgentNutritionResponse(
         area=area,
         aqi=aqi_val,
         diet_plan=diet,
+        personal_exposure_score=pes,
         rag_sources_used=count_rag_chunks(rag_diet),
         agent_mode=agent_mode,
         season=season_id,
