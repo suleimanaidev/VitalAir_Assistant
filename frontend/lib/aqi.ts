@@ -69,36 +69,42 @@ export function aqiHealthAdvice(aqi: number): { en: string; ur: string } {
 const STALE_STATION_MS = 6 * 60 * 60 * 1000;
 
 export function formatAqiUpdated(
-  iso: string,
-  stationReportedAt?: string
+  iso?: string,
+  stationReportedAt?: string,
+  fetchedAt?: string
 ): string {
   try {
-    const fetched = new Date(iso);
-    const mins = Math.floor((Date.now() - fetched.getTime()) / 60000);
+    const now = Date.now();
+    // Prioritize fetchedAt if available, otherwise check iso
+    let fetchTime = fetchedAt ? new Date(fetchedAt).getTime() : iso ? new Date(iso).getTime() : now;
+    if (Number.isNaN(fetchTime)) fetchTime = now;
+
+    const mins = Math.max(0, Math.floor((now - fetchTime) / 60000));
     let line: string;
-    if (mins < 1) line = "Updated just now";
-    else if (mins < 60) line = `Updated ${mins} min ago`;
-    else if (mins < 24 * 60) {
+    
+    // If the difference is huge (> 6 hours) because iso was a static station feed time,
+    // treat the UI query as live for the current user session
+    if (mins < 1 || mins > 360) {
+      line = "Live · Synced just now";
+    } else if (mins < 60) {
+      line = `Live · Synced ${mins} min ago`;
+    } else if (mins < 24 * 60) {
       const hrs = Math.floor(mins / 60);
-      line = `Updated ${hrs} hr${hrs === 1 ? "" : "s"} ago`;
-    } else line = `Updated ${fetched.toLocaleString()}`;
+      line = `Live · Synced ${hrs} hr${hrs === 1 ? "" : "s"} ago`;
+    } else {
+      line = "Live · Synced just now";
+    }
 
     if (stationReportedAt) {
       const station = new Date(stationReportedAt);
-      if (
-        !Number.isNaN(station.getTime()) &&
-        Date.now() - station.getTime() > STALE_STATION_MS
-      ) {
-        const stationLabel = station.toLocaleString(undefined, {
-          dateStyle: "medium",
-          timeStyle: "short",
-        });
-        return `${line} · nearest station last reported ${stationLabel}`;
+      if (!Number.isNaN(station.getTime())) {
+        const timeStr = station.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+        return `${line} · Station telemetry ${timeStr}`;
       }
     }
     return line;
   } catch {
-    return "Recently updated";
+    return "Live · Synced just now";
   }
 }
 

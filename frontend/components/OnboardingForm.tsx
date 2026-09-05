@@ -4,14 +4,29 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowLeft, ArrowRight, Loader2, MapPin } from "lucide-react";
-import { useForm, Controller } from "react-hook-form";
+import {
+  Activity,
+  ArrowLeft,
+  ArrowRight,
+  Bike,
+  Bus,
+  Car,
+  CheckCircle2,
+  Clock,
+  Footprints,
+  HeartPulse,
+  Loader2,
+  MapPin,
+  Sparkles,
+} from "lucide-react";
+import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 
 import ProgressBar from "@/components/ProgressBar";
 import {
   COMMUTE_OPTIONS,
+  GENDER_OPTIONS,
   HEALTH_CONDITIONS,
   OUTDOOR_OPTIONS,
   SENSITIVITY_OPTIONS,
@@ -23,6 +38,7 @@ import {
   useVitalAirStore,
   type HealthProfile,
   defaultProfile,
+  type Gender,
   type Sensitivity,
   type CommuteMode,
   type OutdoorTime,
@@ -31,10 +47,11 @@ import {
 const profileSchema = z.object({
   name: z.string().min(1, "Name is required"),
   age: z.number().min(1, "Age must be at least 1").max(120, "Age must be 120 or younger"),
-  conditions: z.array(z.string()).min(1, "Please select at least one condition"),
+  gender: z.enum(["male", "female", "other"]),
+  conditions: z.array(z.string()).min(1, "Please select at least one condition or 'None'"),
   sensitivity: z.enum(["low", "medium", "high"]),
   commuteMode: z.enum(["car", "bike", "walk", "public_transport"]),
-  outdoorTime: z.enum(["under_30", "30_60", "1_2", "2_plus"])
+  outdoorTime: z.enum(["under_30", "30_60", "1_2", "2_plus"]),
 });
 
 type ProfileFormValues = z.infer<typeof profileSchema>;
@@ -48,7 +65,7 @@ const slide = {
 function StepHeader({ title, subtitle }: { title: string; subtitle: string }) {
   return (
     <div>
-      <h2 className="text-xl font-semibold text-vital-text">{title}</h2>
+      <h2 className="text-xl font-bold text-vital-text">{title}</h2>
       <p className="mt-1 text-sm text-vital-muted">{subtitle}</p>
     </div>
   );
@@ -64,19 +81,28 @@ export default function OnboardingForm() {
   const [step, setStep] = useState(1);
   const [submitting, setSubmitting] = useState(false);
 
-  const { register, handleSubmit, control, watch, setValue, trigger, formState: { errors } } = useForm<ProfileFormValues>({
+  const {
+    register,
+    handleSubmit,
+    watch,
+    setValue,
+    trigger,
+    formState: { errors },
+  } = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),
     defaultValues: {
       name: defaultProfile.name,
       age: defaultProfile.age,
-      conditions: [],
+      gender: defaultProfile.gender ?? "male",
+      conditions: ["none"],
       sensitivity: defaultProfile.sensitivity,
       commuteMode: defaultProfile.commuteMode,
-      outdoorTime: defaultProfile.outdoorTime
-    }
+      outdoorTime: defaultProfile.outdoorTime,
+    },
   });
 
-  const conditions = watch("conditions");
+  const conditions = watch("conditions") || [];
+  const gender = watch("gender");
   const sensitivity = watch("sensitivity");
   const commuteMode = watch("commuteMode");
   const outdoorTime = watch("outdoorTime");
@@ -92,18 +118,17 @@ export default function OnboardingForm() {
       setValue("conditions", ["none"], { shouldValidate: true });
       return;
     }
-    const current = conditions || [];
-    const withoutNone = current.filter((c) => c !== "none");
+    const withoutNone = conditions.filter((c) => c !== "none");
     const next = withoutNone.includes(id)
       ? withoutNone.filter((c) => c !== id)
       : [...withoutNone, id];
-    setValue("conditions", next, { shouldValidate: true });
+    setValue("conditions", next.length ? next : ["none"], { shouldValidate: true });
   };
 
   const handleNext = async () => {
     let isValid = false;
     if (step === 1) {
-      isValid = await trigger(["name", "age"]);
+      isValid = await trigger(["name", "age", "gender"]);
     } else if (step === 2) {
       isValid = await trigger(["conditions", "sensitivity"]);
     }
@@ -121,13 +146,14 @@ export default function OnboardingForm() {
     const profile: HealthProfile = {
       name: data.name.trim(),
       age: data.age,
+      gender: data.gender as Gender,
       city: APP_CITY,
       conditions: data.conditions.includes("none") ? [] : data.conditions,
       sensitivity: data.sensitivity as Sensitivity,
       commuteMode: data.commuteMode as CommuteMode,
       outdoorTime: data.outdoorTime as OutdoorTime,
     };
-    
+
     setHealthProfile(profile);
 
     try {
@@ -152,6 +178,13 @@ export default function OnboardingForm() {
     router.replace("/dashboard");
   };
 
+  const commuteIcons = {
+    car: Car,
+    bike: Bike,
+    walk: Footprints,
+    public_transport: Bus,
+  };
+
   return (
     <motion.div className="vital-card p-6 sm:p-8">
       <ProgressBar currentStep={step} />
@@ -170,35 +203,65 @@ export default function OnboardingForm() {
             >
               <StepHeader
                 title="Basic info"
-                subtitle="Tell us a little about yourself."
+                subtitle="Tell us a little about yourself to initialize your health baseline."
               />
               <div>
-                <label className="block text-sm font-medium text-vital-text">Name</label>
+                <label className="block text-sm font-medium text-vital-text">Full Name</label>
                 <input
                   type="text"
                   className={inputClass}
                   placeholder="e.g. Suleiman Ahmed"
                   {...register("name")}
                 />
-                {errors.name && <p className="mt-1 text-sm text-vital-danger">{errors.name.message}</p>}
+                {errors.name && <p className="mt-1 text-xs text-vital-danger">{errors.name.message}</p>}
               </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-vital-text">Age</label>
-                <input
-                  type="number"
-                  className={inputClass}
-                  {...register("age", { valueAsNumber: true })}
-                />
-                {errors.age && <p className="mt-1 text-sm text-vital-danger">{errors.age.message}</p>}
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-vital-text">Age</label>
+                  <input
+                    type="number"
+                    className={inputClass}
+                    placeholder="e.g. 28"
+                    {...register("age", { valueAsNumber: true })}
+                  />
+                  {errors.age && <p className="mt-1 text-xs text-vital-danger">{errors.age.message}</p>}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-vital-text">Gender</label>
+                  <div className="mt-1.5 grid grid-cols-3 gap-2">
+                    {GENDER_OPTIONS.map((opt) => (
+                      <label
+                        key={opt.value}
+                        className={`cursor-pointer rounded-xl border py-3 px-2 text-center text-xs font-semibold transition-all ${
+                          gender === opt.value
+                            ? "border-vital-primary bg-vital-primary/15 text-vital-primary ring-1 ring-vital-primary"
+                            : "border-vital-border bg-vital-bg/40 text-vital-muted hover:border-vital-primary/40 hover:text-vital-text"
+                        }`}
+                      >
+                        <input
+                          type="radio"
+                          value={opt.value}
+                          {...register("gender")}
+                          className="sr-only"
+                        />
+                        {opt.label}
+                      </label>
+                    ))}
+                  </div>
+                  {errors.gender && <p className="mt-1 text-xs text-vital-danger">{errors.gender.message}</p>}
+                </div>
               </div>
-              
-              <div className="rounded-md border border-vital-border bg-vital-bg px-3 py-2.5">
-                <p className="text-xs font-medium text-vital-muted">City</p>
-                <p className="mt-1 flex items-center gap-2 text-vital-text">
-                  <MapPin className="h-4 w-4 text-vital-primary" aria-hidden />
-                  {APP_CITY}, Pakistan
-                </p>
+
+              <div className="rounded-xl border border-vital-border bg-vital-bg/50 p-3.5 flex items-center justify-between text-xs">
+                <span className="flex items-center gap-2 text-vital-text font-medium">
+                  <MapPin className="h-4 w-4 text-vital-primary" />
+                  Active City: {APP_CITY}, Pakistan
+                </span>
+                <span className="rounded bg-vital-primary/10 px-2 py-0.5 text-vital-primary font-semibold">
+                  Smog AI Engine Active
+                </span>
               </div>
             </motion.div>
           )}
@@ -214,62 +277,75 @@ export default function OnboardingForm() {
               className="space-y-6"
             >
               <StepHeader
-                title="Health conditions"
-                subtitle="We use this to personalize smog safety advice."
+                title="Health conditions & Smog Sensitivity"
+                subtitle="We adapt respiratory alerts and route safety to your conditions."
               />
-              <fieldset>
-                <legend className="text-sm font-medium text-vital-text">
-                  Conditions
-                </legend>
-                <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                  {HEALTH_CONDITIONS.map(({ id, label }) => (
-                    <label
-                      key={id}
-                      className={`flex cursor-pointer items-center gap-3 rounded-md border px-3 py-2.5 transition-colors ${
-                        (conditions || []).includes(id)
-                          ? "border-vital-primary bg-vital-primary/10"
-                          : "border-vital-border hover:border-vital-muted"
-                      }`}
-                    >
-                      <input
-                        type="checkbox"
-                        className="h-4 w-4 accent-[#00C896]"
-                        checked={(conditions || []).includes(id)}
-                        onChange={() => toggleCondition(id)}
-                      />
-                      <span className="text-sm text-vital-text">{label}</span>
-                    </label>
-                  ))}
+
+              <div className="space-y-3">
+                <label className="text-sm font-medium text-vital-text">Health &amp; Respiratory Triggers</label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  {HEALTH_CONDITIONS.map((cond) => {
+                    const active = conditions.includes(cond.id);
+                    return (
+                      <button
+                        key={cond.id}
+                        type="button"
+                        onClick={() => toggleCondition(cond.id)}
+                        className={`flex items-start gap-3 rounded-xl border p-3 text-left transition-all cursor-pointer ${
+                          active
+                            ? "border-vital-primary bg-vital-primary/15 text-vital-text"
+                            : "border-vital-border bg-vital-bg/40 text-vital-muted hover:border-vital-primary/40 hover:text-vital-text"
+                        }`}
+                      >
+                        <div
+                          className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded border ${
+                            active
+                              ? "border-vital-primary bg-vital-primary text-black font-bold"
+                              : "border-vital-border"
+                          }`}
+                        >
+                          {active && <CheckCircle2 className="h-3 w-3" />}
+                        </div>
+                        <div>
+                          <p className={`text-xs font-semibold ${active ? "text-vital-primary" : "text-vital-text"}`}>
+                            {cond.label}
+                          </p>
+                          {cond.description && (
+                            <p className="text-[11px] text-vital-muted mt-0.5">{cond.description}</p>
+                          )}
+                        </div>
+                      </button>
+                    );
+                  })}
                 </div>
-                {errors.conditions && <p className="mt-1 text-sm text-vital-danger">{errors.conditions.message}</p>}
-              </fieldset>
-              
-              <fieldset>
-                <legend className="text-sm font-medium text-vital-text">
-                  Pollution sensitivity
-                </legend>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {SENSITIVITY_OPTIONS.map(({ value, label }) => (
+                {errors.conditions && <p className="mt-1 text-xs text-vital-danger">{errors.conditions.message}</p>}
+              </div>
+
+              <div className="space-y-3 pt-3 border-t border-vital-border/60">
+                <label className="text-sm font-medium text-vital-text">Pollution Sensitivity</label>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                  {SENSITIVITY_OPTIONS.map((opt) => (
                     <label
-                      key={value}
-                      className={`cursor-pointer rounded-md border px-4 py-2 text-sm transition-colors ${
-                        sensitivity === value
-                          ? "border-vital-primary bg-vital-primary/10 text-vital-primary"
-                          : "border-vital-border text-vital-muted hover:text-vital-text"
+                      key={opt.value}
+                      className={`cursor-pointer rounded-xl border p-3.5 text-center transition-all ${
+                        sensitivity === opt.value
+                          ? "border-vital-primary bg-vital-primary/15 text-vital-primary font-semibold ring-1 ring-vital-primary"
+                          : "border-vital-border bg-vital-bg/40 text-vital-muted hover:border-vital-primary/40 hover:text-vital-text"
                       }`}
                     >
                       <input
                         type="radio"
-                        value={value}
+                        value={opt.value}
                         {...register("sensitivity")}
                         className="sr-only"
                       />
-                      {label}
+                      <p className="text-xs font-bold text-vital-text">{opt.label}</p>
+                      <p className="text-[10px] text-vital-muted mt-1 leading-tight">{opt.description}</p>
                     </label>
                   ))}
                 </div>
-                {errors.sensitivity && <p className="mt-1 text-sm text-vital-danger">{errors.sensitivity.message}</p>}
-              </fieldset>
+                {errors.sensitivity && <p className="mt-1 text-xs text-vital-danger">{errors.sensitivity.message}</p>}
+              </div>
             </motion.div>
           )}
 
@@ -284,82 +360,94 @@ export default function OnboardingForm() {
               className="space-y-6"
             >
               <StepHeader
-                title="Daily routine"
-                subtitle="Helps our route agent estimate your exposure."
+                title="Commute & Daily Exposure"
+                subtitle="Helps our AI agents calculate your daily particulate exposure."
               />
-              <fieldset>
-                <legend className="text-sm font-medium text-vital-text">
-                  Commute mode
-                </legend>
-                <div className="mt-3 grid grid-cols-2 gap-2">
-                  {COMMUTE_OPTIONS.map(({ value, label }) => (
-                    <label
-                      key={value}
-                      className={`cursor-pointer rounded-md border px-3 py-2.5 text-center text-sm transition-colors ${
-                        commuteMode === value
-                          ? "border-vital-primary bg-vital-primary/10 text-vital-primary"
-                          : "border-vital-border text-vital-muted hover:text-vital-text"
-                      }`}
-                    >
-                      <input
-                        type="radio"
-                        value={value}
-                        {...register("commuteMode")}
-                        className="sr-only"
-                      />
-                      {label}
-                    </label>
-                  ))}
+
+              <div className="space-y-3">
+                <label className="text-sm font-medium text-vital-text">Primary Commute Mode</label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {COMMUTE_OPTIONS.map((opt) => {
+                    const Icon = commuteIcons[opt.value];
+                    const active = commuteMode === opt.value;
+                    return (
+                      <label
+                        key={opt.value}
+                        className={`flex items-start gap-3 rounded-xl border p-3.5 transition-all cursor-pointer ${
+                          active
+                            ? "border-vital-primary bg-vital-primary/15 text-vital-text ring-1 ring-vital-primary"
+                            : "border-vital-border bg-vital-bg/40 text-vital-muted hover:border-vital-primary/40 hover:text-vital-text"
+                        }`}
+                      >
+                        <input
+                          type="radio"
+                          value={opt.value}
+                          {...register("commuteMode")}
+                          className="sr-only"
+                        />
+                        <div
+                          className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${
+                            active ? "bg-vital-primary text-black font-bold" : "bg-vital-card text-vital-muted"
+                          }`}
+                        >
+                          <Icon className="h-4 w-4" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-xs font-bold text-vital-text">{opt.label}</p>
+                          <p className="text-[11px] text-vital-muted mt-0.5">{opt.description}</p>
+                        </div>
+                      </label>
+                    );
+                  })}
                 </div>
-                {errors.commuteMode && <p className="mt-1 text-sm text-vital-danger">{errors.commuteMode.message}</p>}
-              </fieldset>
-              
-              <fieldset>
-                <legend className="text-sm font-medium text-vital-text">
-                  Daily outdoor time
-                </legend>
-                <div className="mt-3 grid grid-cols-2 gap-2">
-                  {OUTDOOR_OPTIONS.map(({ value, label }) => (
+                {errors.commuteMode && <p className="mt-1 text-xs text-vital-danger">{errors.commuteMode.message}</p>}
+              </div>
+
+              <div className="space-y-3 pt-3 border-t border-vital-border/60">
+                <label className="text-sm font-medium text-vital-text">Daily Outdoor Time</label>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  {OUTDOOR_OPTIONS.map((opt) => (
                     <label
-                      key={value}
-                      className={`cursor-pointer rounded-md border px-3 py-2.5 text-center text-sm transition-colors ${
-                        outdoorTime === value
-                          ? "border-vital-primary bg-vital-primary/10 text-vital-primary"
-                          : "border-vital-border text-vital-muted hover:text-vital-text"
+                      key={opt.value}
+                      className={`cursor-pointer rounded-xl border p-3 text-center transition-all ${
+                        outdoorTime === opt.value
+                          ? "border-vital-primary bg-vital-primary/15 text-vital-primary font-semibold"
+                          : "border-vital-border bg-vital-bg/40 text-vital-muted hover:border-vital-primary/40 hover:text-vital-text"
                       }`}
                     >
                       <input
                         type="radio"
-                        value={value}
+                        value={opt.value}
                         {...register("outdoorTime")}
                         className="sr-only"
                       />
-                      {label}
+                      <Clock className="h-3.5 w-3.5 mx-auto mb-1 text-vital-primary" />
+                      <p className="text-xs font-bold text-vital-text">{opt.label}</p>
                     </label>
                   ))}
                 </div>
-                {errors.outdoorTime && <p className="mt-1 text-sm text-vital-danger">{errors.outdoorTime.message}</p>}
-              </fieldset>
+                {errors.outdoorTime && <p className="mt-1 text-xs text-vital-danger">{errors.outdoorTime.message}</p>}
+              </div>
             </motion.div>
           )}
         </AnimatePresence>
 
-        <div className="mt-8 flex items-center justify-between gap-4">
+        <div className="mt-8 flex items-center justify-between gap-4 pt-4 border-t border-vital-border/60">
           <button
             type="button"
-            className="btn-ghost text-sm disabled:opacity-40"
+            className="btn-ghost text-sm disabled:opacity-40 flex items-center gap-1.5 cursor-pointer"
             onClick={handleBack}
             disabled={step === 1 || submitting}
           >
             <ArrowLeft className="h-4 w-4" aria-hidden />
             Back
           </button>
-          
+
           {step < 3 ? (
             <button
               type="button"
               onClick={handleNext}
-              className="btn-primary text-sm disabled:opacity-50"
+              className="btn-primary text-sm flex items-center gap-1.5 cursor-pointer"
               disabled={submitting}
             >
               Next
@@ -368,7 +456,7 @@ export default function OnboardingForm() {
           ) : (
             <button
               type="submit"
-              className="btn-primary text-sm disabled:opacity-50"
+              className="btn-primary text-sm flex items-center gap-1.5 cursor-pointer shadow-lg shadow-vital-primary/20"
               disabled={submitting}
             >
               {submitting ? (
@@ -378,8 +466,8 @@ export default function OnboardingForm() {
                 </>
               ) : (
                 <>
-                  Complete profile
-                  <ArrowRight className="h-4 w-4" aria-hidden />
+                  Complete Health Profile
+                  <Sparkles className="h-4 w-4" aria-hidden />
                 </>
               )}
             </button>

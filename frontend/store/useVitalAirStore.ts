@@ -5,6 +5,7 @@ import { aqiLabel, type AreaAqiPayload } from "@/lib/aqi";
 import type { AnalyzeResult } from "@/lib/api";
 
 export type City = typeof APP_CITY;
+export type Gender = "male" | "female" | "other";
 export type Sensitivity = "low" | "medium" | "high";
 export type CommuteMode = "walk" | "bike" | "car" | "public_transport";
 export type OutdoorTime = "under_30" | "30_60" | "1_2" | "2_plus";
@@ -138,6 +139,7 @@ export interface AnalyzeResultsState {
 export interface HealthProfile {
   name: string;
   age: number;
+  gender?: Gender;
   city: City;
   conditions: string[];
   sensitivity: Sensitivity;
@@ -179,6 +181,7 @@ interface VitalAirState {
 export const defaultProfile: HealthProfile = {
   name: "",
   age: 22,
+  gender: "male",
   city: APP_CITY,
   conditions: [],
   sensitivity: "medium",

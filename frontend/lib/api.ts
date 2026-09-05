@@ -105,6 +105,8 @@ export interface AnalyzeResult {
       via_areas: string[];
       recommendation?: string;
     }[];
+    avoid_areas?: string[];
+    road_news?: string[];
   };
   query_id?: string;
   season?: string;
@@ -313,6 +315,8 @@ export interface AgentRouteResult {
   season_intelligence?: AnalyzeResult["season_intelligence"];
   context_summary?: string;
   route_source: string;
+  avoid_areas?: string[];
+  road_news?: string[];
 }
 
 async function agentRequest<T>(

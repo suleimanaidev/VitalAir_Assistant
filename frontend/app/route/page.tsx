@@ -7,6 +7,8 @@ import LeafletMap from "@/components/map/LeafletMap";
 import { useLahoreAreas } from "@/hooks/useLahoreAreas";
 import { APP_CITY } from "@/lib/constants";
 import { LAHORE_AREAS, type LahoreArea } from "@/lib/lahoreAreas";
+import { getLahoreSeason } from "@/lib/lahoreSeason";
+import { SEASON_PROFILES } from "@/lib/lahoreSeasonalIntelligence";
 
 export default function RoutePageView() {
   const { areas, error } = useLahoreAreas();
@@ -45,7 +47,48 @@ export default function RoutePageView() {
             </p>
           )}
 
-          <div className="mt-8">
+          {/* Seasonal Hazard & Avoid Areas Info */}
+          {(() => {
+            const season = getLahoreSeason();
+            const profile = SEASON_PROFILES[season.id];
+            if (!profile?.avoidAreas?.length) return null;
+            return (
+              <div className="mt-6 rounded-2xl border border-red-500/40 bg-red-500/10 p-4 sm:p-5">
+                <div className="flex items-start gap-3">
+                  <span className="text-xl">⚠️</span>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <h3 className="text-sm font-bold uppercase tracking-wider text-red-400">
+                        {profile.name} — High Hazard Corridors
+                      </h3>
+                      <span className="rounded-full bg-red-500/20 px-2.5 py-0.5 text-[11px] font-semibold text-red-300">
+                        {profile.months}
+                      </span>
+                    </div>
+                    <p className="mt-1 text-xs text-vital-muted">
+                      <strong>Hazard:</strong> {profile.primaryHazard}
+                    </p>
+                    <div className="mt-2.5 flex flex-wrap gap-2">
+                      {profile.avoidAreas.map((area, i) => (
+                        <span
+                          key={i}
+                          className="inline-flex items-center gap-1.5 rounded-lg border border-red-500/30 bg-red-500/15 px-3 py-1 text-xs font-semibold text-red-300"
+                        >
+                          <span>🚫</span>
+                          <span>{area}</span>
+                        </span>
+                      ))}
+                    </div>
+                    <p className="mt-2 text-xs text-vital-text">
+                      🧭 <strong>Route Advice:</strong> {profile.routeFocus}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
+
+          <div className="mt-6">
             <LeafletMap
               areas={areas}
               activeAreaId={activeArea?.id}

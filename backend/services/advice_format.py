@@ -15,36 +15,33 @@ from tools.lahore_season import is_smog_season
 
 SEASON_HEALTH_FALLBACK: dict[str, list[str]] = {
     "winter_smog": [
-        "Wear an N95 or KN95 mask when outdoors — mandatory in Lahore smog.",
-        "Stay indoors when possible; keep windows closed.",
-        "Use HEPA filtration or an air purifier at home.",
-        "Limit strenuous outdoor activity until AQI improves.",
-        "Avoid industrial corridors (Kot Lakhpat) when commuting.",
-        "Shower after returning home to remove fine particles.",
+        "Airway PPE & Barrier: Deploy a certified N95/FFP2 respirator with an airtight nasal seal to filter out 95%+ of deep alveolar PM2.5 micro-particulates.",
+        "Micro-Environment Isolation: Lock indoor residential zones using True HEPA (H13) purifiers and sealed apertures to maintain indoor AQI < 25.",
+        "Cardiopulmonary Limits: Cap continuous outdoor walking to <20 minutes; maintain heart rate <110 bpm to avoid exercise-induced hyperventilation.",
+        "Smog Chronobiology: Strictly avoid transit during thermal inversion spikes (06:00–09:30 AM & 07:00–10:00 PM); utilize midday safe windows.",
+        "Vehicular Isolation: Enforce 100% AC Recirculation Mode in transit, blocking >80% of road-level diesel and combustion soot penetration.",
+        "Post-Exposure Protocol: Perform hypertonic saline nasal irrigation and warm water facial wash immediately upon returning indoors.",
     ],
     "spring_dust": [
-        "AQI is variable — check readings before long outdoor plans.",
-        "Dust and pollen may irritate airways; mask if sensitive.",
-        "Stay hydrated and limit exertion on high-AQI windy days.",
-        "Keep rescue inhaler accessible if you have asthma.",
-        "Postpone outdoor workouts during dust storm alerts.",
-        "Open windows only when AQI is in the green/moderate range.",
+        "Airway Defense: Wear an N95 respirator during high-wind intervals to arrest coarse PM10 dust and seasonal pollen allergens.",
+        "Bronchodilator Protocol: Keep rapid-acting Salbutamol rescue bronchodilator on standby; monitor peak flow if history of allergic airway spasm.",
+        "Hydration & Mucosal Care: Maintain cellular hydration (>2.5L filtered water) to protect respiratory mucosal barrier integrity against dust irritation.",
+        "Ventilation Window: Ventilate indoor spaces exclusively during midday moderate AQI dips; keep windows sealed during dust storm advisories.",
+        "Cardiorespiratory Pacing: Restrict strenuous outdoor interval cardio workouts during active PM10 dust surge alerts.",
     ],
     "summer_heatwave": [
-        "Drink water every 30 minutes — heat plus pollution dehydrates faster.",
-        "Avoid outdoor activity 12–4 PM; travel before 10 AM if possible.",
-        "Watch for heat exhaustion: dizziness, nausea, heavy sweating.",
-        "Keep electrolytes balanced — ORS or coconut water helps.",
-        "Use a damp cloth on neck/wrists to cool down indoors.",
-        "Ozone peaks in afternoon — limit exertion near busy roads.",
+        "Electrolyte & Vascular Homeostasis: Hydrate every 20-30 minutes with electrolyte-balanced fluids (ORS/coconut water) to prevent heat-induced hemoconcentration.",
+        "Peak Ozone & Solar Window: Restrict outdoor transit during peak secondary photochemical ozone production (12:00–04:30 PM); prioritize early morning or post-6 PM transit.",
+        "Cardiovascular Load: Monitor for heat exhaustion biomarkers (dizziness, tachycardia >110 bpm, profuse diaphoresis); rest immediately in shaded, cooled areas.",
+        "Microclimate Protection: Pre-cool vehicular cabins and run active AC Recirculation to reduce simultaneous thermal stress and particulate inhalation.",
+        "Respiratory Membrane Shield: Avoid high-traffic industrial corridors where extreme heat accelerates ground-level toxic VOC gas formation.",
     ],
     "monsoon": [
-        "Mold allergy alert — keep indoor humidity controlled.",
-        "Drive carefully; wet roads and post-rain dust spikes are common.",
-        "Avoid flooded underpasses and waterlogged streets.",
-        "Use mask if post-rain dust pushes AQI up.",
-        "Dry footwear and change clothes if caught in rain.",
-        "Boiled/filtered water only during heavy monsoon weeks.",
+        "Fungal & Mold Airway Alert: Maintain indoor relative humidity below 55% with dehumidification to prevent fungal spore propagation and acute bronchospasm.",
+        "Vehicular Safety: Wet road dynamics and post-precipitation dust surges elevate local particulates — keep car AC in 100% Recirculation Mode.",
+        "Microbial Hygiene: Consume boiled or multi-stage filtered water only to protect against seasonal gastrointestinal waterborne pathogens.",
+        "Aerosol Protection: Wear a protective mask during windy post-rain dust spikes to prevent acute upper airway hyperresponsiveness.",
+        "Clothing & Skin Protocol: Immediately replace moisture-laden garments after transit to prevent bronchial cold-shock and mold contact.",
     ],
 }
 
@@ -176,25 +173,25 @@ SEASON_DIET_POOL: dict[str, list[str]] = {
 
 CONDITION_HEALTH: dict[str, list[str]] = {
     "asthma": [
-        "Pre-medicate 15 minutes before your commute if your doctor advised it.",
-        "Keep salbutamol/rescue inhaler in your bag — not in a hot car glove box.",
-        "Avoid sudden cold-to-hot air changes; they can trigger bronchospasm.",
-        "Track peak flow twice daily during high-AQI weeks.",
-        "Skip outdoor runs on AQI above 150; use indoor alternatives.",
+        "Pre-medicate 15 minutes before commute if prescribed; ensure tight N95 seal to block 95%+ of deep alveolar PM2.5 particles.",
+        "Keep rapid-acting Salbutamol rescue bronchodilator in hand luggage (avoid high car temperatures) and perform post-commute airway rinse.",
+        "Maintain outdoor exertion window under 25 minutes to prevent hyperventilation and acute bronchospasm.",
+        "Track peak expiratory flow (PEF) twice daily; postpone outdoor cardio workouts whenever AQI exceeds 120.",
+        "Ensure vehicle AC is locked in 100% Recirculation Mode to reduce cabin particulate penetration by up to 80%.",
     ],
     "heart disease": [
-        "Avoid heavy exertion outdoors when AQI and heat are both high.",
-        "Watch for chest tightness or unusual fatigue during your route.",
-        "Take prescribed heart meds on time — heat stress raises cardiovascular load.",
-        "Prefer shorter, shaded segments if you must walk in peak hours.",
-        "Limit salty street food — sodium plus heat strains blood pressure.",
+        "Cap continuous outdoor walking to under 20 minutes to prevent tachycardia, myocardial oxygen mismatch, and arterial vasoconstriction.",
+        "Monitor for subtle chest tightness, palpitations, or shortness of breath; adhere strictly to prescribed anti-hypertensive regimen.",
+        "Set vehicular AC to Recirculation Mode and run True HEPA air filtration indoors to lower vascular endothelial stress.",
+        "Avoid high-traffic combustion corridors during peak thermal inversion hours (06:00-09:30 AM & 07:30-10:30 PM).",
+        "Maintain heart rate below 110 bpm during outdoor transit to minimize pollution-induced cardiac strain.",
     ],
     "diabetes": [
-        "Check blood sugar before long commutes — heat can shift glucose levels.",
-        "Carry fast-acting glucose if you use insulin or sulfonylureas.",
-        "Avoid skipping meals before outdoor travel in hot weather.",
-        "Stay extra hydrated — dehydration can spike blood sugar readings.",
-        "Wear breathable footwear to prevent foot issues on long walks.",
+        "Check blood glucose before long commutes; ambient particulate exposure combined with heat stress shifts glycemic homeostasis.",
+        "Carry fast-acting glucose tablets or oral rehydration solution during travel.",
+        "Wear an N95 respirator to prevent systemic microvascular inflammation and oxidative stress.",
+        "Maintain optimal cellular hydration with >2.5L filtered water to support renal clearance of airborne toxins.",
+        "Use supportive, breathable footwear and schedule travel during lower pollution windows (11:00 AM - 03:30 PM).",
     ],
 }
 
@@ -218,62 +215,62 @@ CONDITION_DIET: dict[str, list[str]] = {
 
 COMMUTE_HEALTH: dict[str, list[str]] = {
     "walk": [
-        "Walking exposes you longer — choose the lowest-AQI corridor shown.",
-        "Take a 2-minute shade break every 15 minutes in garmi season.",
-        "Wear a well-fitted N95; cloth masks are not enough at AQI 120+.",
+        "Pedestrian Dose Mitigation: Continuous walking triples minute ventilation rate — strictly adhere to the designated low-exposure corridor.",
+        "Airway Filtration: Wear a sealed N95/FFP2 respirator; basic surgical or cloth masks offer <35% barrier against fine PM2.5 particles.",
+        "Thermal & Cardiopulmonary Pacing: Take a 2-minute shaded rest every 15 minutes during elevated temperature or moderate pollution intervals.",
     ],
     "bike": [
-        "Cycling raises breathing rate — mask fit is critical.",
-        "Plan route before 10 AM or after 6 PM in pre-monsoon heat.",
-        "Carry a small water bottle — sip every 10 minutes.",
+        "Minute Ventilation Control: Cycling elevates pulmonary airflow up to 40 L/min — ensure an airtight N95 mask seal to prevent alveolar soot penetration.",
+        "Chronobiological Timing: Schedule commutes before 09:30 AM or after 06:00 PM to circumvent peak ground-level photochemical ozone.",
+        "Cellular Hydration: Hydrate with electrolyte fluids every 10–15 minutes to counter high pulmonary evaporative fluid loss.",
     ],
     "car": [
-        "Use recirculation mode in traffic jams near high-AQI zones.",
-        "Replace cabin air filter if you commute daily through smog corridors.",
-        "Park in shade — car interiors amplify heat and VOC exposure.",
+        "Cabin Isolation: Lock vehicle AC in 100% Recirculation Mode, blocking up to 80% of road-level toxic carbon soot and NO2.",
+        "Filtration Maintenance: Ensure high-efficiency cabin micro-filters (MERV 13 / HEPA) are clean for frequent transit through high-AQI corridors.",
+        "Microclimate Protection: Park in shaded areas to prevent interior VOC outgassing and extreme thermal accumulation.",
     ],
     "public_transport": [
-        "Stand away from bus exhaust at stops; exhaust worsens local AQI.",
-        "Keep a spare N95 in your bag for crowded, dusty platforms.",
-        "Exit one stop early and walk the last stretch through greener streets.",
+        "Exhaust Proximity: Maintain at least 5 meters distance from bus tailpipe exhaust zones at transit stations to avoid localized PM2.5 spikes.",
+        "Respiratory PPE: Keep a backup sealed N95 respirator in hand luggage for crowded, unventilated transit platforms.",
+        "Route Optimization: Debus at low-density stops and navigate terminal pedestrian stretches through vegetated corridors.",
     ],
 }
 
 SENSITIVITY_HEALTH: dict[str, list[str]] = {
     "high": [
-        "Your high pollution sensitivity means even moderate AQI can trigger symptoms.",
-        "Consider postponing non-essential trips when AQI exceeds 100.",
-        "Run a HEPA purifier in the room where you sleep.",
+        "High Vulnerability Protocol: Elevated bronchial hyperresponsiveness — postpone non-essential outdoor transit when AQI exceeds 100.",
+        "Clinical Exposure Cap: Restrict continuous outdoor exposure to <20 minutes with real-time heart rate pacing <105 bpm.",
+        "Indoor Sanctuary: Operate True HEPA air filtration continuously in the primary bedroom, targeting an indoor AQI < 20.",
     ],
     "medium": [
-        "Limit outdoor exertion to under 30 minutes when AQI is above 120.",
-        "Keep windows closed during morning and evening rush-hour pollution peaks.",
+        "Moderate Vulnerability: Limit continuous outdoor exertion to under 25 minutes whenever ambient AQI exceeds 120.",
+        "Peak Inversion Protection: Maintain airtight window seals during morning and evening rush-hour pollution peaks (07:00–09:30 AM, 07:00–10:00 PM).",
     ],
     "low": [
-        "You tolerate pollution better, but still avoid strenuous activity above AQI 200.",
+        "General Preventive Baseline: Maintain standard pulmonary precautions and avoid strenuous high-intensity cardio when AQI exceeds 180.",
     ],
 }
 
 OUTDOOR_HEALTH: dict[str, list[str]] = {
     "under_30": [
-        "Short outdoor exposure — a fitted N95 is usually sufficient for your trip.",
+        "Short Transit Window: Brief exposure (<30 mins) — a certified, well-sealed N95 respirator provides >95% deep alveolar particle protection.",
     ],
     "30_60": [
-        "30–60 min outdoors daily — schedule around AQI dips, not peak heat.",
+        "Extended Exposure Protocol (30–60 mins): Pace exertion to keep minute ventilation low; plan route along verified green corridors.",
     ],
     "1_2": [
-        "1–2 hours outdoors — take a hydration break halfway through your route.",
+        "Prolonged Exposure Warning (1–2 hrs): Mandatory hydration break every 25 minutes; replace disposable respirator if breathing resistance increases.",
     ],
     "2_plus": [
-        "2+ hours outdoors — you need shade, water every 30 min, and a spare mask.",
+        "Heavy Environmental Burden (2+ hrs): Significant toxic particulate inhalation risk — enforce strict N95 seal compliance, scheduled cooling, and electrolyte rehydration.",
     ],
 }
 
 SUMMARY_UR: dict[str, str] = {
-    "winter_smog": "Smog season — wear a mask and stay indoors when possible.",
-    "spring_dust": "Spring dust — AQI is variable, wear a mask on windy days.",
-    "summer_heatwave": "Heatwave season — drink plenty of water and avoid midday sun.",
-    "monsoon": "Monsoon season — drink filtered water and avoid waterlogged roads.",
+    "winter_smog": "⚠️ Smog Inversion Alert — Wear sealed N95 PPE and enforce indoor True HEPA isolation.",
+    "spring_dust": "⚠️ Dust & Allergen Surge — Monitor airway reactivity and use protective airway barriers.",
+    "summer_heatwave": "⚠️ Extreme Heatwave & Ozone Peak — Maintain electrolyte hydration and avoid midday solar exposure.",
+    "monsoon": "⚠️ Monsoon Humidity & Mold Alert — Regulate indoor humidity and maintain micro-environment isolation.",
 }
 
 
@@ -518,7 +515,8 @@ def format_health_advice(
     )
 
     body = "\n".join(f"• {b}" for b in bullets[:4])
-    return f"{summary_en}\n{summary_ur}\n\n{body}"
+    med_note = "\n\n⚠️ Medical Note: If you experience severe respiratory distress, worsening symptoms, or persistent discomfort, consult a qualified physician or pulmonologist immediately (طبیعت زیادہ خراب ہونے کی صورت میں فوراً ڈاکٹر یا پلمونولوجسٹ سے رجوع کریں)."
+    return f"{summary_en}\n{summary_ur}\n\n{body}{med_note}"
 
 
 def format_diet_plan(

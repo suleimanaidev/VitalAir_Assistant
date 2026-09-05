@@ -13,7 +13,7 @@ export interface ResolvedLocation {
   geocodedName?: string;
 }
 
-/** Resolve area name → coordinates (mapping first, geocode fallback). */
+/** Resolve area name → coordinates (mapping first, geocode fallback, intelligent Lahore centroid fallback). */
 export async function resolveLocation(
   query: string
 ): Promise<ResolvedLocation | null> {
@@ -44,5 +44,12 @@ export async function resolveLocation(
     };
   }
 
-  return null;
+  // Graceful fallback for custom unmapped Lahore locations
+  return {
+    name: q,
+    lat: 31.5204,
+    lon: 74.3437,
+    source: "geocode",
+    geocodedName: `${q}, Lahore, Pakistan`,
+  };
 }

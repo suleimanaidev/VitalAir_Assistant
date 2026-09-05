@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { useVitalAirStore } from "@/store/useVitalAirStore";
 import { authLink } from "@/lib/authLinks";
+import AdminPasswordModal from "@/components/admin/AdminPasswordModal";
 
 const APP_LINKS = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -40,16 +41,10 @@ export default function AppSidebarLayout({
   const router = useRouter();
   const { data: session, status } = useSession();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [adminModalOpen, setAdminModalOpen] = useState(false);
   const isAuthenticated = status === "authenticated";
-  const isAdmin = session?.user?.role === "admin";
 
-  const navLinks = useMemo(
-    () =>
-      isAdmin
-        ? [...APP_LINKS, { href: "/admin", label: "Admin", icon: Shield }]
-        : [...APP_LINKS],
-    [isAdmin]
-  );
+  const navLinks = useMemo(() => [...APP_LINKS], []);
 
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -119,14 +114,25 @@ export default function AppSidebarLayout({
                 {session?.user?.email}
               </p>
             </div>
-            <button
-              type="button"
-              onClick={handleSignOut}
-              className="flex w-full items-center justify-center gap-2 rounded-xl border border-vital-border px-3 py-2.5 text-sm font-medium text-vital-muted transition-colors hover:border-vital-primary/50 hover:text-vital-text"
-            >
-              <LogOut className="h-4 w-4" aria-hidden />
-              Sign out
-            </button>
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={handleSignOut}
+                className="flex-1 flex items-center justify-center gap-2 rounded-xl border border-vital-border px-3 py-2.5 text-sm font-medium text-vital-muted transition-colors hover:border-vital-primary/50 hover:text-vital-text"
+              >
+                <LogOut className="h-4 w-4" aria-hidden />
+                Sign out
+              </button>
+              <button
+                type="button"
+                onClick={() => setAdminModalOpen(true)}
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-vital-border text-vital-muted/40 hover:text-vital-primary hover:border-vital-primary/40 transition-colors"
+                title="Admin Access"
+                aria-label="Admin Access"
+              >
+                <Shield className="h-4 w-4" />
+              </button>
+            </div>
           </>
         ) : (
           <Link
@@ -139,6 +145,11 @@ export default function AppSidebarLayout({
           </Link>
         )}
       </div>
+
+      <AdminPasswordModal
+        isOpen={adminModalOpen}
+        onClose={() => setAdminModalOpen(false)}
+      />
     </>
   );
 

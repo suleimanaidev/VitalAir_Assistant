@@ -26,7 +26,10 @@ from services.rag_service import (
     build_health_rag_query,
     retrieve_health_context,
 )
-from services.seasonal_intelligence import build_personalized_season_intelligence
+from services.seasonal_intelligence import (
+    build_personalized_season_intelligence,
+    get_season_profile,
+)
 from agents.llm_config import crewai_is_available
 from services.user_patient_rag import (
     reset_active_keyword_chunks,
@@ -222,6 +225,8 @@ def vital_result_to_response(
         fastest=geo.fastest.model_dump(),
         recommendation=geo.recommendation,
         aqi_checkpoints=geo.aqi_checkpoints,
+        avoid_areas=list(get_season_profile(ctx.get("season", "winter_smog")).avoid_areas) if ctx else [],
+        road_news=[],
     )
     pes = compute_personal_exposure_score(
         aqi=result.aqi,

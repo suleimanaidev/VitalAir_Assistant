@@ -50,15 +50,8 @@ export default function Navbar() {
   const { data: session, status } = useSession();
   const isAuthenticated = status === "authenticated";
   const isLoadingSession = status === "loading";
-  const isAdmin = session?.user?.role === "admin";
 
-  const appNavLinks = useMemo(
-    () =>
-      isAdmin
-        ? [...APP_LINKS, { href: "/admin", label: "Admin", icon: Shield }]
-        : [...APP_LINKS],
-    [isAdmin]
-  );
+  const appNavLinks = useMemo(() => [...APP_LINKS], []);
 
   const isHome = pathname === "/";
   const isLoginPage = pathname === "/login";

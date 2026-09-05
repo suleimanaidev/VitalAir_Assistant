@@ -21,6 +21,9 @@ import { cleanAreaName, formatAreaTitle } from "@/lib/formatLocation";
 import { formatAqiUpdated } from "@/lib/aqi";
 import { LahoreSeason } from "@/lib/lahoreSeason";
 import {
+  runHealthAgent,
+  runNutritionAgent,
+  runRouteAgent,
   startHealthAgentJob,
   startNutritionAgentJob,
   startRouteAgentJob,
@@ -203,6 +206,25 @@ export default function AgentResultsSection({
       setHealthResult(data);
       setHealthStatus("done");
     } catch (err) {
+      try {
+        setHealthLive("Completing health analysis…");
+        const directData = await runHealthAgent(
+          {
+            area: cleanAreaName(area),
+            profile: profilePayload(profile),
+            user_id: userId ?? undefined,
+            aqi: heroAqi ?? undefined,
+          },
+          session?.backendToken
+        );
+        if (directData && directData.health_advice) {
+          setHealthResult(directData);
+          setHealthStatus("done");
+          return;
+        }
+      } catch {
+        /* fallback to offline guidelines */
+      }
       setHealthResult({
         health_advice: "Based on WHO guidelines, limit outdoor exertion when air quality drops. Consider wearing an N95 mask.",
         temperature_c: 25,
@@ -216,7 +238,6 @@ export default function AgentResultsSection({
         area: area,
         aqi_label: heroLabel
       } as any);
-      setHealthError("Agent failed. Showing local fallback advice.");
       setHealthStatus("done");
     } finally {
       setHealthLive(null);
@@ -247,6 +268,25 @@ export default function AgentResultsSection({
       setNutritionResult(data);
       setNutritionStatus("done");
     } catch (err) {
+      try {
+        setNutritionLive("Completing nutrition analysis…");
+        const directData = await runNutritionAgent(
+          {
+            area: cleanAreaName(area),
+            profile: profilePayload(profile),
+            user_id: userId ?? undefined,
+            aqi: heroAqi ?? undefined,
+          },
+          session?.backendToken
+        );
+        if (directData && directData.diet_plan?.length) {
+          setNutritionResult(directData);
+          setNutritionStatus("done");
+          return;
+        }
+      } catch {
+        /* fallback to offline guidelines */
+      }
       setNutritionResult({
         diet_plan: [
           "Use citrus fruits like lemon and oranges to boost immunity.",
@@ -261,7 +301,6 @@ export default function AgentResultsSection({
         rag_sources_used: 1,
         season: activeSeason.id
       } as any);
-      setNutritionError("Agent failed. Showing local fallback advice.");
       setNutritionStatus("done");
     } finally {
       setNutritionLive(null);
@@ -279,18 +318,33 @@ export default function AgentResultsSection({
     setQuery({ source: from, destination: to });
 
     try {
-      const { task_id } = await startRouteAgentJob(
-        {
-          profile: profilePayload(profile),
-          query: { source: from, destination: to },
-          user_id: userId ?? undefined,
-          aqi: heroAqi ?? undefined,
-        },
-        session?.backendToken
-      );
-      const data = await streamAgentJob(task_id, "route", session?.backendToken, {
-        onProgress: (message) => setRouteLive(message),
-      });
+      let data: AgentRouteResult | null = null;
+      try {
+        const { task_id } = await startRouteAgentJob(
+          {
+            profile: profilePayload(profile),
+            query: { source: from, destination: to },
+            user_id: userId ?? undefined,
+            aqi: heroAqi ?? undefined,
+          },
+          session?.backendToken
+        );
+        data = await streamAgentJob(task_id, "route", session?.backendToken, {
+          onProgress: (message) => setRouteLive(message),
+        });
+      } catch {
+        setRouteLive("Routing clean corridor…");
+        data = await runRouteAgent(
+          {
+            profile: profilePayload(profile),
+            query: { source: from, destination: to },
+            user_id: userId ?? undefined,
+            aqi: heroAqi ?? undefined,
+          },
+          session?.backendToken
+        );
+      }
+      if (!data) throw new Error("No route generated");
       setRouteResult(data);
       setRouteStatus("done");
 
@@ -416,12 +470,11 @@ export default function AgentResultsSection({
             fetchMethod={areaReading?.fetch_method}
             isStale={areaReading?.is_stale}
             updatedAt={
-              areaReading?.updated_at
-                ? formatAqiUpdated(
-                    areaReading.updated_at,
-                    areaReading.station_reported_at
-                  )
-                : "Just now"
+              formatAqiUpdated(
+                areaReading?.updated_at,
+                areaReading?.station_reported_at,
+                areaReading?.fetched_at
+              )
             }
           />
         ) : (
@@ -482,6 +535,11 @@ export default function AgentResultsSection({
               title={healthTitleFromContext(validHealthResult.aqi, profile)}
               message={validHealthResult.health_advice}
               severity={healthSeverity}
+              aqi={validHealthResult.aqi}
+              profile={profile}
+              conditions={profile.conditions}
+              seasonLabel={activeSeason.labelEn}
+              hasPatientDocs={validHealthResult.has_patient_docs}
               sourceHint={
                 validHealthResult.has_patient_docs
                   ? "Verified medical guidance · Tailored using WHO standards & your uploaded health documents."
@@ -515,6 +573,8 @@ export default function AgentResultsSection({
           <NutritionCard
             embedded
             items={validNutritionResult.diet_plan}
+            seasonId={validNutritionResult.season || activeSeason?.id}
+            seasonLabel={validNutritionResult.season_label || activeSeason?.labelEn}
             hasPatientDocs={validNutritionResult.has_patient_docs}
           />
         ) : (
@@ -614,6 +674,19 @@ export default function AgentResultsSection({
               from={cleanAreaName(area)}
               to={cleanAreaName(destination)}
               routeOptions={routeResult.safe_route?.route_options}
+              avoidAreas={
+                routeResult.avoid_areas?.length
+                  ? routeResult.avoid_areas
+                  : routeResult.safe_route?.avoid_areas?.length
+                  ? routeResult.safe_route.avoid_areas
+                  : routeResult.season_intelligence?.avoid_areas || []
+              }
+              roadNews={
+                routeResult.road_news?.length
+                  ? routeResult.road_news
+                  : routeResult.safe_route?.road_news || []
+              }
+              seasonFocus={routeResult.season_intelligence?.route_agent_focus}
             />
           </div>
         )}

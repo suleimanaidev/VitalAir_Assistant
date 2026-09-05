@@ -13,7 +13,7 @@ export default function ProfilePage() {
   return (
     <AppSidebarLayout>
       <main className="pb-16">
-        <div className="mx-auto max-w-2xl px-4 py-8 sm:px-6">
+        <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
         <header className="mb-8">
           <div className="mb-2 flex items-center gap-2 text-vital-primary">
             <UserCircle className="h-6 w-6" aria-hidden />

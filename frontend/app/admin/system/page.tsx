@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Loader2, RefreshCw } from "lucide-react";
 import {
   fetchAdminSystem,
@@ -29,8 +29,8 @@ export default function AdminSystemPage() {
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
 
-  const load = () => {
-    setLoading(true);
+  const load = useCallback((silent = false) => {
+    if (!silent) setLoading(true);
     setError(null);
     fetchAdminSystem()
       .then(setInfo)
@@ -38,11 +38,13 @@ export default function AdminSystemPage() {
         setError(err instanceof Error ? err.message : "Could not load system info")
       )
       .finally(() => setLoading(false));
-  };
+  }, []);
 
   useEffect(() => {
     load();
-  }, []);
+    const timer = setInterval(() => load(true), 5000);
+    return () => clearInterval(timer);
+  }, [load]);
 
   const onReingest = async () => {
     setReingesting(true);

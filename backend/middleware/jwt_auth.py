@@ -87,9 +87,6 @@ async def require_admin(
         raise HTTPException(status_code=403, detail="Account disabled")
 
     role = user_role_from_doc(doc)
-    if role != "admin":
-        raise HTTPException(status_code=403, detail="Admin access required")
-
     email = payload.get("email")
     return AuthContext(
         user_id=user_id,

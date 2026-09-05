@@ -56,14 +56,13 @@ def _emit(publish_log: PublishLog | None, agent: str, status: str, message: str)
 
 
 def fetch_area_aqi(area: str) -> int:
-    """Live WAQI for a Lahore area; falls back to city reading."""
-    if resolve_area(area):
-        try:
-            data = fetch_aqi_for_area(area)
-            if data and data.get("aqi"):
-                return int(data["aqi"])
-        except Exception:
-            pass
+    """Live WAQI for any Lahore area (mapped or dynamic geocoded); falls back to city reading."""
+    try:
+        data = fetch_aqi_for_area(area)
+        if data and data.get("aqi"):
+            return int(data["aqi"])
+    except Exception:
+        pass
     try:
         return int(fetch_aqi_for_api("Lahore")["aqi"])
     except Exception:
@@ -387,6 +386,17 @@ def run_route_agent(
     route_options = [RouteOption(**opt) for opt in route_options_raw]
     best = route_options[0] if route_options else None
 
+    from services.seasonal_intelligence import get_season_profile
+    from tools.serper_core import search_road_news_sync
+
+    season_id = ctx.get("season")
+    season_profile = get_season_profile(season_id or "monsoon")
+    avoid_areas = list(season_profile.avoid_areas)
+
+    _emit(publish_log, ROUTE_AGENT, "thinking", f"Scanning live road & weather alerts via Google Serper…")
+    news_data = search_road_news_sync(f"{query.source} {query.destination}", season_id=season_id)
+    road_news = news_data.get("headlines", [])
+
     _emit(publish_log, ROUTE_AGENT, "thinking", "Computing personal exposure score…")
     safe = SafeRoute(
         summary=f"{query.source} → {query.destination}",
@@ -400,6 +410,8 @@ def run_route_agent(
         recommendation=best.recommendation if best else geo.get("recommendation"),
         aqi_checkpoints=geo.get("aqi_checkpoints", []),
         route_options=route_options,
+        avoid_areas=avoid_areas,
+        road_news=road_news,
     )
 
     pes = compute_personal_exposure_score(
@@ -410,8 +422,9 @@ def run_route_agent(
         sensitivity=getattr(profile, "sensitivity", "medium"),
     )
 
+    active_season_id = ctx.get("season") or get_lahore_season().id
     season_intel_dict = build_personalized_season_intelligence(
-        ctx.get("season", "winter_smog"),
+        active_season_id,
         aqi=aqi_val,
         temp_c=float(ctx.get("temperature_c") or 0),
         conditions=list(profile.conditions or []),
@@ -433,6 +446,8 @@ def run_route_agent(
             ctx=ctx,
         ),
         route_source=route.get("source", "osrm"),
+        avoid_areas=avoid_areas,
+        road_news=road_news,
     )
 
 
@@ -525,7 +540,7 @@ async def run_health_agent_async(
     agent_mode = "rag_rules"
 
     settings = get_settings()
-    if settings.has_openai:
+    if settings.has_live_llm:
         _emit(publish_log, HEALTH_AGENT, "thinking", "Enhancing advice with AI…")
         profile_summary = (
             f"{profile.name}, age {profile.age}, "
@@ -663,7 +678,7 @@ async def run_nutrition_agent_async(
     agent_mode = "rag_rules"
 
     settings = get_settings()
-    if settings.has_openai:
+    if settings.has_live_llm:
         _emit(publish_log, NUTRITION_AGENT, "thinking", "Building personalized food guide…")
         profile_summary = (
             f"{profile.name}, age {profile.age}, conditions {', '.join(conditions) or 'none'}, "

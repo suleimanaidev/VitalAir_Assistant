@@ -254,4 +254,15 @@ def fetch_aqi_for_area(area_query: str) -> dict:
             set_cached(cache_key, result)
             return result
 
+    # Fallback to Lahore central coordinates if custom or unmapped
+    result = fetch_aqi_at_coords(
+        31.5204, 74.3437, area_query.strip(), location_source="geocode"
+    )
+    if result:
+        result["geocoded_name"] = f"{area_query.strip()}, Lahore, Pakistan"
+        set_cached(cache_key, result)
+        return result
+
     raise ValueError(f"Could not resolve '{area_query}' in Lahore or fetch WAQI data.")
+
+

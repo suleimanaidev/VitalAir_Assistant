@@ -20,12 +20,12 @@ class MongoUnavailableError(RuntimeError):
 def _build_client() -> AsyncIOMotorClient:
     return AsyncIOMotorClient(
         get_settings().mongodb_uri,
-        serverSelectionTimeoutMS=3000,
-        connectTimeoutMS=3000,
-        socketTimeoutMS=5000,
+        serverSelectionTimeoutMS=2000,
+        connectTimeoutMS=2000,
+        socketTimeoutMS=2500,
         maxPoolSize=20,
-        minPoolSize=5,
-        waitQueueTimeoutMS=3000,
+        minPoolSize=1,
+        waitQueueTimeoutMS=2000,
     )
 
 
@@ -94,25 +94,17 @@ async def close_db() -> None:
 
 async def ping_db() -> bool:
     global _client, _client_failed_at
-    for attempt in range(2):
-        try:
-            client = await get_client_async()
-            await asyncio.wait_for(client.admin.command("ping"), timeout=3.0)
-            _client_failed_at = None
-            return True
-        except (MongoUnavailableError, PyMongoError, asyncio.TimeoutError):
-            if _client is not None:
+    try:
+        client = await get_client_async()
+        await asyncio.wait_for(client.admin.command("ping"), timeout=2.0)
+        _client_failed_at = None
+        return True
+    except Exception:
+        if _client is not None:
+            try:
                 _client.close()
-                _client = None
-            _client_failed_at = time.monotonic()
-            if attempt == 0:
-                await asyncio.sleep(0.5)
-                continue
-            return False
-        except Exception:
-            if _client is not None:
-                _client.close()
-                _client = None
-            _client_failed_at = time.monotonic()
-            return False
-    return False
+            except Exception:
+                pass
+            _client = None
+        _client_failed_at = time.monotonic()
+        return False

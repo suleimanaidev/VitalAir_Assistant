@@ -287,28 +287,30 @@ export default function DashboardView() {
   return (
     <main className="pb-16">
       <div className="mx-auto max-w-4xl lg:max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
-        <header className="mb-8">
-          <h1 className="section-title">AI Agent Dashboard</h1>
-          <p className="section-subtitle">
-            {healthProfile ? (
-              <>
-                Welcome,{" "}
-                <span className="text-vital-primary">{profile.name}</span>
-              </>
-            ) : profileLoading ? (
-              "Loading your health profile…"
-            ) : (
-              <>
-                <Link
-                  href="/profile"
-                  className="text-vital-primary underline-offset-2 hover:underline"
-                >
-                  Set up your health profile
-                </Link>{" "}
-                for personalized health &amp; nutrition advice.
-              </>
-            )}
-          </p>
+        <header className="mb-8 flex items-start justify-between">
+          <div>
+            <h1 className="section-title">AI Agent Dashboard</h1>
+            <p className="section-subtitle">
+              {healthProfile ? (
+                <>
+                  Welcome,{" "}
+                  <span className="text-vital-primary">{profile.name}</span>
+                </>
+              ) : profileLoading ? (
+                "Loading your health profile…"
+              ) : (
+                <>
+                  <Link
+                    href="/profile"
+                    className="text-vital-primary underline-offset-2 hover:underline"
+                  >
+                    Set up your health profile
+                  </Link>{" "}
+                  for personalized health &amp; nutrition advice.
+                </>
+              )}
+            </p>
+          </div>
         </header>
 
         <div className="vital-card mb-6 p-5">

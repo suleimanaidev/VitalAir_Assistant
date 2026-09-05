@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { fetchAdminUsers, type AdminUserRow } from "@/lib/adminApi";
 
 export default function AdminUsersPage() {
@@ -13,8 +13,8 @@ export default function AdminUsersPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    setLoading(true);
+  const loadUsers = useCallback((silent = false) => {
+    if (!silent) setLoading(true);
     setError(null);
     fetchAdminUsers({ page, limit: 20, search: query || undefined })
       .then((data) => {
@@ -26,6 +26,12 @@ export default function AdminUsersPage() {
       )
       .finally(() => setLoading(false));
   }, [page, query]);
+
+  useEffect(() => {
+    loadUsers();
+    const timer = setInterval(() => loadUsers(true), 5000);
+    return () => clearInterval(timer);
+  }, [loadUsers]);
 
   const totalPages = Math.max(1, Math.ceil(total / 20));
 

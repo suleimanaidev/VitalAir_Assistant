@@ -15,6 +15,7 @@ class UserProfile(BaseModel):
 
     name: str = Field(..., min_length=1, max_length=120)
     age: int = Field(..., ge=1, le=120)
+    gender: str = Field(default="male")
     conditions: list[str] = Field(default_factory=list)
     city: str = Field(default="Lahore", min_length=1, max_length=80)  # Lahore-only app
     sensitivity: SensitivityLevel = "medium"
@@ -34,6 +35,7 @@ class AnalyzeProfile(BaseModel):
 
     name: str = Field(default="Guest", max_length=120)
     age: int = Field(default=25, ge=1, le=120)
+    gender: str = Field(default="male")
     conditions: list[str] = Field(default_factory=list)
     city: str = Field(default="Lahore", min_length=1, max_length=80)  # Lahore-only app
     sensitivity: SensitivityLevel = "medium"
@@ -88,6 +90,8 @@ class SafeRoute(BaseModel):
     recommendation: str | None = None
     aqi_checkpoints: list[dict] = Field(default_factory=list)
     route_options: list[RouteOption] = Field(default_factory=list)
+    avoid_areas: list[str] = Field(default_factory=list)
+    road_news: list[str] = Field(default_factory=list)
 
 
 class PesBreakdown(BaseModel):
@@ -264,3 +268,5 @@ class AgentRouteResponse(BaseModel):
     season_intelligence: SeasonIntelligence | None = None
     context_summary: str | None = None
     route_source: str = "osrm"
+    avoid_areas: list[str] = Field(default_factory=list)
+    road_news: list[str] = Field(default_factory=list)

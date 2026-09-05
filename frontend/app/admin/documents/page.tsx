@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { fetchAdminDocuments, type AdminDocumentRow } from "@/lib/adminApi";
 
 export default function AdminDocumentsPage() {
@@ -8,7 +8,9 @@ export default function AdminDocumentsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
+  const loadDocs = useCallback((silent = false) => {
+    if (!silent) setLoading(true);
+    setError(null);
     fetchAdminDocuments()
       .then(setItems)
       .catch((err) =>
@@ -16,6 +18,12 @@ export default function AdminDocumentsPage() {
       )
       .finally(() => setLoading(false));
   }, []);
+
+  useEffect(() => {
+    loadDocs();
+    const timer = setInterval(() => loadDocs(true), 5000);
+    return () => clearInterval(timer);
+  }, [loadDocs]);
 
   if (loading) {
     return <p className="text-sm text-vital-muted">Loading documents…</p>;

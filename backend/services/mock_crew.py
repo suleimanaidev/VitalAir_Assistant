@@ -21,7 +21,10 @@ from services.lahore_context import (
 )
 from services.openai_advice import generate_diet_plan, generate_health_advice
 from services.personal_exposure_score import compute_personal_exposure_score
-from services.seasonal_intelligence import build_personalized_season_intelligence
+from services.seasonal_intelligence import (
+    build_personalized_season_intelligence,
+    get_season_profile,
+)
 from services.rag_service import (
     build_diet_rag_query,
     build_health_rag_extra_queries,
@@ -88,6 +91,11 @@ def _to_analyze_response(
     best = route_options[0] if route_options else None
 
     route_distance = best.distance if best else route_meta.get("distance")
+    from tools.serper_core import search_road_news_sync
+    season_id = ctx.get("season") if ctx else None
+    news_data = search_road_news_sync(f"{payload.query.source} {payload.query.destination}", season_id=season_id)
+    road_news = news_data.get("headlines", [])
+
     safe = SafeRoute(
         summary=f"{payload.query.source} → {payload.query.destination}",
         distance=route_distance,
@@ -100,6 +108,8 @@ def _to_analyze_response(
         recommendation=best.recommendation if best else geo.recommendation,
         aqi_checkpoints=geo.aqi_checkpoints,
         route_options=route_options,
+        avoid_areas=list(get_season_profile(ctx.get("season", "monsoon")).avoid_areas) if ctx else [],
+        road_news=road_news,
     )
     pes = compute_personal_exposure_score(
         aqi=result.aqi,
@@ -108,10 +118,11 @@ def _to_analyze_response(
         conditions=payload.profile.conditions,
         sensitivity=getattr(payload.profile, "sensitivity", "medium"),
     )
+    active_season_id = (ctx.get("season") if ctx else None) or get_lahore_season().id
     season_intel_dict = build_personalized_season_intelligence(
-        ctx.get("season", "winter_smog"),
+        active_season_id,
         aqi=result.aqi,
-        temp_c=float(ctx.get("temperature_c") or 0),
+        temp_c=float(ctx.get("temperature_c") or 0) if ctx else 0.0,
         conditions=list(payload.profile.conditions or []),
         age=int(payload.profile.age or 25),
         sensitivity=getattr(payload.profile, "sensitivity", "medium"),
@@ -234,7 +245,7 @@ def run_mock_analysis(
         )
         health = strip_wrong_season_phrases(health, season_id)
         settings = get_settings()
-        if settings.has_openai:
+        if settings.has_live_llm:
             profile_summary = (
                 f"{payload.profile.name}, age {payload.profile.age}, "
                 f"sensitivity {sensitivity}, commute {commute}, outdoor {outdoor}"
@@ -282,7 +293,7 @@ def run_mock_analysis(
             user_id=payload.user_id,
         )
         settings = get_settings()
-        if settings.has_openai:
+        if settings.has_live_llm:
             ai_diet = generate_diet_plan(
                 aqi=aqi,
                 rag_context=rag_diet,

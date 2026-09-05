@@ -43,6 +43,7 @@ def _user_admin_summary(doc: dict) -> dict:
         "role": user_role_from_doc(doc),
         "is_active": doc.get("is_active", True) is not False,
         "age": doc.get("age"),
+        "gender": doc.get("gender") or "male",
         "conditions": list(doc.get("conditions") or []),
         "city": doc.get("city") or "Lahore",
         "profile_completed": bool(doc.get("profile_completed") or doc.get("age") is not None),
@@ -356,6 +357,7 @@ async def ensure_user_for_token(user_id: str, email: str | None = None) -> dict:
         "name": "User",
         "email": (email or "").lower().strip() or None,
         "age": None,
+        "gender": "male",
         "conditions": [],
         "city": "Lahore",
         "sensitivity": "medium",
@@ -379,6 +381,7 @@ def profile_from_user_doc(doc: dict) -> UserProfile:
     return UserProfile(
         name=(doc.get("name") or "User").strip() or "User",
         age=int(doc["age"]) if doc.get("age") is not None else 25,
+        gender=doc.get("gender") or "male",
         conditions=list(doc.get("conditions") or []),
         city=doc.get("city") or "Lahore",
         sensitivity=doc.get("sensitivity") or "medium",
@@ -400,6 +403,7 @@ async def update_user_profile(user_id: str, profile: UserProfile) -> bool:
     payload = {
         "name": profile.name,
         "age": profile.age,
+        "gender": getattr(profile, "gender", "male") or "male",
         "conditions": profile.conditions,
         "city": profile.city,
         "sensitivity": profile.sensitivity,
@@ -500,6 +504,7 @@ async def create_user(profile: UserProfile) -> str:
     doc = {
         "name": profile.name,
         "age": profile.age,
+        "gender": getattr(profile, "gender", "male") or "male",
         "conditions": profile.conditions,
         "city": profile.city,
         "sensitivity": profile.sensitivity,

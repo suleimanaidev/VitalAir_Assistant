@@ -2,6 +2,7 @@ import { parseApiError } from "@/lib/apiError";
 import { APP_CITY } from "@/lib/constants";
 import type {
   CommuteMode,
+  Gender,
   HealthProfile,
   OutdoorTime,
   Sensitivity,
@@ -15,6 +16,7 @@ let profileFetchInflight: Promise<ProfileApiResponse> | null = null;
 export interface UserProfilePayload {
   name: string;
   age: number;
+  gender?: Gender;
   conditions: string[];
   city?: string;
   sensitivity: Sensitivity;
@@ -28,6 +30,7 @@ export interface ProfileApiResponse {
   profile: {
     name: string;
     age: number;
+    gender?: Gender;
     conditions: string[];
     city: string;
     sensitivity: Sensitivity;
@@ -43,6 +46,7 @@ export function profilePayloadFromHealth(profile: HealthProfile): UserProfilePay
   return {
     name: profile.name,
     age: profile.age,
+    gender: profile.gender,
     conditions: profile.conditions,
     city: profile.city,
     sensitivity: profile.sensitivity,
@@ -57,6 +61,7 @@ export function healthProfileFromApi(
   return {
     name: p.name,
     age: p.age,
+    gender: (p.gender as Gender) ?? "male",
     city: APP_CITY,
     conditions: p.conditions ?? [],
     sensitivity: p.sensitivity ?? "medium",
